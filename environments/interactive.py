@@ -1,18 +1,21 @@
 import random
 from math import sqrt
-from typing import Generator, Optional, Tuple, Sequence
+from typing import Generator, Optional, Tuple, Sequence, Iterable
 
 
-def gradient_world(size: int, tile_size: int) -> Generator[Tuple[float, float], Optional[float], None]:
+def env_gradient_world(size: int, centers: Iterable[Tuple[float, float]], tile_size: int) -> Generator[Tuple[float, ...], Optional[float], None]:
     dimensions = float(size), float(size)
     position = [4., 4.]
     momentum = [0., 0.]
-    center = (4., 4.)
 
     while True:
         floor_tile = float((position[0] % 2 >= 1.) == (position[1] % 2 >= 1.))
-        distance = sqrt(sum((v1 - v2) ** 2. for v1, v2 in zip(position, center)))
-        impulse = yield floor_tile, distance
+        distances = []
+        for each_center in centers:
+            each_distance = sqrt(sum((v1 - v2) ** 2. for v1, v2 in zip(position, each_center)))
+            distances.append(each_distance)
+        yield_value = floor_tile, *distances
+        impulse = yield yield_value
 
         if impulse is None:
             impulse = random.random() / tile_size, random.random() / tile_size
@@ -54,7 +57,7 @@ def _get_perception(grid: Tuple[Tuple[str, ...], ...], position: Sequence[int]) 
     return north, east, south, west
 
 
-def grid_world(file_path: str) -> Generator[Tuple[str, ...], Optional[str], None]:
+def env_grid_world(file_path: str) -> Generator[Tuple[str, ...], Optional[str], None]:
     grid = _parse_text_to_grid(file_path)
     height = len(grid)
     width = len(grid[0])
@@ -82,10 +85,10 @@ def grid_world(file_path: str) -> Generator[Tuple[str, ...], Optional[str], None
             raise ValueError()
 
 
-def gradient_test():
-    for sensor in gradient_world(8, 50):
+def test_env_gradient_world():
+    for sensor in env_gradient_world(8, {(4., 4.)}, 50):
         print(sensor)
 
 
 if __name__ == "__main__":
-    gradient_test()
+    test_env_gradient_world()

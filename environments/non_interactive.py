@@ -1,5 +1,7 @@
+import random
 import string
-from typing import Generator, Union
+from math import sin, cos
+from typing import Generator, Union, Tuple
 
 from dateutil import parser
 from matplotlib import pyplot
@@ -7,7 +9,7 @@ from matplotlib import pyplot
 from data.data_processing import equisample, series_generator
 
 
-def text_generator(file_path: str) -> Generator[str, None, None]:
+def env_text(file_path: str) -> Generator[str, None, None]:
     permissible_non_letter = string.digits + string.punctuation + " "
     with open(file_path, mode="r") as file:
         for line in file:
@@ -19,7 +21,7 @@ def text_generator(file_path: str) -> Generator[str, None, None]:
                     yield character
 
 
-def crypto_generator(file_path: str, start_val: Union[int, str], end_val: Union[int, str], interval_seconds: int) -> Generator[float, None, None]:
+def env_crypto(file_path: str, start_val: Union[int, str], end_val: Union[int, str], interval_seconds: int) -> Generator[float, None, None]:
     type_set = {type(start_val), type(end_val)}
     assert len(type_set) == 1
     t, = type_set
@@ -42,13 +44,13 @@ def crypto_generator(file_path: str, start_val: Union[int, str], end_val: Union[
         yield value
 
 
-def test_text():
+def test_env_text():
     text_path = "D:/Data/Texts/pride_prejudice.txt"
-    for v in text_generator(text_path):
+    for v in env_text(text_path):
         print(v, end="")
 
 
-def test_rate():
+def test_env_crypto():
     rate_path = "D:/Data/binance/01Jan2010--1m/EOSETH.csv"
     delta = 60
 
@@ -58,7 +60,7 @@ def test_rate():
     time_axis = []
     value_axis = []
 
-    for v in crypto_generator(rate_path, start_time, end_time, delta):
+    for v in env_crypto(rate_path, start_time, end_time, delta):
         time_axis.append(start_time)
         start_time += delta
         value_axis.append(v)
@@ -67,6 +69,46 @@ def test_rate():
     pyplot.show()
 
 
+def env_simple_nominal() -> Generator[str, None, None]:
+    i = 0
+    length = len(string.ascii_lowercase)
+    forward = True
+    while True:
+        yield string.ascii_lowercase[i]
+        if random.random() < .1:
+            forward = not forward
+        i = (i + int(forward) * 2 - 1) % length
+
+
+def env_simple_rational() -> Generator[Tuple[float, float], None, None]:
+    i = 0
+    while True:
+        # examples = [(sin(t / 100.), cos(t / 70.)*3. + sin(t/13.)*.7)]
+        yield sin(i / 100.), float(cos(i / 100.) >= 0.) * 2. - 1.
+        i += 1
+
+
+def test_simple_rational():
+    g = env_simple_rational()
+    time_axis = []
+    x1 = []
+    x2 = []
+    for t in range(1000):
+        v1, v2 = next(g)
+        time_axis.append(t)
+        x1.append(v1)
+        x2.append(v2)
+    pyplot.plot(time_axis, x1)
+    pyplot.plot(time_axis, x2)
+    pyplot.show()
+
+
+def test_simple_nominal():
+    g = env_simple_nominal()
+    for t in range(1000):
+        print(next(g), end="")
+
+
 if __name__ == "__main__":
-    test_rate()
+    test_env_crypto()
     # test_text()
