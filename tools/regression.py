@@ -1,65 +1,12 @@
 import random
-from math import sqrt
 from typing import Tuple
-
-# TODO: make multivariate (https://de.wikipedia.org/wiki/Multiple_lineare_Regression)
 import numpy
 from matplotlib import pyplot
 
 
 class Regressor:
-    def __init__(self, drag: int):
-        self.drag = drag
-        self.mean_x = 0.
-        self.mean_y = 0.
-        self.var_x = 0.
-        self.var_y = 0.
-        self.cov_xy = 0.
-        self.initial = True
-
-    def sim(self, x: float, y: float) -> float:
-        # https://stackoverflow.com/questions/23762178/normalized-distance-between-3d-2d-points#23763851
-        # https://en.wikipedia.org/wiki/Mahalanobis_distance
-        # dev = sqrt(var)  (https://en.wikipedia.org/wiki/Standard_deviation)
-        fx = self.output(x)
-        d = (fx - y) ** 2
-        if 0. >= d:
-            return 1.
-
-        if self.var_y == 0.:
-            return 0.
-
-        return 1. - min(1., d / self.var_y)
-
-    def fit(self, x: float, y: float):
-        dx = x - self.mean_x
-        dy = y - self.mean_y
-
-        self.var_x = (self.drag * self.var_x + dx ** 2) / (self.drag + 1)
-        self.var_y = (self.drag * self.var_y + dy ** 2) / (self.drag + 1)
-        self.cov_xy = (self.drag * self.cov_xy + dx * dy) / (self.drag + 1)
-
-        if self.initial:
-            self.mean_x = x
-            self.mean_y = y
-            self.initial = False
-
-        else:
-            self.mean_x = (self.drag * self.mean_x + x) / (self.drag + 1)
-            self.mean_y = (self.drag * self.mean_y + y) / (self.drag + 1)
-
-    def _get_parameters(self) -> Tuple[float, float]:
-        a = 0. if self.var_x == 0. else self.cov_xy / self.var_x
-        t = self.mean_y - a * self.mean_x
-        return t, a
-
-    def output(self, x: float) -> float:
-        x0, x1 = self._get_parameters()
-        return x0 + x1 * x
-
-
-class MultiRegressor:
     def __init__(self, input_dimensions: int, drag: int):
+        # https://de.wikipedia.org/wiki/Multiple_lineare_Regression
         # https://mubaris.com/2017/09/28/linear-regression-from-scratch/
         self.drag = drag
         self.input_dimensions = input_dimensions
@@ -143,7 +90,7 @@ def test3d(x0: float, x1: float, x2: float, size: int = 15):
     # https://stackoverflow.com/questions/36060933/matplotlib-plot-a-plane-and-points-in-3d-simultaneously
     f = lambda _x, _y: x2 * _x + x1 * _y + x0
 
-    regressor = MultiRegressor(2, 10)
+    regressor = Regressor(2, 10)
     fig = pyplot.figure()
     ax = fig.add_subplot(111, projection='3d')
 
@@ -193,7 +140,7 @@ def test2d(s: float, o: float):
         fig, ax = pyplot.subplots(1, sharex="all")
         ax.scatter(X, Y, label="original")
 
-        r = MultiRegressor(1, 10)
+        r = Regressor(1, 10)
         for _x, _y in zip(X, Y):
             r.fit((_x,),  _y)
 
@@ -213,8 +160,8 @@ if __name__ == "__main__":
     random.seed(8746587)
 
     for _ in range(100):
-        a = random.random() * 20. - 10
-        b = random.random() * 100. - 50
-        c = random.random() * 40. - 20
-        test3d(a, b, c, size=10)
-        # test2d(a, b)
+        _a = random.random() * 20. - 10
+        _b = random.random() * 100. - 50
+        _c = random.random() * 40. - 20
+        test3d(_a, _b, _c, size=10)
+        # test2d(_a, _b)

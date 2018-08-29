@@ -2,13 +2,11 @@ import datetime
 from typing import Tuple, Iterable, Generator, Iterator
 
 from dateutil.tz import tzutc
-from matplotlib import pyplot
 
-from sequence_generation import ExchangeRateSequence, TrigonometricSequence
-from methods import MovingAverage, Regression, RationalSemioticModel
-from modelling import EXAMPLE, TIME
-from visualization import ComparativeEvaluation, QualitativeEvaluationSingleSequence, QualitativeEvaluationMultiSequence
+from data.sequence_generation import ExchangeRateSequence, TrigonometricSequence, TIME, EXAMPLE
+from modelling.model_types import MovingAverage, Regression, RationalSemioticModel
 from tools.timer import Timer
+from visualization.visualization import QualitativeEvaluationMultiSequence, ComparativeEvaluation, QualitativeEvaluationSingleSequence
 
 
 def fix(_level: int) -> int:
@@ -97,7 +95,7 @@ def single_sequence():
     semiotic_model = RationalSemioticModel(
         input_dimension, output_dimension,
         no_parallel_examples,
-        alpha, sigma, drag, trace_length, fix_level_size_at=fix, differentiate=False)
+        alpha, sigma, drag, trace_length, fix_level_size_at=fix)
     predictors = [
         MovingAverage(output_dimension, no_parallel_examples, drag),
         Regression(input_dimension, output_dimension, no_parallel_examples, drag),

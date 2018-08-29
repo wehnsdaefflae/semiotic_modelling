@@ -82,7 +82,7 @@ class StatefulOptimizer:
         return current_center, current_value
 
 
-def main():
+def test_optimizer():
     with open("../configs/time_series.json", mode="r") as file:
         config = json.load(file)
 
@@ -119,5 +119,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    test_optimizer()
 

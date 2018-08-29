@@ -1,6 +1,6 @@
-from typing import Hashable, Any, Dict, Tuple, Generic, TypeVar, Optional, Callable
+from typing import Hashable, Any, Dict, Tuple, Generic, TypeVar, Optional
 
-from tools.regression import Regressor, MultiRegressor
+from tools.regression import Regressor
 
 CONDITION = TypeVar("CONDITION")
 CONSEQUENCE = TypeVar("CONSEQUENCE")
@@ -47,7 +47,7 @@ class Content(Hashable, Generic[CONDITION, CONSEQUENCE]):
         raise NotImplementedError
 
 
-class SymbolicContent(Content[Hashable, Hashable]):
+class NominalContent(Content[Hashable, Hashable]):
     def __init__(self, shape: int, alpha: int):
         super().__init__(shape, alpha)
         self.table = dict()                                             # type: Dict[Hashable, Dict[Hashable, int]]
@@ -82,7 +82,7 @@ class RationalContent(Content[Tuple[float, ...], Tuple[float, ...]]):
         super().__init__(shape, alpha)
         self.input_dimension = input_dimension
         self.output_dimension = output_dimension
-        self.regressions = tuple(MultiRegressor(input_dimension, drag) for _ in range(output_dimension))
+        self.regressions = tuple(Regressor(input_dimension, drag) for _ in range(output_dimension))
 
     def _adapt(self, condition: CONDITION, consequence: CONSEQUENCE):
         assert len(condition) == self.input_dimension
@@ -115,8 +115,8 @@ class ContentFactory:
     def rational(self, shape: int):
         return RationalContent(self.input_dimension, self.output_dimensions, shape, self.drag, self.alpha)
 
-    def symbolic(self, shape: int):
-        return SymbolicContent(shape, self.alpha)
+    def nominal(self, shape: int):
+        return NominalContent(shape, self.alpha)
 
 
 if __name__ == "__main__":

@@ -1,37 +1,10 @@
 import datetime
-import json
-import os
 import random
-from math import sin, cos
-from typing import Generator, Tuple, Iterator, Sequence, TypeVar
+from math import sin
+from typing import Generator, Tuple, Iterator
 
-import numpy
-from dateutil import parser
 from dateutil.tz import tzutc
 from matplotlib import pyplot
-
-from modelling import TIME, EXAMPLE
-from tools.timer import Timer
-
-
-def relative_brownian(initial=1., drift=.0, volatility=.01):  # relative normally distributed change
-    a = initial
-    while True:
-        yield a
-        # r = random.random()
-        r = numpy.random.random()
-        a = a * (1. + drift + volatility * (r - .5))
-
-
-def absolute_brownian(initial=1., factor=1., relative_bias=0.):  # constant equiprobable change
-    a = initial
-    while True:
-        yield a
-        if 0. < a:
-            # numpy.random.standard_cauchy
-            rnd_value = random.gauss(0., .2 / 4.)
-            rnd_value = 2. * factor * random.random() - factor + relative_bias * factor
-            a = max(a + rnd_value / 100., .0)
 
 
 def series_generator(file_path: str, start_timestamp: int = -1, end_timestamp: int = -1) -> Generator[Tuple[float, float], None, None]:
@@ -91,71 +64,11 @@ def equisample(iterator: Iterator[Tuple[float, float]], target_delta: float) -> 
                 yield last_time, last_value
 
 
-def debug_trig() -> Generator[Tuple[TIME, Sequence[EXAMPLE]], None, None]:
-    for t in range(50000):
-        # examples = [(sin(t / 100.), cos(t / 70.)*3. + sin(t/13.)*.7)]
-        examples = [((sin(t / 100.), ), cos(t / 100.))]
-        yield t, examples
-
-
-def time_stamp_test():
-        with open("../../configs/time_series.json", mode="r") as file:
-            config = json.load(file)
-
-        start_ts = 1501113780
-        #start_ts = 1521113780
-        # end_ts = 1502508240
-        end_ts = 1532508240
-
-        data_dir = config["data_dir"]
-        file_names = ["BNTETH.csv", "SNTETH.csv", "QTUMETH.csv", "EOSETH.csv"]
-        # file_names = os.listdir(data_dir)[-10:]
-
-        delta = 60
-
-        time_axes = tuple([] for _ in file_names)
-        value_axes = tuple([] for _ in file_names)
-        for _i, each_file in enumerate(file_names):
-            file_path = data_dir + each_file
-            last_t = -1
-            for t, v in equisample(series_generator(file_path, start_timestamp=start_ts, end_timestamp=end_ts), target_delta=delta):
-                if 0 < last_t:
-                    if not t - last_t == delta:
-                        print("skip")
-                last_t = t
-                time_axes[_i].append(t)
-                value_axes[_i].append(v)
-                if Timer.time_passed(2000):
-                    print("{:5.2f}% of file {:d}/{:d}".format(100. * (t - start_ts) / (end_ts - start_ts), _i + 1, len(file_names)))
-
-        for _i, (each_time, each_value) in enumerate(zip(time_axes, value_axes)):
-            pyplot.plot(each_time, each_value, label=file_names[_i])
-
-        pyplot.legend()
-        pyplot.show()
-
-        for _i, each_axis in enumerate(time_axes):
-            for _j in range(_i + 1, len(time_axes)):
-                print("{:s} and {:s}: {:s}".format(file_names[_i], file_names[_j], str(each_axis == time_axes[_j])))
-
-
 def difference(source_generator: Generator[float, None, None]) -> Generator[float, None, None]:
     last_value = next(source_generator)
     for each_value in source_generator:
         yield each_value - last_value
         last_value = each_value
-
-
-def example_difference(source_generator: Generator[Tuple[TIME, Tuple[float, float]], None, None]) -> Generator[Tuple[TIME, Tuple[float, float]],
-                                                                                                               None, None]:
-    last_time, (last_input, last_target) = next(source_generator)
-    for each_time, (each_input, each_target) in source_generator:
-        yield each_time, (each_input - last_input, each_target - last_target)
-        last_time, last_input, last_target = each_time, each_input, each_target
-
-
-def normalize(value: float, min_val: float, max_val: float):
-    return (value - min_val) / (max_val - min_val)
 
 
 def my_normalization(source_generator: Generator[float, None, None], drag: int) -> Generator[float, None, None]:

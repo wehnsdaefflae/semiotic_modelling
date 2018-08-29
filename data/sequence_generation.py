@@ -1,7 +1,7 @@
 import json
 import time
 from math import sin, cos
-from typing import Generator, Tuple, Sequence, TypeVar, Generic, Dict
+from typing import Generator, Tuple, TypeVar, Generic, Dict
 
 from data.data_processing import series_generator, equisample
 

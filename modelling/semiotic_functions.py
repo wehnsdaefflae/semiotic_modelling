@@ -1,6 +1,6 @@
 from typing import TypeVar, Tuple, Union, List, Dict, Optional, Callable, Iterable
 
-from content import Content, ContentFactory
+from modelling.content import Content, ContentFactory
 
 TIME = TypeVar("TIME")
 BASIC_IN = TypeVar("BASIC_IN")
@@ -55,7 +55,7 @@ def update_traces(traces: Tuple[TRACE, ...], states: Tuple[STATE, ...], history_
                 each_trace_layer.pop(0)
 
 
-def generate_content(model: MODEL, states: Tuple[STATE, ...], content_factory: ContentFactory):
+def generate_content(model: MODEL, states: Tuple[STATE, ...], content_factory: ContentFactory, nominal: bool):
     no_model_layers = len(model)
     len_set = set(len(_x) for _x in states)
     assert len(len_set) == 1
@@ -71,10 +71,10 @@ def generate_content(model: MODEL, states: Tuple[STATE, ...], content_factory: C
             else:
                 each_model_layer = model[_i]
             new_shape = len(each_model_layer)
-            if _i < 1:
+            if _i < 1 and not nominal:
                 each_model_layer[new_shape] = content_factory.rational(new_shape)
             else:
-                each_model_layer[new_shape] = content_factory.symbolic(new_shape)
+                each_model_layer[new_shape] = content_factory.nominal(new_shape)
 
             for each_index in state_layer_indices_with_new_content:
                 each_state = states[each_index]

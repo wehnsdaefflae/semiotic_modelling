@@ -67,7 +67,7 @@ def test_env_crypto():
     pyplot.show()
 
 
-def env_simple_nominal() -> Generator[str, None, None]:
+def env_ascending_descending_nominal() -> Generator[str, None, None]:
     i = 0
     length = len(string.ascii_lowercase)
     forward = True
@@ -78,7 +78,7 @@ def env_simple_nominal() -> Generator[str, None, None]:
         i = (i + int(forward) * 2 - 1) % length
 
 
-def env_simple_rational() -> Generator[Tuple[float, float], None, None]:
+def env_trigonometric_rational() -> Generator[Tuple[float, float], None, None]:
     i = 0
     while True:
         # examples = [(sin(t / 100.), cos(t / 70.)*3. + sin(t/13.)*.7)]
@@ -86,8 +86,8 @@ def env_simple_rational() -> Generator[Tuple[float, float], None, None]:
         i += 1
 
 
-def test_simple_rational():
-    g = env_simple_rational()
+def test_trigonometric_rational():
+    g = env_trigonometric_rational()
     time_axis = []
     x1 = []
     x2 = []
@@ -101,8 +101,8 @@ def test_simple_rational():
     pyplot.show()
 
 
-def test_simple_nominal():
-    g = env_simple_nominal()
+def test_ascending_descending_nominal():
+    g = env_ascending_descending_nominal()
     for t in range(1000):
         print(next(g), end="")
 
