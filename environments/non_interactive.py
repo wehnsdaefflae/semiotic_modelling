@@ -1,7 +1,7 @@
 import random
 import string
 from math import sin, cos
-from typing import Generator, Union, Tuple
+from typing import Generator, Union, Tuple, Optional
 
 from dateutil import parser
 from matplotlib import pyplot
@@ -21,26 +21,24 @@ def env_text(file_path: str) -> Generator[str, None, None]:
                     yield character
 
 
-def env_crypto(file_path: str, start_val: Union[int, str], end_val: Union[int, str], interval_seconds: int) -> Generator[float, None, None]:
-    type_set = {type(start_val), type(end_val)}
-    assert len(type_set) == 1
-    t, = type_set
+def _convert_to_timestamp(time_val: Optional[Union[int, str]]) -> int:
+    if time_val is None:
+        return -1
+    time_type = type(time_val)
+    if time_type == int:
+        return time_val
+    elif time_type == str:
+        date_time = parser.parse(time_val)
+        return date_time.timestamp()
+    raise ValueError()
 
-    if t == int:
-        start_ts = start_val
-        end_ts = end_val
 
-    elif t == str:
-        start_time = parser.parse(start_val)
-        end_time = parser.parse(end_val)
+def env_crypto(file_path: str, interval_seconds: int,
+               start_val: Optional[Union[int, str]] = None, end_val: Optional[Union[int, str]]=None) -> Generator[float, None, None]:
+    start_ts = _convert_to_timestamp(start_val)
+    end_ts = _convert_to_timestamp(end_val)
 
-        start_ts = start_time.timestamp()
-        end_ts = end_time.timestamp()
-
-    else:
-        raise ValueError()
-
-    for t, value in equisample(series_generator(file_path, start_timestamp=start_ts, end_timestamp=end_ts), target_delta=interval_seconds):
+    for t, value in equisample(series_generator(file_path, start_timestamp=start_ts, end_timestamp=end_ts), interval_seconds):
         yield value
 
 

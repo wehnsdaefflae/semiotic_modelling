@@ -6,8 +6,8 @@ from typing import Generator, Tuple, Sequence, TypeVar, Generic, Dict
 from data.data_processing import series_generator, equisample
 
 TIME = TypeVar("TIME")
-INPUT_TYPE = TypeVar("INPUT_DEF")
-OUTPUT_TYPE = TypeVar("OUTPUT_DEF")
+INPUT_TYPE = TypeVar("INPUT_TYPE")
+OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
 EXAMPLE = Tuple[INPUT_TYPE, OUTPUT_TYPE]
 
 
