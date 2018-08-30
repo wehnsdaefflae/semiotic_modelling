@@ -86,10 +86,11 @@ class Regression(Predictor[RATIONAL_VECTOR, RATIONAL_VECTOR]):
                 each_single_regression.fit(each_input, each_target_value)
 
     def _predict(self, input_values: Tuple[RATIONAL_VECTOR, ...]) -> Tuple[RATIONAL_VECTOR, ...]:
-        return tuple(
-                tuple(single_regression.output(each_input) for single_regression in each_regression)
-                for each_regression, each_input in zip(self.regressions, input_values)
+        output_values = tuple(
+            tuple(single_regression.output(each_input) for single_regression in each_regression)
+            for each_regression, each_input in zip(self.regressions, input_values)
         )
+        return output_values
 
     def save(self, file_path):
         raise NotImplementedError

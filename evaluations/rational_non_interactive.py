@@ -1,63 +1,68 @@
 from matplotlib import pyplot
 
+from data.data_processing import examples_from_sequence
 from environments.functionality import generic_functionality, prediction_functionality
-from environments.non_interactive import env_trigonometric_rational, env_crypto, env_ascending_descending_nominal
-from evaluations.experiments_non_interactive import one_step_prediction, example_prediction
+from environments.non_interactive import examples_rational_trigonometric, sequence_rational_crypto
+from evaluations.experiments import experiment_non_interactive
 from modelling.model_types import Regression, RationalSemioticModel
 from tools.load_configs import Config
 
 
 def _artificial_isolated(iterations: int):
-    environments = [env_trigonometric_rational()]
+    environments = [examples_rational_trigonometric(history_length=1)]
     predictor = Regression(input_dimension=1, output_dimension=1, no_examples=len(environments), drag=100)
-    example_prediction(environments, predictor, iterations=iterations, rational=True, history_length=1)
+    experiment_non_interactive(environments, predictor, iterations=iterations, rational=True)
 
-    environments = [env_trigonometric_rational()]
+    environments = [examples_rational_trigonometric(history_length=1)]
     predictor = RationalSemioticModel(input_dimensions=1, output_dimensions=1, no_examples=len(environments),
-                                      alpha=10, sigma=.8, drag=100, trace_length=1)
-    example_prediction(environments, predictor, iterations=iterations, rational=True, history_length=1)
+                                      alpha=10, sigma=.5, drag=100, trace_length=1)
+    experiment_non_interactive(environments, predictor, iterations=iterations, rational=True)
 
 
 def _natural_isolated(iterations: int):
     c = Config("../configs/config.json")
 
-    environments = [env_crypto(c["data_dir"] + "23Jun2017-23Jun2018-1m/EOSETH.csv", 60, start_val=1501113780, end_val=1529712000)]
+    env = sequence_rational_crypto(c["data_dir"] + "binance/EOSETH.csv", 60, start_val=1501113780, end_val=1529712000)
+    environments = [examples_from_sequence(env, history_length=1)]
     predictor = Regression(input_dimension=1, output_dimension=1, no_examples=len(environments), drag=100)
-    one_step_prediction(environments, predictor, iterations=iterations, rational=True, history_length=1)
+    experiment_non_interactive(environments, predictor, iterations=iterations, rational=True)
 
-    environments = [env_crypto(c["data_dir"] + "23Jun2017-23Jun2018-1m/EOSETH.csv", 60, start_val=1501113780, end_val=1529712000)]
+    env = sequence_rational_crypto(c["data_dir"] + "binance/EOSETH.csv", 60, start_val=1501113780, end_val=1529712000)
+    environments = [examples_from_sequence(env, history_length=1)]
     predictor = RationalSemioticModel(input_dimensions=1, output_dimensions=1, no_examples=len(environments),
                                       alpha=10, sigma=.8, drag=100, trace_length=1)
-    one_step_prediction(environments, predictor, iterations=iterations, rational=True, history_length=1)
+    experiment_non_interactive(environments, predictor, iterations=iterations, rational=True)
 
 
 def _artificial_transfer(iterations: int):
-    environment_a = env_trigonometric_rational()
-    environment_b = env_trigonometric_rational()
+    environment_a = examples_rational_trigonometric()
+    environment_b = examples_rational_trigonometric()
     for _ in range(2735):
         next(environment_b)
     environments = [environment_a, environment_b]
     predictor = RationalSemioticModel(input_dimensions=1, output_dimensions=1, no_examples=len(environments),
-                                      alpha=10, sigma=.8, drag=100, trace_length=1)
+                                      alpha=10, sigma=.5, drag=100, trace_length=1)
+    experiment_non_interactive(environments, predictor, iterations=iterations, rational=True)
 
-    example_prediction(environments, predictor, iterations=iterations, rational=True, history_length=1)
+    # TODO: implement markov parallel predictor
 
 
 def _natural_transfer(iterations: int):
     c = Config("../configs/config.json")
 
-    environment_a = env_crypto(c["data_dir"] + "23Jun2017-23Jun2018-1m/EOSETH.csv", 60, start_val=1501113780, end_val=1529712000)
-    environment_b = env_crypto(c["data_dir"] + "23Jun2017-23Jun2018-1m/QTUMETH.csv", 60, start_val=1501113780, end_val=1529712000)
+    environment_a = sequence_rational_crypto(c["data_dir"] + "binance/EOSETH.csv", 60, start_val=1501113780, end_val=1529712000)
+    environment_b = sequence_rational_crypto(c["data_dir"] + "binance/QTUMETH.csv", 60, start_val=1501113780, end_val=1529712000)
     # SNT
-    environments = [environment_a, environment_b]
+    environments = [examples_from_sequence(environment_a, history_length=1), examples_from_sequence(environment_b, history_length=1)]
     predictor = RationalSemioticModel(input_dimensions=1, output_dimensions=1, no_examples=len(environments),
                                       alpha=10, sigma=.8, drag=100, trace_length=1)
+    experiment_non_interactive(environments, predictor, iterations=iterations, rational=True)
 
-    one_step_prediction(environments, predictor, iterations=iterations, rational=True, history_length=1)
+    # TODO: implement markov parallel predictor
 
 
 def artificial_experiment(iterations: int = 50000):
-    f = generic_functionality(env_trigonometric_rational(), iterations)
+    f = generic_functionality(examples_rational_trigonometric(), iterations)
     print("example sequence functionality: {:05.3f}".format(f))
 
     _artificial_isolated(iterations)
@@ -70,10 +75,10 @@ def artificial_experiment(iterations: int = 50000):
 def natural_experiment(iterations: int = 500000):
     c = Config("../configs/config.json")
 
-    env = env_crypto(c["data_dir"] + "23Jun2017-23Jun2018-1m/EOSETH.csv", 60, start_val=1501113780, end_val=1529712000)
+    env = sequence_rational_crypto(c["data_dir"] + "binance/EOSETH.csv", 60, start_val=1501113780, end_val=1529712000)
     f = prediction_functionality(env, iterations, rational=True)
     print("sequence a functionality: {:05.3f}".format(f))
-    env = env_crypto(c["data_dir"] + "23Jun2017-23Jun2018-1m/QTUMETH.csv", 60, start_val=1501113780, end_val=1529712000)
+    env = sequence_rational_crypto(c["data_dir"] + "binance/QTUMETH.csv", 60, start_val=1501113780, end_val=1529712000)
     f = prediction_functionality(env, iterations, rational=True)
     print("sequence b functionality: {:05.3f}".format(f))
 
@@ -85,5 +90,5 @@ def natural_experiment(iterations: int = 500000):
 
 
 if __name__ == "__main__":
-    natural_experiment()
-    # artificial_experiment()
+    # natural_experiment()
+    artificial_experiment()

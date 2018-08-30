@@ -2,7 +2,7 @@ from typing import Tuple, Hashable, Sequence, Iterator, Any
 
 from matplotlib import pyplot
 
-from environments.non_interactive import env_text, env_crypto, env_trigonometric_rational
+from environments.non_interactive import sequence_nominal_text, sequence_rational_crypto, examples_rational_trigonometric
 from tools.load_configs import Config
 from tools.timer import Timer
 
@@ -73,7 +73,7 @@ def functionality_nominal(sequence: Sequence[Tuple[Hashable, Hashable]]) -> floa
 def test_nominal_functionality():
     # g = env_simple_nominal()
     config = Config("../configs/config.json")
-    g = env_text(config["data_dir"] + "Texts/pride_prejudice.txt")
+    g = sequence_nominal_text(config["data_dir"] + "Texts/pride_prejudice.txt")
     example_sequence = []
 
     last_shape = next(g)
@@ -96,7 +96,7 @@ def test_debug_rational_linear_functionality():
 
 def test_crypto_linear_functionality():
     config = Config("../configs/config.json")
-    g = env_crypto(config["data_dir"] + "23Jun2017-23Jun2018-1m/EOSETH.csv", 60 * 60 * 24)
+    g = sequence_rational_crypto(config["data_dir"] + "23Jun2017-23Jun2018-1m/EOSETH.csv", 60 * 60 * 24)
     examples = []
     last_value = next(g)
     for this_value in g:
@@ -109,7 +109,7 @@ def test_crypto_linear_functionality():
 
 
 def test_trigonometry_rational_linear_functionality():
-    g = env_trigonometric_rational()
+    g = examples_rational_trigonometric()
     examples = []
     for _ in range(1000):
         examples.append(next(g))

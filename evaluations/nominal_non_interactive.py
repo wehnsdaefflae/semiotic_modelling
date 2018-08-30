@@ -1,56 +1,59 @@
 from matplotlib import pyplot
 
+from data.data_processing import examples_from_sequence
 from environments.functionality import prediction_functionality
-from environments.non_interactive import env_text, env_ascending_descending_nominal
-from evaluations.experiments_non_interactive import one_step_prediction
+from environments.non_interactive import sequence_nominal_text, sequence_nominal_alternating
+from evaluations.experiments import experiment_non_interactive
 from modelling.model_types import NominalSemioticModel, NominalMarkovModel
 from tools.load_configs import Config
 
 
 def _artificial_isolated(iterations: int):
-    environments = [env_ascending_descending_nominal()]
+    environments = [examples_from_sequence(sequence_nominal_alternating(), history_length=1)]
     predictor = NominalMarkovModel(no_examples=len(environments))
-    one_step_prediction(environments, predictor, iterations=iterations, rational=False)
+    experiment_non_interactive(environments, predictor, rational=False, iterations=iterations)
 
-    environments = [env_ascending_descending_nominal()]
+    environments = [examples_from_sequence(sequence_nominal_alternating(), history_length=1)]
     predictor = NominalSemioticModel(no_examples=len(environments), alpha=0, sigma=1., trace_length=1)
-    one_step_prediction(environments, predictor, iterations=iterations, rational=False)
+    experiment_non_interactive(environments, predictor, rational=False, iterations=iterations)
 
 
 def _natural_isolated(iterations: int):
     c = Config("../configs/config.json")
 
-    environments = [env_text(c["data_dir"] + "Texts/pride_prejudice.txt")]
+    environments = [examples_from_sequence(sequence_nominal_text(c["data_dir"] + "Texts/pride_prejudice.txt"), history_length=1)]
     predictor = NominalMarkovModel(no_examples=len(environments))
-    one_step_prediction(environments, predictor, iterations=iterations, rational=False, history_length=1)
+    experiment_non_interactive(environments, predictor, iterations=iterations, rational=False)
 
-    environments = [env_text(c["data_dir"] + "Texts/pride_prejudice.txt")]
+    environments = [examples_from_sequence(sequence_nominal_text(c["data_dir"] + "Texts/pride_prejudice.txt"), history_length=1)]
     predictor = NominalSemioticModel(no_examples=len(environments), alpha=50, sigma=.1, trace_length=1)
-    one_step_prediction(environments, predictor, iterations=iterations, rational=False, history_length=1)
+    experiment_non_interactive(environments, predictor, iterations=iterations, rational=False)
 
 
 def _artificial_transfer(iterations: int):
-    environment_a = env_ascending_descending_nominal()
-    environment_b = env_ascending_descending_nominal()
+    environment_a = examples_from_sequence(sequence_nominal_alternating(), history_length=1)
+    environment_b = examples_from_sequence(sequence_nominal_alternating(), history_length=1)
     environments = [environment_a, environment_b]
     predictor = NominalSemioticModel(no_examples=len(environments), alpha=0, sigma=1., trace_length=1)
+    experiment_non_interactive(environments, predictor, iterations=iterations, rational=False)
 
-    one_step_prediction(environments, predictor, iterations=iterations, rational=False)
+    # TODO: implement markov parallel predictor
 
 
 def _natural_transfer(iterations: int):
     c = Config("../configs/config.json")
 
-    environment_a = env_text(c["data_dir"] + "Texts/pride_prejudice.txt")
-    environment_b = env_text(c["data_dir"] + "Texts/mansfield_park.txt")
+    environment_a = examples_from_sequence(sequence_nominal_text(c["data_dir"] + "Texts/pride_prejudice.txt"), history_length=1)
+    environment_b = examples_from_sequence(sequence_nominal_text(c["data_dir"] + "Texts/mansfield_park.txt"), history_length=1)
     environments = [environment_a, environment_b]
     predictor = NominalSemioticModel(no_examples=len(environments), alpha=50, sigma=.1, trace_length=1)
+    experiment_non_interactive(environments, predictor, iterations=iterations, rational=False)
 
-    one_step_prediction(environments, predictor, iterations=iterations, rational=False)
+    # TODO: implement markov parallel predictor
 
 
 def artificial_experiment(iterations: int = 50000):
-    f = prediction_functionality(env_ascending_descending_nominal(), iterations, rational=False)
+    f = prediction_functionality(sequence_nominal_alternating(), iterations, rational=False)
     print("example sequence functionality: {:05.3f}".format(f))
 
     _artificial_isolated(iterations)
@@ -63,9 +66,9 @@ def artificial_experiment(iterations: int = 50000):
 def natural_experiment(iterations: int = 500000):
     c = Config("../configs/config.json")
 
-    f = prediction_functionality(env_text(c["data_dir"] + "Texts/pride_prejudice.txt"), iterations, rational=False)
+    f = prediction_functionality(sequence_nominal_text(c["data_dir"] + "Texts/pride_prejudice.txt"), iterations, rational=False)
     print("sequence a functionality: {:05.3f}".format(f))
-    f = prediction_functionality(env_text(c["data_dir"] + "Texts/mansfield_park.txt"), iterations, rational=False)
+    f = prediction_functionality(sequence_nominal_text(c["data_dir"] + "Texts/mansfield_park.txt"), iterations, rational=False)
     print("sequence b functionality: {:05.3f}".format(f))
 
     _natural_isolated(iterations)
@@ -76,5 +79,5 @@ def natural_experiment(iterations: int = 500000):
 
 
 if __name__ == "__main__":
-    natural_experiment()
-    # artificial_experiment()
+    # natural_experiment()
+    artificial_experiment()

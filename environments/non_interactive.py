@@ -9,7 +9,7 @@ from matplotlib import pyplot
 from data.data_processing import equisample, series_generator
 
 
-def env_text(file_path: str) -> Generator[str, None, None]:
+def sequence_nominal_text(file_path: str) -> Generator[str, None, None]:
     permissible_non_letter = string.digits + string.punctuation + " "
     while True:
         with open(file_path, mode="r") as file:
@@ -34,8 +34,8 @@ def _convert_to_timestamp(time_val: Optional[Union[int, str]]) -> int:
     raise ValueError()
 
 
-def env_crypto(file_path: str, interval_seconds: int,
-               start_val: Optional[Union[int, str]] = None, end_val: Optional[Union[int, str]]=None) -> Generator[float, None, None]:
+def sequence_rational_crypto(file_path: str, interval_seconds: int,
+                             start_val: Optional[Union[int, str]] = None, end_val: Optional[Union[int, str]]=None) -> Generator[float, None, None]:
     start_ts = _convert_to_timestamp(start_val)
     end_ts = _convert_to_timestamp(end_val)
 
@@ -47,7 +47,7 @@ def env_crypto(file_path: str, interval_seconds: int,
 
 def test_env_text():
     text_path = "D:/Data/Texts/pride_prejudice.txt"
-    for v in env_text(text_path):
+    for v in sequence_nominal_text(text_path):
         print(v, end="")
 
 
@@ -61,7 +61,7 @@ def test_env_crypto():
     time_axis = []
     value_axis = []
 
-    for v in env_crypto(rate_path, start_time, end_time, delta):
+    for v in sequence_rational_crypto(rate_path, start_time, end_time, delta):
         time_axis.append(start_time)
         start_time += delta
         value_axis.append(v)
@@ -70,7 +70,7 @@ def test_env_crypto():
     pyplot.show()
 
 
-def env_ascending_descending_nominal() -> Generator[str, None, None]:
+def sequence_nominal_alternating() -> Generator[str, None, None]:
     i = 0
     length = len(string.ascii_lowercase)
     forward = True
@@ -81,16 +81,23 @@ def env_ascending_descending_nominal() -> Generator[str, None, None]:
         i = (i + int(forward) * 2 - 1) % length
 
 
-def env_trigonometric_rational() -> Generator[Tuple[float, float], None, None]:
+def examples_rational_trigonometric(history_length: int = 1) -> Generator[Tuple[Tuple[float], Tuple[float]], None, None]:
+    # examples = [(sin(t / 100.), cos(t / 70.)*3. + sin(t/13.)*.7)]
     i = 0
+    history = []
     while True:
-        # examples = [(sin(t / 100.), cos(t / 70.)*3. + sin(t/13.)*.7)]
-        yield sin(i / 100.), float(cos(i / 100.) >= 0.) * 2. - 1.
+        history.append(sin(i / 100.))
+        while history_length < len(history):
+            history.pop(0)
+        if len(history) == history_length:
+            input_value = tuple(history)
+            target_value = float(cos(i / 100.) >= 0.) * 2. - 1.,
+            yield input_value, target_value
         i += 1
 
 
 def test_trigonometric_rational():
-    g = env_trigonometric_rational()
+    g = examples_rational_trigonometric()
     time_axis = []
     x1 = []
     x2 = []
@@ -105,7 +112,7 @@ def test_trigonometric_rational():
 
 
 def test_ascending_descending_nominal():
-    g = env_ascending_descending_nominal()
+    g = sequence_nominal_alternating()
     for t in range(1000):
         print(next(g), end="")
 
