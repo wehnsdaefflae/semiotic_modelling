@@ -2,7 +2,7 @@ from typing import Tuple, Hashable, Sequence, Iterator
 
 from matplotlib import pyplot
 
-from environments.nominal_non_interactive import env_text, env_crypto, env_trigonometric_rational
+from environments.non_interactive import env_text, env_crypto, env_trigonometric_rational
 from tools.load_configs import Config
 from tools.timer import Timer
 

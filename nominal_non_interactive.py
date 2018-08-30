@@ -3,7 +3,7 @@ from typing import Hashable, Iterator, Iterable
 from matplotlib import pyplot
 
 from environments.functionality import nominal_prediction_functionality
-from environments.nominal_non_interactive import env_text, env_ascending_descending_nominal
+from environments.non_interactive import env_text, env_ascending_descending_nominal
 from modelling.model_types import NominalSemioticModel, NominalMarkovModel, Predictor
 from tools.load_configs import Config
 from tools.timer import Timer
