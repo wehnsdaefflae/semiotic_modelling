@@ -1,7 +1,7 @@
 from matplotlib import pyplot
 
 from data.data_processing import examples_from_sequence
-from environments.functionality import generic_functionality, prediction_functionality
+from environments.functionality import generic_functionality
 from environments.non_interactive import examples_rational_trigonometric, sequence_rational_crypto
 from evaluations.experiments import experiment_non_interactive
 from modelling.model_types import RegressionIsolated, RationalSemioticModel, RegressionIntegrated
@@ -73,7 +73,7 @@ def _natural_transfer(iterations: int):
 
 
 def artificial_experiment(iterations: int = 50000):
-    f = generic_functionality(examples_rational_trigonometric(), iterations)
+    f = generic_functionality(examples_rational_trigonometric(), iterations, rational=True)
     print("example sequence functionality: {:05.3f}".format(f))
 
     _artificial_isolated(iterations)
@@ -87,10 +87,10 @@ def natural_experiment(iterations: int = 500000):
     c = Config("../configs/config.json")
 
     env = sequence_rational_crypto(c["data_dir"] + "binance/EOSETH.csv", 60, start_val=1501113780, end_val=1529712000)
-    f = prediction_functionality(env, iterations, rational=True)
+    f = generic_functionality(examples_from_sequence(env, history_length=1), iterations, rational=True)
     print("sequence a functionality: {:05.3f}".format(f))
     env = sequence_rational_crypto(c["data_dir"] + "binance/QTUMETH.csv", 60, start_val=1501113780, end_val=1529712000)
-    f = prediction_functionality(env, iterations, rational=True)
+    f = generic_functionality(examples_from_sequence(env, history_length=1), iterations, rational=True)
     print("sequence b functionality: {:05.3f}".format(f))
 
     _natural_isolated(iterations)
@@ -101,5 +101,5 @@ def natural_experiment(iterations: int = 500000):
 
 
 if __name__ == "__main__":
-    natural_experiment()
-    # artificial_experiment()
+    # natural_experiment()
+    artificial_experiment()

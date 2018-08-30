@@ -7,6 +7,7 @@ from tools.load_configs import Config
 from tools.timer import Timer
 
 
+# TODO: make generic to handle x input dimensions and y output dimensions
 def functionality_rational_linear(sequence: Sequence[Tuple[float, float]]) -> float:
     x_total = 0.
     y_total = 0.
@@ -123,14 +124,6 @@ if __name__ == "__main__":
     # test_trigonometry_rational_linear_functionality()
     # test_debug_rational_linear_functionality()
     test_crypto_linear_functionality()
-
-
-def prediction_functionality(environment: Iterator[Any], iterations: int, rational: bool = False) -> float:
-    env_list = [next(environment) for _ in range(iterations)]
-    examples = [(env_list[_i], env_list[_i + 1]) for _i in range(iterations - 1)]
-    if rational:
-        return functionality_rational_linear(examples)
-    return functionality_nominal(examples)
 
 
 def generic_functionality(examples: Iterator[Tuple[Any, Any]], iterations: int, rational: bool = False) -> float:
