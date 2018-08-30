@@ -11,14 +11,15 @@ from data.data_processing import equisample, series_generator
 
 def env_text(file_path: str) -> Generator[str, None, None]:
     permissible_non_letter = string.digits + string.punctuation + " "
-    with open(file_path, mode="r") as file:
-        for line in file:
-            for character in line:
-                if character in string.ascii_letters:
-                    yield character.lower()
+    while True:
+        with open(file_path, mode="r") as file:
+            for line in file:
+                for character in line:
+                    if character in string.ascii_letters:
+                        yield character.lower()
 
-                elif character in permissible_non_letter:
-                    yield character
+                    elif character in permissible_non_letter:
+                        yield character
 
 
 def _convert_to_timestamp(time_val: Optional[Union[int, str]]) -> int:
@@ -38,8 +39,10 @@ def env_crypto(file_path: str, interval_seconds: int,
     start_ts = _convert_to_timestamp(start_val)
     end_ts = _convert_to_timestamp(end_val)
 
-    for t, value in equisample(series_generator(file_path, start_timestamp=start_ts, end_timestamp=end_ts), interval_seconds):
-        yield value
+    while True:
+        raw_generator = series_generator(file_path, start_timestamp=start_ts, end_timestamp=end_ts)
+        for t, value in equisample(raw_generator, interval_seconds):
+            yield value
 
 
 def test_env_text():

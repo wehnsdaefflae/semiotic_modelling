@@ -1,8 +1,8 @@
-from typing import Tuple, Hashable, Sequence
+from typing import Tuple, Hashable, Sequence, Iterator
 
 from matplotlib import pyplot
 
-from environments.non_interactive import env_text, env_crypto, env_trigonometric_rational
+from environments.nominal_non_interactive import env_text, env_crypto, env_trigonometric_rational
 from tools.load_configs import Config
 from tools.timer import Timer
 
@@ -123,3 +123,9 @@ if __name__ == "__main__":
     # test_trigonometry_rational_linear_functionality()
     # test_debug_rational_linear_functionality()
     test_crypto_linear_functionality()
+
+
+def nominal_prediction_functionality(environment: Iterator[Hashable], iterations: int) -> float:
+    env_list = [next(environment) for _ in range(iterations)]
+    examples = [(env_list[_i], env_list[_i + 1]) for _i in range(iterations - 1)]
+    return functionality_nominal(examples)
