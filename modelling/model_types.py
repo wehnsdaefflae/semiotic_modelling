@@ -70,7 +70,7 @@ class MovingAverage(Predictor[RATIONAL_VECTOR, RATIONAL_VECTOR]):
         raise NotImplementedError
 
 
-class Regression(Predictor[RATIONAL_VECTOR, RATIONAL_VECTOR]):
+class RegressionIsolated(Predictor[RATIONAL_VECTOR, RATIONAL_VECTOR]):
     def __init__(self, input_dimension: int, output_dimension: int, no_examples: int, drag: int):
         super().__init__(no_examples)
         self.input_dimension = input_dimension
@@ -99,7 +99,34 @@ class Regression(Predictor[RATIONAL_VECTOR, RATIONAL_VECTOR]):
         return -1,
 
 
-class NominalMarkovModel(Predictor[INPUT_TYPE, OUTPUT_TYPE]):
+class RegressionIntegrated(Predictor[RATIONAL_VECTOR, RATIONAL_VECTOR]):
+    def __init__(self, input_dimension: int, output_dimension: int, no_examples: int, drag: int):
+        super().__init__(no_examples)
+        self.input_dimension = input_dimension
+        self.drag = drag
+        self.regression = tuple(Regressor(input_dimension, self.drag) for _ in range(output_dimension))
+
+    def _fit(self, input_values: Tuple[RATIONAL_VECTOR, ...], target_values: Tuple[RATIONAL_VECTOR, ...]):
+        for example_index in range(self.no_examples):
+            each_input = input_values[example_index]
+            each_target = target_values[example_index]
+            for each_single_regression, each_target_value in zip(self.regression, each_target):
+                each_single_regression.fit(each_input, each_target_value)
+
+    def _predict(self, input_values: Tuple[RATIONAL_VECTOR, ...]) -> Tuple[RATIONAL_VECTOR, ...]:
+        output_values = tuple(
+            tuple(each_regression.output(each_input) for each_regression in self.regression) for each_input in input_values
+        )
+        return output_values
+
+    def save(self, file_path):
+        raise NotImplementedError
+
+    def get_structure(self) -> Tuple[int, ...]:
+        return -1,
+
+
+class NominalMarkovModelIsolated(Predictor[INPUT_TYPE, OUTPUT_TYPE]):
     def __init__(self, no_examples: int):
         super().__init__(no_examples)
         self.models = tuple(NominalContent(0, 0) for _ in range(no_examples))
@@ -114,6 +141,25 @@ class NominalMarkovModel(Predictor[INPUT_TYPE, OUTPUT_TYPE]):
 
     def _predict(self, input_values: Tuple[INPUT_TYPE, ...]) -> Tuple[OUTPUT_TYPE, ...]:
         return tuple(each_model.predict(input_values[_i]) for _i, each_model in enumerate(self.models))
+
+    def get_structure(self) -> Tuple[int, ...]:
+        return 0,
+
+
+class NominalMarkovModelIntegrated(Predictor[INPUT_TYPE, OUTPUT_TYPE]):
+    def __init__(self, no_examples: int):
+        super().__init__(no_examples)
+        self.model = NominalContent(0, 0)
+
+    def _fit(self, input_values: Tuple[INPUT_TYPE, ...], target_values: Tuple[OUTPUT_TYPE, ...]):
+        for _i, (each_input, each_target) in enumerate(zip(input_values, target_values)):
+            self.model.adapt(each_input, each_target)
+
+    def save(self, file_path):
+        pass
+
+    def _predict(self, input_values: Tuple[INPUT_TYPE, ...]) -> Tuple[OUTPUT_TYPE, ...]:
+        return tuple(self.model.predict(each_input) for each_input in input_values)
 
     def get_structure(self) -> Tuple[int, ...]:
         return 0,

@@ -4,7 +4,7 @@ from typing import Tuple, Iterable, Generator, Iterator
 from dateutil.tz import tzutc
 
 from data.sequence_generation import ExchangeRateSequence, TrigonometricSequence, TIME, EXAMPLE
-from modelling.model_types import MovingAverage, Regression, RationalSemioticModel
+from modelling.model_types import MovingAverage, RegressionIsolated, RationalSemioticModel
 from tools.timer import Timer
 from visualization.visualization import QualitativeEvaluationMultiSequence, ComparativeEvaluation, QualitativeEvaluationSingleSequence
 
@@ -98,7 +98,7 @@ def single_sequence():
         alpha, sigma, drag, trace_length, fix_level_size_at=fix)
     predictors = [
         MovingAverage(output_dimension, no_parallel_examples, drag),
-        Regression(input_dimension, output_dimension, no_parallel_examples, drag),
+        RegressionIsolated(input_dimension, output_dimension, no_parallel_examples, drag),
     ]
 
     # instantiate visualization

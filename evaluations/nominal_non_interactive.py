@@ -4,13 +4,13 @@ from data.data_processing import examples_from_sequence
 from environments.functionality import prediction_functionality
 from environments.non_interactive import sequence_nominal_text, sequence_nominal_alternating
 from evaluations.experiments import experiment_non_interactive
-from modelling.model_types import NominalSemioticModel, NominalMarkovModel
+from modelling.model_types import NominalSemioticModel, NominalMarkovModelIsolated, NominalMarkovModelIntegrated
 from tools.load_configs import Config
 
 
 def _artificial_isolated(iterations: int):
     environments = [examples_from_sequence(sequence_nominal_alternating(), history_length=1)]
-    predictor = NominalMarkovModel(no_examples=len(environments))
+    predictor = NominalMarkovModelIsolated(no_examples=len(environments))
     experiment_non_interactive(environments, predictor, rational=False, iterations=iterations)
 
     environments = [examples_from_sequence(sequence_nominal_alternating(), history_length=1)]
@@ -22,7 +22,7 @@ def _natural_isolated(iterations: int):
     c = Config("../configs/config.json")
 
     environments = [examples_from_sequence(sequence_nominal_text(c["data_dir"] + "Texts/pride_prejudice.txt"), history_length=1)]
-    predictor = NominalMarkovModel(no_examples=len(environments))
+    predictor = NominalMarkovModelIsolated(no_examples=len(environments))
     experiment_non_interactive(environments, predictor, iterations=iterations, rational=False)
 
     environments = [examples_from_sequence(sequence_nominal_text(c["data_dir"] + "Texts/pride_prejudice.txt"), history_length=1)]
@@ -34,10 +34,14 @@ def _artificial_transfer(iterations: int):
     environment_a = examples_from_sequence(sequence_nominal_alternating(), history_length=1)
     environment_b = examples_from_sequence(sequence_nominal_alternating(), history_length=1)
     environments = [environment_a, environment_b]
-    predictor = NominalSemioticModel(no_examples=len(environments), alpha=0, sigma=1., trace_length=1)
+    predictor = NominalMarkovModelIntegrated(no_examples=len(environments))
     experiment_non_interactive(environments, predictor, iterations=iterations, rational=False)
 
-    # TODO: implement markov parallel predictor
+    environment_a = examples_from_sequence(sequence_nominal_alternating(), history_length=1)
+    environment_b = examples_from_sequence(sequence_nominal_alternating(), history_length=1)
+    environments = [environment_a, environment_b]
+    predictor = NominalSemioticModel(no_examples=len(environments), alpha=0, sigma=1., trace_length=1)
+    experiment_non_interactive(environments, predictor, iterations=iterations, rational=False)
 
 
 def _natural_transfer(iterations: int):
@@ -46,10 +50,14 @@ def _natural_transfer(iterations: int):
     environment_a = examples_from_sequence(sequence_nominal_text(c["data_dir"] + "Texts/pride_prejudice.txt"), history_length=1)
     environment_b = examples_from_sequence(sequence_nominal_text(c["data_dir"] + "Texts/mansfield_park.txt"), history_length=1)
     environments = [environment_a, environment_b]
-    predictor = NominalSemioticModel(no_examples=len(environments), alpha=50, sigma=.1, trace_length=1)
+    predictor = NominalMarkovModelIntegrated(no_examples=len(environments))
     experiment_non_interactive(environments, predictor, iterations=iterations, rational=False)
 
-    # TODO: implement markov parallel predictor
+    environment_a = examples_from_sequence(sequence_nominal_text(c["data_dir"] + "Texts/pride_prejudice.txt"), history_length=1)
+    environment_b = examples_from_sequence(sequence_nominal_text(c["data_dir"] + "Texts/mansfield_park.txt"), history_length=1)
+    environments = [environment_a, environment_b]
+    predictor = NominalSemioticModel(no_examples=len(environments), alpha=50, sigma=.1, trace_length=1)
+    experiment_non_interactive(environments, predictor, iterations=iterations, rational=False)
 
 
 def artificial_experiment(iterations: int = 50000):

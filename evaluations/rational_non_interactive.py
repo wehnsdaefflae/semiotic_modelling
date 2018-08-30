@@ -4,13 +4,13 @@ from data.data_processing import examples_from_sequence
 from environments.functionality import generic_functionality, prediction_functionality
 from environments.non_interactive import examples_rational_trigonometric, sequence_rational_crypto
 from evaluations.experiments import experiment_non_interactive
-from modelling.model_types import Regression, RationalSemioticModel
+from modelling.model_types import RegressionIsolated, RationalSemioticModel, RegressionIntegrated
 from tools.load_configs import Config
 
 
 def _artificial_isolated(iterations: int):
     environments = [examples_rational_trigonometric(history_length=1)]
-    predictor = Regression(input_dimension=1, output_dimension=1, no_examples=len(environments), drag=100)
+    predictor = RegressionIsolated(input_dimension=1, output_dimension=1, no_examples=len(environments), drag=100)
     experiment_non_interactive(environments, predictor, iterations=iterations, rational=True)
 
     environments = [examples_rational_trigonometric(history_length=1)]
@@ -24,7 +24,7 @@ def _natural_isolated(iterations: int):
 
     env = sequence_rational_crypto(c["data_dir"] + "binance/EOSETH.csv", 60, start_val=1501113780, end_val=1529712000)
     environments = [examples_from_sequence(env, history_length=1)]
-    predictor = Regression(input_dimension=1, output_dimension=1, no_examples=len(environments), drag=100)
+    predictor = RegressionIsolated(input_dimension=1, output_dimension=1, no_examples=len(environments), drag=100)
     experiment_non_interactive(environments, predictor, iterations=iterations, rational=True)
 
     env = sequence_rational_crypto(c["data_dir"] + "binance/EOSETH.csv", 60, start_val=1501113780, end_val=1529712000)
@@ -40,11 +40,17 @@ def _artificial_transfer(iterations: int):
     for _ in range(2735):
         next(environment_b)
     environments = [environment_a, environment_b]
+    predictor = RegressionIntegrated(input_dimension=1, output_dimension=1, no_examples=len(environments), drag=100)
+    experiment_non_interactive(environments, predictor, iterations=iterations, rational=True)
+
+    environment_a = examples_rational_trigonometric()
+    environment_b = examples_rational_trigonometric()
+    for _ in range(2735):
+        next(environment_b)
+    environments = [environment_a, environment_b]
     predictor = RationalSemioticModel(input_dimensions=1, output_dimensions=1, no_examples=len(environments),
                                       alpha=10, sigma=.5, drag=100, trace_length=1)
     experiment_non_interactive(environments, predictor, iterations=iterations, rational=True)
-
-    # TODO: implement markov parallel predictor
 
 
 def _natural_transfer(iterations: int):
@@ -54,11 +60,16 @@ def _natural_transfer(iterations: int):
     environment_b = sequence_rational_crypto(c["data_dir"] + "binance/QTUMETH.csv", 60, start_val=1501113780, end_val=1529712000)
     # SNT
     environments = [examples_from_sequence(environment_a, history_length=1), examples_from_sequence(environment_b, history_length=1)]
+    predictor = RegressionIntegrated(input_dimension=1, output_dimension=1, no_examples=len(environments), drag=100)
+    experiment_non_interactive(environments, predictor, iterations=iterations, rational=True)
+
+    environment_a = sequence_rational_crypto(c["data_dir"] + "binance/EOSETH.csv", 60, start_val=1501113780, end_val=1529712000)
+    environment_b = sequence_rational_crypto(c["data_dir"] + "binance/QTUMETH.csv", 60, start_val=1501113780, end_val=1529712000)
+    # SNT
+    environments = [examples_from_sequence(environment_a, history_length=1), examples_from_sequence(environment_b, history_length=1)]
     predictor = RationalSemioticModel(input_dimensions=1, output_dimensions=1, no_examples=len(environments),
                                       alpha=10, sigma=.8, drag=100, trace_length=1)
     experiment_non_interactive(environments, predictor, iterations=iterations, rational=True)
-
-    # TODO: implement markov parallel predictor
 
 
 def artificial_experiment(iterations: int = 50000):
@@ -90,5 +101,5 @@ def natural_experiment(iterations: int = 500000):
 
 
 if __name__ == "__main__":
-    # natural_experiment()
-    artificial_experiment()
+    natural_experiment()
+    # artificial_experiment()
