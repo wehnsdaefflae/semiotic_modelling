@@ -1,4 +1,4 @@
-from typing import Tuple, Hashable, Sequence, Iterator
+from typing import Tuple, Hashable, Sequence, Iterator, Any
 
 from matplotlib import pyplot
 
@@ -125,7 +125,19 @@ if __name__ == "__main__":
     test_crypto_linear_functionality()
 
 
-def nominal_prediction_functionality(environment: Iterator[Hashable], iterations: int) -> float:
+def prediction_functionality(environment: Iterator[Any], iterations: int, rational: bool = False) -> float:
     env_list = [next(environment) for _ in range(iterations)]
     examples = [(env_list[_i], env_list[_i + 1]) for _i in range(iterations - 1)]
+    if rational:
+        return functionality_rational_linear(examples)
     return functionality_nominal(examples)
+
+
+def generic_functionality(examples: Iterator[Tuple[Any, Any]], iterations: int, rational: bool = False) -> float:
+    example_sequence = []
+    for _ in range(iterations):
+        each_example = next(examples)
+        example_sequence.append(each_example)
+    if rational:
+        return functionality_rational_linear(example_sequence)
+    return functionality_nominal(example_sequence)

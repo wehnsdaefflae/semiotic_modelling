@@ -95,7 +95,7 @@ class Regression(Predictor[RATIONAL_VECTOR, RATIONAL_VECTOR]):
         raise NotImplementedError
 
     def get_structure(self) -> Tuple[int, ...]:
-        raise NotImplementedError
+        return -1,
 
 
 class NominalMarkovModel(Predictor[INPUT_TYPE, OUTPUT_TYPE]):

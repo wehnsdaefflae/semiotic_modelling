@@ -65,7 +65,8 @@ class Regressor:
         assert len(x) == self.input_dimensions
         xn = self._get_parameters()
         assert len(xn) == self.input_dimensions + 1
-        return sum(_x * _xn for (_x, _xn) in zip(x + (1.,), xn))
+        # return sum(_x * _xn for (_x, _xn) in zip(x + (1.,), xn))
+        return sum(_x * _xn for _x, _xn in zip(x, xn[:-1])) + xn[-1]
 
     def _get_parameters(self) -> Tuple[float, ...]:
         xn = tuple(0. if _var_x == 0. else _cov_xy / _var_x for (_cov_xy, _var_x) in zip(self.cov_xy, self.var_x))
