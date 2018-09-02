@@ -3,7 +3,7 @@ from typing import Tuple, Iterable, Generator, Iterator
 
 from dateutil.tz import tzutc
 
-from data.sequence_generation import ExchangeRateSequence, TrigonometricSequence, TIME, EXAMPLE
+from data.deprecated_sequence_generation import ExchangeRateSequence, TrigonometricSequence, TIME, EXAMPLE
 from modelling.model_types import MovingAverage, RegressionIsolated, RationalSemioticModel
 from tools.timer import Timer
 from visualization.visualization import QualitativeEvaluationMultiSequence, ComparativeEvaluation, QualitativeEvaluationSingleSequence

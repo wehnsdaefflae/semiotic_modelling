@@ -1,7 +1,6 @@
 import datetime
-import random
 from math import sin
-from typing import Generator, Tuple, Iterator, Any, Iterable
+from typing import Generator, Tuple, Iterator
 
 from dateutil.tz import tzutc
 from matplotlib import pyplot
@@ -98,17 +97,6 @@ def zscore_normalization(source_generator: Generator[float, None, None], drag: i
         else:
             yield this_deviation / deviation
         deviation = (deviation * drag + this_deviation) / (drag + 1)
-
-
-def examples_from_sequence(source: Iterable[Any], history_length: int) -> Generator[Tuple[Tuple[Any, ...], Tuple[Any]], None, None]:
-    history = []
-    for each_value in source:
-        if len(history) == history_length:
-            yield tuple(history), (each_value, )
-
-        history.append(each_value)
-        while history_length < len(history):
-            history.pop(0)
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ from typing import Tuple, Hashable, Sequence, Iterator, Any
 
 from matplotlib import pyplot
 
+from data.example_generation import EXAMPLE_SEQUENCE
 from environments.non_interactive import sequence_nominal_text, sequence_rational_crypto, examples_rational_trigonometric
 from tools.load_configs import Config
 from tools.timer import Timer
@@ -44,7 +45,7 @@ def functionality_rational_linear(sequence: Sequence[Tuple[float, float]]) -> fl
     return 1. - dist_total / no_examples
 
 
-def functionality_nominal(sequence: Sequence[Tuple[Hashable, Hashable]]) -> float:
+def functionality_nominal(sequence: Sequence[Hashable]) -> float:
     examples = dict()
     for _t, (each_input, each_output) in enumerate(sequence):
         sub_dict = examples.get(each_input)
@@ -126,10 +127,11 @@ if __name__ == "__main__":
     test_crypto_linear_functionality()
 
 
-def generic_functionality(examples: Iterator[Tuple[Any, Any]], iterations: int, rational: bool = False) -> float:
+def generic_functionality(examples: EXAMPLE_SEQUENCE, iterations: int, rational: bool = False) -> float:
     example_sequence = []
-    for _ in range(iterations):
-        each_example = next(examples)
+    for _i, each_example in enumerate(examples):
+        if _i >= iterations:
+            break
         example_sequence.append(each_example)
     if rational:
         return functionality_rational_linear(example_sequence)

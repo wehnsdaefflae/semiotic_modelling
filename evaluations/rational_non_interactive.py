@@ -1,6 +1,6 @@
 from matplotlib import pyplot
 
-from data.data_processing import examples_from_sequence
+from data.example_generation import example_sequence
 from environments.non_interactive import examples_rational_trigonometric, sequence_rational_crypto
 from evaluations.experiments import experiment_non_interactive
 from modelling.model_types import RegressionIsolated, RationalSemioticModel, RegressionIntegrated
@@ -21,7 +21,7 @@ def _artificial_isolated(iterations: int):
 def _natural_isolated(iterations: int):
     c = Config("../configs/config.json")
     env = sequence_rational_crypto(c["data_dir"] + "binance/EOSETH.csv", 60, start_val=1501113780, end_val=1529712000)
-    environments = [examples_from_sequence(env, history_length=1)]
+    environments = [example_sequence(env, history_length=1)]
 
     predictor_a = RegressionIsolated(input_dimension=1, output_dimension=1, no_examples=len(environments), drag=100)
     predictor_b = RationalSemioticModel(input_dimensions=1, output_dimensions=1, no_examples=len(environments), alpha=10, sigma=.8, drag=100,
@@ -52,7 +52,7 @@ def _natural_transfer(iterations: int):
     environment_a = sequence_rational_crypto(c["data_dir"] + "binance/EOSETH.csv", 60, start_val=1501113780, end_val=1529712000)
     environment_b = sequence_rational_crypto(c["data_dir"] + "binance/QTUMETH.csv", 60, start_val=1501113780, end_val=1529712000)
     # SNT
-    environments = [examples_from_sequence(environment_a, history_length=1), examples_from_sequence(environment_b, history_length=1)]
+    environments = [example_sequence(environment_a, history_length=1), example_sequence(environment_b, history_length=1)]
 
     predictor_a = RegressionIntegrated(input_dimension=1, output_dimension=1, no_examples=len(environments), drag=100)
     predictor_b = RationalSemioticModel(input_dimensions=1, output_dimensions=1, no_examples=len(environments), alpha=10, sigma=.8, drag=100,

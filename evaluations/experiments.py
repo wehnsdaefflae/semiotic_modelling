@@ -1,17 +1,18 @@
 from math import sqrt
-from typing import Iterable, Iterator, Any, Tuple
+from typing import Iterable, Any
 
 from matplotlib import pyplot
 
+from data.example_generation import EXAMPLE_SEQUENCE, join_sequences
 from environments.functionality import generic_functionality
 from modelling.model_types import Predictor
 from tools.timer import Timer
 
 
-def experiment_non_interactive(examples_sequence: Iterable[Iterator[Tuple[Any, Any]]], predictors: Iterable[Predictor[Any, Any]],
+def experiment_non_interactive(sequences: Iterable[EXAMPLE_SEQUENCE[Any]], predictors: Iterable[Predictor[Any, Any]],
                                rational: bool, iterations: int):
 
-    for _i, each_sequence in enumerate(examples_sequence):
+    for _i, each_sequence in enumerate(sequences):
         if rational:
             print("not implemented yet")
         else:
@@ -19,12 +20,15 @@ def experiment_non_interactive(examples_sequence: Iterable[Iterator[Tuple[Any, A
             print("sequence {:02d} functionality: {:05.3f}".format(_i, f))
 
     time_axis = []
-    all_total_errors = tuple([0. for _ in examples_sequence] for _ in predictors)
-    all_errors = tuple(tuple([] for _ in examples_sequence) for _ in predictors)
+    all_total_errors = tuple([0. for _ in sequences] for _ in predictors)
+    all_errors = tuple(tuple([] for _ in sequences) for _ in predictors)
 
-    for each_step in range(iterations):
+    for each_step, this_examples in enumerate(join_sequences(sequences)):
+    # for each_step in range(iterations):
+        if each_step >= iterations:
+            break
         time_axis.append(each_step)
-        this_examples = tuple(next(each_sequence) for each_sequence in examples_sequence)
+        # this_examples = tuple(next(each_sequence) for each_sequence in sequences)
         input_values, target_values = zip(*this_examples)
 
         for predictor_index, each_predictor in enumerate(predictors):
