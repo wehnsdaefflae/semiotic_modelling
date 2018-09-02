@@ -5,6 +5,7 @@ from typing import Iterable, Generator, Tuple, TypeVar, Hashable, List, Any, Opt
 
 INPUT_TYPE = TypeVar("INPUT_TYPE", Hashable, Tuple[float, ...])
 OUTPUT_TYPE = TypeVar("OUTPUT_TYPE", Hashable, Tuple[float, ...])
+
 INPUT = Tuple[INPUT_TYPE, ...]
 OUTPUT = Tuple[OUTPUT_TYPE, ...]
 EXAMPLE = Tuple[INPUT[INPUT_TYPE], OUTPUT[OUTPUT_TYPE]]
@@ -54,6 +55,26 @@ def example_random_interactive(source: Generator[SENSOR_TYPE, Optional[MOTOR_TYP
         each_sensor = source.send(each_motor)
         if len(history) == history_length:
             yield tuple(history), each_sensor
+
+
+def example_random_interactive_senses(source: Generator[SENSOR_TYPE, Optional[MOTOR_TYPE], None], actions: Tuple[MOTOR_TYPE, ...],
+                                      history_length: int) -> Generator[EXAMPLE[Tuple[Tuple[SENSOR_TYPE, MOTOR_TYPE], ...], SENSOR_TYPE], None, None]:
+    histories = [], [], [], []
+
+    each_sensor = source.send(None)
+
+    while True:
+        each_motor = random.choice(actions)
+
+        for sensor_index, each_history in enumerate(histories):
+            each_condition = each_sensor[sensor_index], each_motor
+            each_history.append(each_condition)
+            while history_length < len(each_history):
+                each_history.pop(0)
+
+        each_sensor = source.send(each_motor)
+        if all(len(each_history) == history_length for each_history in histories):
+            yield tuple((tuple(each_history), each_sensor[sensor_index]) for sensor_index, each_history in enumerate(histories))
 
 
 def example_goal_interactive(source: Generator[Tuple[SENSOR_TYPE, ...], Optional[MOTOR_TYPE], None],
