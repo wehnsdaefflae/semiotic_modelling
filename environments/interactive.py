@@ -1,11 +1,12 @@
 import random
 from math import sqrt
-from typing import Generator, Optional, Tuple, Sequence, Iterable
+from typing import Generator, Optional, Tuple, Sequence, Iterable, List
 
 
 def env_gradient_world(size: int, centers: Iterable[Tuple[float, float]], tile_size: int) -> Generator[Tuple[float, ...], Optional[float], None]:
     dimensions = float(size), float(size)
-    position = [4., 4.]
+    start_position = (4., 4.)
+    position = list(start_position)
     momentum = [0., 0.]
 
     while True:
@@ -15,6 +16,9 @@ def env_gradient_world(size: int, centers: Iterable[Tuple[float, float]], tile_s
             each_distance = sqrt(sum((v1 - v2) ** 2. for v1, v2 in zip(position, each_center)))
             distances.append(each_distance)
         yield_value = floor_tile, *distances
+        if any(_x < tile_size / 2. for _x in distances):
+            position = list(start_position)
+
         impulse = yield yield_value
 
         if impulse is None:
@@ -43,46 +47,105 @@ def _parse_text_to_grid(file_path: str) -> Tuple[Tuple[str, ...], ...]:
     return tuple(grid)
 
 
-def _get_perception(grid: Tuple[Tuple[str, ...], ...], position: Sequence[int]) -> Tuple[str, str, str, str]:
+def _get_perception(grid: Tuple[Tuple[str, ...], ...], position: Sequence[int], orientation: int) -> Tuple[str, ...]:
     assert len(position) == 2
     x, y = position
     height = len(grid)
     width = len(grid[0])
     assert y < height
     assert x < width
-    north = grid[x][(y - 1) % height]
-    east = grid[(x + 1) % width][y]
-    south = grid[x][(y + 1) % height]
-    west = grid[(x - 1) % width][y]
-    return north, east, south, west
+    north: str = grid[y][(x - 1) % width]
+    east: str = grid[(y + 1) % height][x]
+    south: str = grid[y][(x + 1) % width]
+    west: str = grid[(y - 1) % height][x]
+    perception: Tuple[str, str, str, str] = (north, east, south, west)
+    no_perceptions = len(perception)
+    return tuple(perception[(orientation + _x) % no_perceptions] for _x in range(no_perceptions))
 
 
-def env_grid_world(file_path: str) -> Generator[Tuple[str, ...], Optional[str], None]:
-    grid = _parse_text_to_grid(file_path)
+def change_state(grid: Tuple[Tuple[str, ...], ...], start_positions: Tuple[Tuple[int, int], ...]) -> Generator[Tuple[Tuple[int, int], int],
+                                                                                                               Optional[str], None]:
     height = len(grid)
     width = len(grid[0])
-    start_positions = tuple((x, y) for x, y in zip(range(width), range(height)) if grid[y][x] == "s")
+
     position = list(start_positions[0])
+    orientation = 0
+
+    def _north():
+        target_x = position[0]
+        target_y = (position[1] - 1) % height
+        if not grid[target_y][target_x] == "x":
+            position[1] = target_y
+
+    def _east():
+        target_x = (position[0] + 1) % width
+        target_y = position[1]
+        if not grid[target_y][target_x] == "x":
+            position[0] = target_x
+
+    def _south():
+        target_x = position[0]
+        target_y = (position[1] + 1) % height
+        if not grid[target_y][target_x] == "x":
+            position[1] = target_y
+
+    def _west():
+        target_x = (position[0] - 1) % width
+        target_y = position[1]
+        if not grid[target_y][target_x] == "x":
+            position[0] = target_x
 
     while True:
-        motor = yield _get_perception(grid, position)
-        if motor is None:
-            motor = random.choice("nesw")
+        motor = yield tuple(position), orientation
 
-        if motor == "n":
-            position[1] = (position[1] - 1) % height
+        if motor == "r":
+            orientation = (orientation + 1) % 4
+
+        elif motor == "l":
+            orientation = (orientation - 1) % 4
+
+        elif motor == "f":
+            if orientation == 0:
+                _north()
+            elif orientation == 1:
+                _east()
+            elif orientation == 2:
+                _south()
+            elif orientation == 3:
+                _west()
+            else:
+                raise ValueError("undefined orientation")
+
+        elif motor == "n":
+            _north()
 
         elif motor == "e":
-            position[0] = (position[0] + 1) % width
+            _east()
 
         elif motor == "s":
-            position[1] = (position[1] + 1) % height
+            _south()
 
         elif motor == "w":
-            position[0] = (position[0] - 1) % width
+            _west()
 
         else:
-            raise ValueError()
+            raise ValueError("undefined transition")
+
+        x, y = position
+        if grid[y][x] == "g":
+            position = list(random.choice(start_positions))
+
+
+def env_grid_world(file_path: str) -> Generator[Tuple[str, str, str, str], Optional[str], None]:
+    grid = _parse_text_to_grid(file_path)
+    start_positions = tuple((x, y) for y, each_row in enumerate(grid) for x in range(len(each_row)) if each_row[x] == "s")
+
+    state_generator = change_state(grid, start_positions)
+    position, orientation = state_generator.send(None)
+
+    while True:
+        motor = yield _get_perception(grid, position, orientation)
+        position, orientation = state_generator.send(motor)
 
 
 def test_env_gradient_world():
