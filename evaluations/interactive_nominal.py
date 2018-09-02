@@ -9,10 +9,12 @@ from modelling.model_types import NominalMarkovModelIsolated, NominalSemioticMod
 from tools.load_configs import Config
 
 
-def _isolated(iterations: int):
+def _isolated(iterations: int, rotational: bool):
     c = Config("../configs/config.json")
-    # movement = "f", "r", "l"
-    movement = "n", "e", "s", "w"
+    if rotational:
+        movement = "f", "r", "l"
+    else:
+        movement = "n", "e", "s", "w"
     sequences = example_random_interactive(env_grid_world(c["data_dir"] + "grid_worlds/snake.txt"), movement, history_length=1),
 
     predictor_a = NominalMarkovModelIsolated(no_examples=len(sequences))
@@ -23,10 +25,12 @@ def _isolated(iterations: int):
     experiment(examples, predictors, iterations=iterations, rational=False)
 
 
-def _analysis(iterations: int):
+def _analysis(iterations: int, rotational: bool):
     c = Config("../configs/config.json")
-    # movement = "f", "r", "l"
-    movement = "n", "e", "s", "w"
+    if rotational:
+        movement = "f", "r", "l"
+    else:
+        movement = "n", "e", "s", "w"
     examples = example_random_interactive_senses(env_grid_world(c["data_dir"] + "grid_worlds/snake.txt"), movement, history_length=1)
 
     predictor_a = NominalMarkovModelIsolated(no_examples=4)
@@ -36,13 +40,13 @@ def _analysis(iterations: int):
     experiment(examples, predictors, iterations=iterations, rational=False)
 
 
-def _experiment(iterations: int = 50000):
-    _isolated(iterations)
-    _analysis(iterations)
+def _experiment(iterations: int = 50000, rotational: bool = False):
+    _isolated(iterations, rotational)
+    _analysis(iterations, rotational)
 
     pyplot.legend()
     pyplot.show()
 
 
 if __name__ == "__main__":
-    _experiment()
+    _experiment(rotational=True)
