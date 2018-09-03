@@ -4,8 +4,7 @@ from typing import Iterable, Any, Tuple, Optional, List, TypeVar
 
 from matplotlib import pyplot
 
-from data.example_generation import EXAMPLE_SEQUENCE, join_sequences, EXAMPLE
-from environments.functionality import generic_functionality
+from data.example_generation import EXAMPLE
 from modelling.model_types import Predictor
 from tools.timer import Timer
 

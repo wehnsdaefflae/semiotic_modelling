@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # coding=utf-8
+
 from matplotlib import pyplot
 
 from data.example_generation import example_random_interactive, join_sequences, example_random_interactive_senses
@@ -12,7 +13,7 @@ from tools.load_configs import Config
 def _isolated(iterations: int, rotational: bool):
     c = Config("../configs/config.json")
     if rotational:
-        movement = "f", "r", "l"
+        movement = "f", "b", "r", "l"
     else:
         movement = "n", "e", "s", "w"
     sequences = example_random_interactive(env_grid_world(c["data_dir"] + "grid_worlds/snake.txt"), movement, history_length=1),
@@ -28,7 +29,7 @@ def _isolated(iterations: int, rotational: bool):
 def _analysis(iterations: int, rotational: bool):
     c = Config("../configs/config.json")
     if rotational:
-        movement = "f", "r", "l"
+        movement = "f", "b", "r", "l"
     else:
         movement = "n", "e", "s", "w"
     examples = example_random_interactive_senses(env_grid_world(c["data_dir"] + "grid_worlds/snake.txt"), movement, history_length=1)

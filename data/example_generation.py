@@ -25,7 +25,7 @@ def example_sequence(source: Iterable[HOMOGENEOUS_TYPE], history_length: int) ->
     for each_value in source:
         if len(history) == history_length:
             input_value: INPUT = tuple(history)
-            target_value: OUTPUT = (each_value, )
+            target_value: OUTPUT = (each_value,)
             example: EXAMPLE = (input_value, target_value)
             yield example
 
@@ -104,4 +104,67 @@ def gen_test() -> Generator[int, int, None]:
 
 
 if __name__ == "__main__":
-    pass
+    EXAMPLE_SEQUENCES = \
+        Tuple[                          # tuple of parallel sequences
+            Iterable[                   # sequence of examples
+                Tuple[                  # example of input and target output
+                    Tuple[str, ...],    # input of values
+                    Tuple[str, ...]     # target output of values
+                ]
+            ], ...
+        ]
+
+    # convert one into another with zip(*one) = another
+
+    EXAMPLES_SEQUENCE = \
+        Iterable[                       # sequence of concurrent examples
+            Tuple[                      # concurrent examples of individual examples
+                Tuple[                  # individual examples of input and target output
+                    Tuple[str, ...],    # input of values
+                    Tuple[str, ...]     # target output of values
+                ], ...
+            ]
+        ]
+
+    sequences: EXAMPLE_SEQUENCES = \
+        ([(("seq1ex1in_val1", "seq1ex1in_val2", "seq1ex1in_val3"), ("seq1ex1out_val1", "seq1ex1out_val2", "seq1ex1out_val3")),
+          (("seq1ex2in_val1", "seq1ex2in_val2", "seq1ex2in_val3"), ("seq1ex2out_val1", "seq1ex2out_val2", "seq1ex2out_val3")),
+          (("seq1ex3in_val1", "seq1ex3in_val2", "seq1ex3in_val3"), ("seq1ex3out_val1", "seq1ex3out_val2", "seq1ex3out_val3"))],
+         [(("seq2ex1in_val1", "seq2ex1in_val2", "seq2ex1in_val3"), ("seq2ex1out_val1", "seq2ex1out_val2", "seq2ex1out_val3")),
+          (("seq2ex2in_val1", "seq2ex2in_val2", "seq2ex2in_val3"), ("seq2ex2out_val1", "seq2ex2out_val2", "seq2ex2out_val3")),
+          (("seq2ex3in_val1", "seq2ex3in_val2", "seq2ex3in_val3"), ("seq2ex3out_val1", "seq2ex3out_val2", "seq2ex3out_val3"))],
+         [(("seq3ex1in_val1", "seq3ex1in_val2", "seq3ex1in_val3"), ("seq3ex1out_val1", "seq3ex1out_val2", "seq3ex1out_val3")),
+          (("seq3ex2in_val1", "seq3ex2in_val2", "seq3ex2in_val3"), ("seq3ex2out_val1", "seq3ex2out_val2", "seq3ex2out_val3")),
+          (("seq3ex3in_val1", "seq3ex3in_val2", "seq3ex3in_val3"), ("seq3ex3out_val1", "seq3ex3out_val2", "seq3ex3out_val3"))])
+
+    examples: EXAMPLES_SEQUENCE = \
+        [((("seq1ex1in_val1", "seq1ex1in_val2", "seq1ex1in_val3"), ("seq1ex1out_val1", "seq1ex1out_val2", "seq1ex1out_val3")),
+          (("seq2ex1in_val1", "seq2ex1in_val2", "seq2ex1in_val3"), ("seq2ex1out_val1", "seq2ex1out_val2", "seq2ex1out_val3")),
+          (("seq3ex1in_val1", "seq3ex1in_val2", "seq3ex1in_val3"), ("seq3ex1out_val1", "seq3ex1out_val2", "seq3ex1out_val3"))),
+         ((("seq1ex2in_val1", "seq1ex2in_val2", "seq1ex2in_val3"), ("seq1ex2out_val1", "seq1ex2out_val2", "seq1ex2out_val3")),
+          (("seq2ex2in_val1", "seq2ex2in_val2", "seq2ex2in_val3"), ("seq2ex2out_val1", "seq2ex2out_val2", "seq2ex2out_val3")),
+          (("seq3ex2in_val1", "seq3ex2in_val2", "seq3ex2in_val3"), ("seq3ex2out_val1", "seq3ex2out_val2", "seq3ex2out_val3"))),
+         ((("seq1ex3in_val1", "seq1ex3in_val2", "seq1ex3in_val3"), ("seq1ex3out_val1", "seq1ex3out_val2", "seq1ex3out_val3")),
+          (("seq2ex3in_val1", "seq2ex3in_val2", "seq2ex3in_val3"), ("seq2ex3out_val1", "seq2ex3out_val2", "seq2ex3out_val3")),
+          (("seq3ex3in_val1", "seq3ex3in_val2", "seq3ex3in_val3"), ("seq3ex3out_val1", "seq3ex3out_val2", "seq3ex3out_val3")))]
+
+    print(sequences == tuple(list(_x) for _x in zip(*examples)))
+    print()
+    print(examples == list(zip(*sequences)))
+
+    exit()
+    sequences_simple = (["seq1ex1", "seq1ex2", "seq1ex3"], ["seq2ex1", "seq2ex2", "seq2ex3"], ["seq3ex1", "seq3ex2", "seq3ex3"])
+    examples_simple = [("seq1ex1", "seq2ex1", "seq3ex1"), ("seq1ex2", "seq2ex2", "seq3ex2"), ("seq1ex3", "seq2ex3", "seq3ex3")]
+
+    print(sequences_simple)
+    print(tuple(list(_x) for _x in zip(*examples_simple)))
+    print()
+    print(examples_simple)
+    print(list(zip(*sequences_simple)))
+
+
+    exit()
+    for _x in zip(*sequences):
+        for _y in zip(*_x):
+            print(_y)
+            print()

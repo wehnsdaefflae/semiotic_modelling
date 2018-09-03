@@ -119,6 +119,18 @@ def change_state(grid: Tuple[Tuple[str, ...], ...],
             else:
                 raise ValueError("undefined orientation")
 
+        elif motor == "b":
+            if orientation == 0:
+                _south()
+            elif orientation == 1:
+                _west()
+            elif orientation == 2:
+                _north()
+            elif orientation == 3:
+                _east()
+            else:
+                raise ValueError("undefined orientation")
+
         elif motor == "n":
             _north()
 

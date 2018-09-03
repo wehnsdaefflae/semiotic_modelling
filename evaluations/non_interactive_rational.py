@@ -3,7 +3,7 @@ from matplotlib import pyplot
 
 from data.example_generation import example_sequence, join_sequences
 from environments.non_interactive import examples_rational_trigonometric, sequence_rational_crypto
-from evaluations.experiments import experiment, experiment
+from evaluations.experiments import experiment
 from modelling.model_types import RegressionIsolated, RationalSemioticModel, RegressionIntegrated
 from tools.load_configs import Config
 
