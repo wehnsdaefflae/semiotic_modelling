@@ -1,8 +1,12 @@
 # coding=utf-8
-from typing import Generic, TypeVar, Tuple
+from typing import Generic, TypeVar, Tuple, Hashable
 
 INPUT_TYPE = TypeVar("INPUT_TYPE")
 OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
+
+NOMINAL_INPUT = Hashable
+NOMINAL_OUTPUT = Hashable
+RATIONAL_VECTOR = Tuple[float, ...]
 
 
 class Predictor(Generic[INPUT_TYPE, OUTPUT_TYPE]):
@@ -30,5 +34,3 @@ class Predictor(Generic[INPUT_TYPE, OUTPUT_TYPE]):
 
     def get_structure(self) -> Tuple[int, ...]:
         raise NotImplementedError
-
-

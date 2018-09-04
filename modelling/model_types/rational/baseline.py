@@ -1,10 +1,8 @@
 # coding=utf-8
 from typing import Tuple
 
-from modelling.model_types.abstract_predictor import Predictor
+from modelling.model_types.abstract_predictor import Predictor, RATIONAL_VECTOR
 from tools.regression import Regressor
-
-RATIONAL_VECTOR = Tuple[float, ...]
 
 
 class MovingAverage(Predictor[RATIONAL_VECTOR, RATIONAL_VECTOR]):

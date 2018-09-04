@@ -1,3 +1,4 @@
+# coding=utf-8
 from typing import TypeVar, Tuple, Union, List, Dict, Optional, Callable, Iterable
 
 from modelling.content import Content, ContentFactory
@@ -6,10 +7,10 @@ TIME = TypeVar("TIME")
 BASIC_IN = TypeVar("BASIC_IN")
 BASIC_OUT = TypeVar("BASIC_OUT")
 
-EXAMPLE = Tuple[BASIC_IN, BASIC_OUT]
 ABSTRACT_SHAPE = int                                        # TODO: make generic hashable
 APPEARANCE = Union[BASIC_IN, BASIC_OUT, ABSTRACT_SHAPE]
 HISTORY = Union[List[APPEARANCE], Tuple[APPEARANCE, ...]]
+
 LEVEL = Dict[APPEARANCE, Content]
 MODEL = List[LEVEL]
 STATE = List[APPEARANCE]

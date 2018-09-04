@@ -2,10 +2,9 @@
 from typing import Callable, Tuple
 
 from modelling.content import ContentFactory
-from modelling.model_types.abstract_predictor import Predictor
-from modelling.model_types.nominal.baseline import NOMINAL_INPUT, NOMINAL_OUTPUT
+from modelling.model_types.abstract_predictor import Predictor, NOMINAL_INPUT, NOMINAL_OUTPUT
 from modelling.semiotic_functions import update_state, generate_state_layer, generate_content, generate_trace_layer, adapt_abstract_content, \
-    adapt_base_contents, update_traces, get_outputs
+    adapt_base_contents, update_traces, get_outputs, TRACE, MODEL, STATE
 
 
 class NominalSemioticModel(Predictor[NOMINAL_INPUT, NOMINAL_OUTPUT]):

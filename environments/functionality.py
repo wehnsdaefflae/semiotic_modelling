@@ -1,4 +1,5 @@
-from typing import Tuple, Hashable, Sequence, Iterator, Any
+# coding=utf-8
+from typing import Tuple, Hashable, Sequence
 
 from matplotlib import pyplot
 

@@ -1,6 +1,7 @@
+# coding=utf-8
 import random
 from math import sqrt
-from typing import Generator, Optional, Tuple, Sequence, Iterable, List
+from typing import Generator, Optional, Tuple, Sequence, Iterable
 
 
 def env_gradient_world(size: int, centers: Iterable[Tuple[float, float]], tile_size: int) -> Generator[Tuple[float, ...], Optional[float], None]:

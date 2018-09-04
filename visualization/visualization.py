@@ -8,7 +8,7 @@ from matplotlib.dates import date2num
 from matplotlib.patches import Rectangle
 
 from data.deprecated_sequence_generation import TIME
-from tools.helper_functions import distribute_circular, smoothing_generator
+from tools.math_functions import distribute_circular, smoothing_generator
 from tools.timer import Timer
 
 

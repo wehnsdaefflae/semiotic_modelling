@@ -1,4 +1,5 @@
 # coding=utf-8
+import time
 from math import sqrt
 from typing import Iterable, Tuple, TypeVar
 
@@ -20,6 +21,7 @@ def experiment(examples: Iterable[Tuple[EXAMPLE[IN_TYPE, OUT_TYPE], ...]], predi
     time_axis = []
     errors = None
 
+    # TODO: add time plot and print functionality
     """
     
     for _i, each_sequence in enumerate(sequences):
@@ -30,6 +32,8 @@ def experiment(examples: Iterable[Tuple[EXAMPLE[IN_TYPE, OUT_TYPE], ...]], predi
             print("sequence {:02d} functionality: {:05.3f}".format(_i, f))
     """
 
+    step_duration = 0.
+    # acc_error = [0. for
     for each_step, current_examples in enumerate(examples):
         if each_step >= iterations:
             break
@@ -41,12 +45,14 @@ def experiment(examples: Iterable[Tuple[EXAMPLE[IN_TYPE, OUT_TYPE], ...]], predi
         input_values, target_values = zip(*current_examples)
 
         for predictor_index, each_predictor in enumerate(predictors):
-            predictor_errors = errors[predictor_index]
-
+            last_time = time.time()
             output_values = each_predictor.predict(input_values)
+            each_predictor.fit(input_values, target_values)
+            step_duration += time.time() - last_time
+
+            predictor_errors = errors[predictor_index]
             for example_index, (target, output) in enumerate(zip(target_values, output_values)):
                 sequence_errors = predictor_errors[example_index]
-
                 last_error = 1. if len(sequence_errors) < 1 else sequence_errors[-1]
 
                 if rational:
@@ -54,15 +60,15 @@ def experiment(examples: Iterable[Tuple[EXAMPLE[IN_TYPE, OUT_TYPE], ...]], predi
                 else:
                     this_error = float(output != target)
 
-                each_predictor.fit(input_values, target_values)
-
                 sequence_errors.append((last_error * each_step + this_error) / (each_step + 1))
 
             if Timer.time_passed(2000):
                 print("{:05.2f}% finished".format(100. * each_step / iterations))
 
+    # fig, (ax1, ax2) = pyplot.subplots(2, sharex="all")
     for predictor_index, each_predictor in enumerate(predictors):
         print(each_predictor.get_structure())
+
         predictor_errors = errors[predictor_index]
         for example_index, each_error in enumerate(predictor_errors):
             pyplot.plot(time_axis, each_error, label="{:02d}/{:02d} {:s}".format(example_index + 1, len(predictor_errors), each_predictor.__class__.__name__))

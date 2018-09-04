@@ -1,11 +1,8 @@
 # coding=utf-8
-from typing import Tuple, Hashable
+from typing import Tuple
 
 from modelling.content import NominalContent
-from modelling.model_types.abstract_predictor import Predictor
-
-NOMINAL_INPUT = Hashable
-NOMINAL_OUTPUT = Hashable
+from modelling.model_types.abstract_predictor import Predictor, NOMINAL_INPUT, NOMINAL_OUTPUT
 
 
 class NominalMarkovModelIsolated(Predictor[NOMINAL_INPUT, NOMINAL_OUTPUT]):
