@@ -18,32 +18,38 @@ CONCURRENT_EXAMPLES = Iterable[Tuple[EXAMPLE, ...]]
 CONCURRENT_IOS = Iterable[Tuple[CONCURRENT_INPUTS, CONCURRENT_OUTPUTS]]
 
 
-def from_parallel_sequences_to_concurrent_examples(sequences: PARALLEL_SEQUENCES) -> Generator[Tuple[EXAMPLE, ...], None, None]:
+def from_parallel_sequences_to_concurrent_examples(sequences: PARALLEL_SEQUENCES) -> CONCURRENT_EXAMPLES:
+#def from_parallel_sequences_to_concurrent_examples(sequences: PARALLEL_SEQUENCES) -> Generator[Tuple[EXAMPLE, ...], None, None]:
     yield from zip(*sequences)
 
 
-def from_parallel_sequences_to_concurrent_ios(sequences: PARALLEL_SEQUENCES) -> Generator[Tuple[CONCURRENT_INPUTS, CONCURRENT_OUTPUTS], None, None]:
+def from_parallel_sequences_to_concurrent_ios(sequences: PARALLEL_SEQUENCES) -> CONCURRENT_IOS:
+#def from_parallel_sequences_to_concurrent_ios(sequences: PARALLEL_SEQUENCES) -> Generator[Tuple[CONCURRENT_INPUTS, CONCURRENT_OUTPUTS], None, None]:
     yield from from_concurrent_examples_to_concurrent_ios(from_parallel_sequences_to_concurrent_examples(sequences))
 
 
-def from_concurrent_examples_to_concurrent_ios(examples: CONCURRENT_EXAMPLES) -> Generator[Tuple[CONCURRENT_INPUTS, CONCURRENT_OUTPUTS], None, None]:
+def from_concurrent_examples_to_concurrent_ios(examples: CONCURRENT_EXAMPLES) -> CONCURRENT_IOS:
+#def from_concurrent_examples_to_concurrent_ios(examples: CONCURRENT_EXAMPLES) -> Generator[Tuple[CONCURRENT_INPUTS, CONCURRENT_OUTPUTS], None, None]:
     for concurrent_examples in examples:
         yield tuple(zip(*concurrent_examples))
 
 
-def from_concurrent_examples_to_parallel_sequences(examples: CONCURRENT_EXAMPLES, no_sequences: int) -> Tuple[Generator[EXAMPLE, None, None], ...]:
+def from_concurrent_examples_to_parallel_sequences(examples: CONCURRENT_EXAMPLES, no_sequences: int) -> PARALLEL_SEQUENCES:
+#def from_concurrent_examples_to_parallel_sequences(examples: CONCURRENT_EXAMPLES, no_sequences: int) -> Tuple[Generator[EXAMPLE, None, None], ...]:
     def _it() -> Generator[Tuple[EXAMPLE, ...], None, None]:
         for concurrent_examples in examples:
             yield concurrent_examples
     yield from split_iterator(_it(), no_sequences)
 
 
-def from_concurrent_ios_to_concurrent_examples(ios: CONCURRENT_IOS) -> Generator[Tuple[EXAMPLE, ...], None, None]:
+def from_concurrent_ios_to_concurrent_examples(ios: CONCURRENT_IOS) -> CONCURRENT_EXAMPLES:
+#def from_concurrent_ios_to_concurrent_examples(ios: CONCURRENT_IOS) -> Generator[Tuple[EXAMPLE, ...], None, None]:
     for concurrent_inputs, concurrent_outputs in ios:
         yield tuple(zip(concurrent_inputs, concurrent_outputs))
 
 
-def from_concurrent_ios_to_parallel_sequences(ios: CONCURRENT_IOS, no_sequences: int) -> Tuple[Generator[EXAMPLE, None, None], ...]:
+def from_concurrent_ios_to_parallel_sequences(ios: CONCURRENT_IOS, no_sequences: int) -> PARALLEL_SEQUENCES:
+#def from_concurrent_ios_to_parallel_sequences(ios: CONCURRENT_IOS, no_sequences: int) -> Tuple[Generator[EXAMPLE, None, None], ...]:
     yield from from_concurrent_examples_to_parallel_sequences(from_concurrent_ios_to_concurrent_examples(ios), no_sequences)
 
 

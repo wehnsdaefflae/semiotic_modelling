@@ -1,11 +1,11 @@
 # coding=utf-8
 from matplotlib import pyplot
 
-from data.example_generation import example_sequence, join_sequences
+from data.example_generation import example_sequence, from_parallel_sequences_to_concurrent_examples
 from environments.non_interactive import examples_rational_trigonometric, sequence_rational_crypto
 from evaluations.experiments import experiment
-from modelling.model_types.rational.semiotic import RationalSemioticModel
-from modelling.model_types.rational.baseline import RegressionIsolated, RegressionIntegrated
+from modelling.predictors.rational.semiotic import RationalSemioticModel
+from modelling.predictors.rational.baseline import RegressionIsolated, RegressionIntegrated
 from tools.load_configs import Config
 
 
@@ -17,7 +17,7 @@ def _artificial_isolated(iterations: int):
                                         trace_length=1)
     predictors = predictor_a, predictor_b
 
-    examples = join_sequences(sequences)
+    examples = from_parallel_sequences_to_concurrent_examples(sequences)
     experiment(examples, predictors, iterations=iterations, rational=True)
 
 
@@ -31,7 +31,7 @@ def _natural_isolated(iterations: int):
                                         trace_length=1)
     predictors = predictor_a, predictor_b
 
-    examples = join_sequences(sequences)
+    examples = from_parallel_sequences_to_concurrent_examples(sequences)
     experiment(examples, predictors, iterations=iterations, rational=True)
 
 
@@ -48,7 +48,7 @@ def _artificial_synthesis(iterations: int):
                                         trace_length=1)
     predictors = predictor_a, predictor_b
 
-    examples = join_sequences(sequences)
+    examples = from_parallel_sequences_to_concurrent_examples(sequences)
     experiment(examples, predictors, iterations=iterations, rational=True)
 
 
@@ -64,7 +64,7 @@ def _natural_synthesis(iterations: int):
                                         trace_length=1)
     predictors = predictor_a, predictor_b
 
-    examples = join_sequences(sequences)
+    examples = from_parallel_sequences_to_concurrent_examples(sequences)
     experiment(examples, predictors, iterations=iterations, rational=True)
 
 

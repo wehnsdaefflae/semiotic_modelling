@@ -1,7 +1,7 @@
 # coding=utf-8
 from typing import Tuple
 
-from modelling.model_types.abstract_predictor import Predictor, RATIONAL_VECTOR
+from modelling.predictors.abstract_predictor import Predictor, RATIONAL_VECTOR
 from tools.regression import Regressor
 
 

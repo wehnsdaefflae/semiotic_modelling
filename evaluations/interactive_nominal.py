@@ -3,11 +3,12 @@
 
 from matplotlib import pyplot
 
-from data.example_generation import example_random_interactive, join_sequences, example_random_interactive_senses
+from data.data_types import from_parallel_sequences_to_concurrent_examples, CONCURRENT_EXAMPLES
+from data.example_generation import example_random_interactive, example_random_interactive_senses
 from environments.interactive import env_grid_world
 from evaluations.experiments import experiment
-from modelling.model_types.nominal.semiotic import NominalSemioticModel
-from modelling.model_types.nominal.baseline import NominalMarkovModelIsolated
+from modelling.predictors.nominal.semiotic import NominalSemioticModel
+from modelling.predictors.nominal.baseline import NominalMarkovModelIsolated
 from tools.load_configs import Config
 
 
@@ -17,13 +18,12 @@ def _isolated(iterations: int, rotational: bool):
         movement = "f", "b", "r", "l"
     else:
         movement = "n", "e", "s", "w"
-    sequences = example_random_interactive(env_grid_world(c["data_dir"] + "grid_worlds/snake.txt"), movement, history_length=1),
+    examples = example_random_interactive(env_grid_world(c["data_dir"] + "grid_worlds/snake.txt"), movement, history_length=1)
 
-    predictor_a = NominalMarkovModelIsolated(no_examples=len(sequences))
-    predictor_b = NominalSemioticModel(no_examples=len(sequences), alpha=50, sigma=.1, trace_length=1)
+    predictor_a = NominalMarkovModelIsolated(no_examples=1)
+    predictor_b = NominalSemioticModel(no_examples=1, alpha=50, sigma=.1, trace_length=1)
     predictors = predictor_a, predictor_b
 
-    examples = join_sequences(sequences)
     experiment(examples, predictors, iterations=iterations, rational=False)
 
 
@@ -51,4 +51,4 @@ def _experiment(iterations: int = 50000, rotational: bool = False):
 
 
 if __name__ == "__main__":
-    _experiment(rotational=True)
+    _experiment(iterations=500000, rotational=True)

@@ -3,11 +3,12 @@
 
 from matplotlib import pyplot
 
-from data.example_generation import example_sequence, join_sequences
+from data.data_types import from_parallel_sequences_to_concurrent_examples
+from data.example_generation import example_sequence
 from environments.non_interactive import sequence_nominal_text, sequence_nominal_alternating
 from evaluations.experiments import experiment
-from modelling.model_types.nominal.semiotic import NominalSemioticModel
-from modelling.model_types.nominal.baseline import NominalMarkovModelIsolated, NominalMarkovModelIntegrated
+from modelling.predictors.nominal.semiotic import NominalSemioticModel
+from modelling.predictors.nominal.baseline import NominalMarkovModelIsolated, NominalMarkovModelIntegrated
 from tools.load_configs import Config
 
 
@@ -18,7 +19,7 @@ def _artificial_isolated(iterations: int):
     predictor_b = NominalSemioticModel(no_examples=len(sequences), alpha=0, sigma=1., trace_length=1)
     predictors = predictor_a, predictor_b
 
-    examples = join_sequences(sequences)
+    examples = from_parallel_sequences_to_concurrent_examples(sequences)
     experiment(examples, predictors, rational=False, iterations=iterations)
 
 
@@ -30,7 +31,7 @@ def _natural_isolated(iterations: int):
     predictor_b = NominalSemioticModel(no_examples=len(sequences), alpha=50, sigma=.1, trace_length=1)
     predictors = predictor_a, predictor_b
 
-    examples = join_sequences(sequences)
+    examples = from_parallel_sequences_to_concurrent_examples(sequences)
     experiment(examples, predictors, iterations=iterations, rational=False)
 
 
@@ -43,7 +44,7 @@ def _artificial_synthesis(iterations: int):
     predictor_b = NominalSemioticModel(no_examples=len(sequences), alpha=0, sigma=1., trace_length=1)
     predictors = predictor_a, predictor_b
 
-    examples = join_sequences(sequences)
+    examples = from_parallel_sequences_to_concurrent_examples(sequences)
     experiment(examples, predictors, iterations=iterations, rational=False)
 
 
@@ -57,7 +58,7 @@ def _natural_synthesis(iterations: int):
     predictor_b = NominalSemioticModel(no_examples=len(sequence), alpha=50, sigma=.1, trace_length=1)
     predictors = predictor_a, predictor_b
 
-    examples = join_sequences(sequence)
+    examples = from_parallel_sequences_to_concurrent_examples(sequence)
     experiment(examples, predictors, iterations=iterations, rational=False)
 
 
@@ -79,5 +80,5 @@ def natural_experiment(iterations: int = 500000):
 
 if __name__ == "__main__":
     # TODO: translate nominal into rational environments (generator!)
-    natural_experiment()
-    # artificial_experiment()
+    # natural_experiment()
+    artificial_experiment()

@@ -2,7 +2,7 @@
 from typing import Tuple
 
 from modelling.content import NominalContent
-from modelling.model_types.abstract_predictor import Predictor, NOMINAL_INPUT, NOMINAL_OUTPUT
+from modelling.predictors.abstract_predictor import Predictor, NOMINAL_INPUT, NOMINAL_OUTPUT
 
 
 class NominalMarkovModelIsolated(Predictor[NOMINAL_INPUT, NOMINAL_OUTPUT]):

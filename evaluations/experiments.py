@@ -5,8 +5,9 @@ from typing import Iterable, Tuple, TypeVar
 
 from matplotlib import pyplot
 
+from data.data_types import CONCURRENT_EXAMPLES
 from data.example_generation import EXAMPLE
-from modelling.model_types.abstract_predictor import Predictor
+from modelling.predictors.abstract_predictor import Predictor
 from tools.timer import Timer
 
 
@@ -16,7 +17,8 @@ IN_TYPE = TypeVar("IN_TYPE")
 OUT_TYPE = TypeVar("OUT_TYPE")
 
 
-def experiment(examples: Iterable[Tuple[EXAMPLE[IN_TYPE, OUT_TYPE], ...]], predictors: Tuple[Predictor[IN_TYPE, OUT_TYPE], ...],
+# TODO: concurrent_examples
+def experiment(examples: CONCURRENT_EXAMPLES[IN_TYPE, OUT_TYPE], predictors: Tuple[Predictor[IN_TYPE, OUT_TYPE], ...],
                rational: bool, iterations: int):
     time_axis = []
     errors = None

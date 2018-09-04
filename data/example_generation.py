@@ -1,32 +1,20 @@
 #!/usr/bin/env python3
 # coding=utf-8
 import random
-from typing import Iterable, Generator, Tuple, TypeVar, Hashable, List, Any, Optional
+from typing import Iterable, Generator, Tuple, TypeVar, List, Optional
+from data.data_types import CONCURRENT_EXAMPLES, EXAMPLE
 
-INPUT_TYPE = TypeVar("INPUT_TYPE", Hashable, Tuple[float, ...])
-OUTPUT_TYPE = TypeVar("OUTPUT_TYPE", Hashable, Tuple[float, ...])
-
-INPUT = Tuple[INPUT_TYPE, ...]
-OUTPUT = Tuple[OUTPUT_TYPE, ...]
-EXAMPLE = Tuple[INPUT[INPUT_TYPE], OUTPUT[OUTPUT_TYPE]]
-EXAMPLE_SEQUENCE = Iterable[EXAMPLE[INPUT_TYPE, OUTPUT_TYPE]]
-JOINT_SEQUENCES = Iterable[Tuple[EXAMPLE[INPUT_TYPE, OUTPUT_TYPE], ...]]
-
-
-def join_sequences(individual_sequences: Tuple[EXAMPLE_SEQUENCE, ...]) -> Generator[Tuple[EXAMPLE, ...], None, None]:
-    yield from zip(*individual_sequences)
-
-
+EXAMPLE_SEQUENCE = Iterable[EXAMPLE]
 HOMOGENEOUS_TYPE = TypeVar("HOMOGENEOUS_TYPE")
 
 
-def example_sequence(source: Iterable[HOMOGENEOUS_TYPE], history_length: int) -> Generator[EXAMPLE[HOMOGENEOUS_TYPE, HOMOGENEOUS_TYPE], None, None]:
+def example_sequence(source: Iterable[HOMOGENEOUS_TYPE], history_length: int) -> EXAMPLE_SEQUENCE[HOMOGENEOUS_TYPE, HOMOGENEOUS_TYPE]:
     history: List[HOMOGENEOUS_TYPE] = []
     for each_value in source:
         if len(history) == history_length:
-            input_value: INPUT = tuple(history)
-            target_value: OUTPUT = (each_value,)
-            example: EXAMPLE = (input_value, target_value)
+            input_value = tuple(history)
+            target_value = each_value,
+            example = input_value, target_value   # type: EXAMPLE[HOMOGENEOUS_TYPE, HOMOGENEOUS_TYPE] # TODO: what's going on here?
             yield example
 
         history.append(each_value)
@@ -34,16 +22,23 @@ def example_sequence(source: Iterable[HOMOGENEOUS_TYPE], history_length: int) ->
             history.pop(0)
 
 
-SENSOR_TYPE = Tuple[str, str, str, str]  # TypeVar("SENSOR_TYPE")
-MOTOR_TYPE = str  # TypeVar("MOTOR_TYPE")
+SENSOR_TYPE = TypeVar("SENSOR_TYPE")
+MOTOR_TYPE = TypeVar("MOTOR_TYPE")
+INTERACTION_HISTORY = Tuple[Tuple[SENSOR_TYPE, MOTOR_TYPE], ...]
+
+ENVIRONMENT = Generator[SENSOR_TYPE, Optional[MOTOR_TYPE], None]
+
+GRID_SENSOR_VALUE = Tuple[str, str, str, str]
+GRID_MOTOR_VALUE = str
+GRID_HISTORY = INTERACTION_HISTORY[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE]
 
 
-def example_random_interactive(source: Generator[SENSOR_TYPE, Optional[MOTOR_TYPE], None], actions: Tuple[MOTOR_TYPE, ...],
-                               history_length: int) -> Generator[EXAMPLE[Tuple[Tuple[SENSOR_TYPE, MOTOR_TYPE], ...], SENSOR_TYPE], None, None]:
-    history: List[Tuple[SENSOR_TYPE, MOTOR_TYPE]] = []
+def example_random_interactive(source: ENVIRONMENT[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE],
+                               actions: Tuple[GRID_MOTOR_VALUE, ...],
+                               history_length: int) -> CONCURRENT_EXAMPLES[GRID_HISTORY, GRID_SENSOR_VALUE]:
+    history = []    # type: List[Tuple[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE]]
 
     each_sensor = source.send(None)
-
     while True:
         each_motor = random.choice(actions)
 
@@ -54,15 +49,19 @@ def example_random_interactive(source: Generator[SENSOR_TYPE, Optional[MOTOR_TYP
 
         each_sensor = source.send(each_motor)
         if len(history) == history_length:
-            yield tuple(history), each_sensor
+            yield (tuple(history), each_sensor),
 
 
-def example_random_interactive_senses(source: Generator[SENSOR_TYPE, Optional[MOTOR_TYPE], None], actions: Tuple[MOTOR_TYPE, ...],
-                                      history_length: int) -> Generator[EXAMPLE[Tuple[Tuple[SENSOR_TYPE, MOTOR_TYPE], ...], SENSOR_TYPE], None, None]:
+GRID_SENSOR_VALUE = str
+GRID_HISTORY = INTERACTION_HISTORY[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE]
+
+
+def example_random_interactive_senses(source: ENVIRONMENT[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE],
+                                      actions: Tuple[GRID_MOTOR_VALUE, ...],
+                                      history_length: int) -> CONCURRENT_EXAMPLES[GRID_HISTORY, GRID_SENSOR_VALUE]:
     histories = [], [], [], []
 
     each_sensor = source.send(None)
-
     while True:
         each_motor = random.choice(actions)
 
@@ -82,25 +81,6 @@ def example_goal_interactive(source: Generator[Tuple[SENSOR_TYPE, ...], Optional
                              history_length: int) -> \
         Generator[Tuple[EXAMPLE[Tuple[Tuple[SENSOR_TYPE, MOTOR_TYPE], ...], SENSOR_TYPE], float], None, None]:
     raise NotImplementedError("also returns current reward")
-
-
-def _join_sequences(individual_sequences: Tuple[Iterable[Any], ...]) -> Generator[Tuple[Any, ...], None, None]:
-    for current_examples in zip(*individual_sequences):
-        yield current_examples
-
-
-def _join_sequences_2(individual_sequences: Tuple[Iterable[Any], ...]) -> Generator[Tuple[Any, ...], None, None]:
-    yield from zip(*individual_sequences)
-
-
-def gen_test() -> Generator[int, int, None]:
-    _x = 0
-    while True:
-        _y = yield _x
-        _x += 1
-        if _y is None:
-            continue
-        _x += _y
 
 
 if __name__ == "__main__":
