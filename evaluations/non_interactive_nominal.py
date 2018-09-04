@@ -6,7 +6,8 @@ from matplotlib import pyplot
 from data.example_generation import example_sequence, join_sequences
 from environments.non_interactive import sequence_nominal_text, sequence_nominal_alternating
 from evaluations.experiments import experiment
-from modelling.model_types import NominalSemioticModel, NominalMarkovModelIsolated, NominalMarkovModelIntegrated
+from modelling.model_types.nominal.semiotic import NominalSemioticModel
+from modelling.model_types.nominal.baseline import NominalMarkovModelIsolated, NominalMarkovModelIntegrated
 from tools.load_configs import Config
 
 

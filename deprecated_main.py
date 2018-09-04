@@ -4,7 +4,8 @@ from typing import Tuple, Iterable, Generator, Iterator
 from dateutil.tz import tzutc
 
 from data.deprecated_sequence_generation import ExchangeRateSequence, TrigonometricSequence, TIME, EXAMPLE
-from modelling.model_types import MovingAverage, RegressionIsolated, RationalSemioticModel
+from modelling.model_types.rational.semiotic import RationalSemioticModel
+from modelling.model_types.rational.baseline import MovingAverage, RegressionIsolated
 from tools.timer import Timer
 from visualization.visualization import QualitativeEvaluationMultiSequence, ComparativeEvaluation, QualitativeEvaluationSingleSequence
 

@@ -1,11 +1,11 @@
 # coding=utf-8
 from math import sqrt
-from typing import Iterable, Any, Tuple, Optional, List, TypeVar
+from typing import Iterable, Tuple, TypeVar
 
 from matplotlib import pyplot
 
 from data.example_generation import EXAMPLE
-from modelling.model_types import Predictor
+from modelling.model_types.abstract_predictor import Predictor
 from tools.timer import Timer
 
 

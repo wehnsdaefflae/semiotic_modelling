@@ -6,7 +6,8 @@ from matplotlib import pyplot
 from data.example_generation import example_random_interactive, join_sequences, example_random_interactive_senses
 from environments.interactive import env_grid_world
 from evaluations.experiments import experiment
-from modelling.model_types import NominalMarkovModelIsolated, NominalSemioticModel
+from modelling.model_types.nominal.semiotic import NominalSemioticModel
+from modelling.model_types.nominal.baseline import NominalMarkovModelIsolated
 from tools.load_configs import Config
 
 
