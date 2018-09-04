@@ -11,19 +11,16 @@ from modelling.predictors.abstract_predictor import Predictor
 from tools.timer import Timer
 
 
-# TODO: define TypeVars here and replace Any
-
 IN_TYPE = TypeVar("IN_TYPE")
 OUT_TYPE = TypeVar("OUT_TYPE")
 
 
-# TODO: concurrent_examples
 def experiment(examples: CONCURRENT_EXAMPLES[IN_TYPE, OUT_TYPE], predictors: Tuple[Predictor[IN_TYPE, OUT_TYPE], ...],
                rational: bool, iterations: int):
     time_axis = []
-    errors = None
+    errors = tuple([] for _ in predictors)
 
-    # TODO: add time plot and print functionality
+    # TODO: add time complexity plot and print functionality
     """
     
     for _i, each_sequence in enumerate(sequences):
@@ -35,13 +32,9 @@ def experiment(examples: CONCURRENT_EXAMPLES[IN_TYPE, OUT_TYPE], predictors: Tup
     """
 
     step_duration = 0.
-    # acc_error = [0. for
     for each_step, current_examples in enumerate(examples):
         if each_step >= iterations:
             break
-
-        if errors is None:
-            errors = tuple(tuple([] for _ in current_examples) for _ in predictors)
 
         time_axis.append(each_step)
         input_values, target_values = zip(*current_examples)
@@ -53,16 +46,15 @@ def experiment(examples: CONCURRENT_EXAMPLES[IN_TYPE, OUT_TYPE], predictors: Tup
             step_duration += time.time() - last_time
 
             predictor_errors = errors[predictor_index]
+            last_error = 1. if len(predictor_errors) < 1 else predictor_errors[-1]
+            this_error = 0.
             for example_index, (target, output) in enumerate(zip(target_values, output_values)):
-                sequence_errors = predictor_errors[example_index]
-                last_error = 1. if len(sequence_errors) < 1 else sequence_errors[-1]
-
                 if rational:
-                    this_error = sqrt(sum((each_output - each_target) ** 2. for each_output, each_target in zip(output, target)))
+                    this_error += sqrt(sum((each_output - each_target) ** 2. for each_output, each_target in zip(output, target)))
                 else:
-                    this_error = float(output != target)
+                    this_error += float(output != target)
 
-                sequence_errors.append((last_error * each_step + this_error) / (each_step + 1))
+            predictor_errors.append((last_error * each_step + this_error / len(input_values)) / (each_step + 1))
 
             if Timer.time_passed(2000):
                 print("{:05.2f}% finished".format(100. * each_step / iterations))
@@ -72,7 +64,6 @@ def experiment(examples: CONCURRENT_EXAMPLES[IN_TYPE, OUT_TYPE], predictors: Tup
         print(each_predictor.get_structure())
 
         predictor_errors = errors[predictor_index]
-        for example_index, each_error in enumerate(predictor_errors):
-            pyplot.plot(time_axis, each_error, label="{:02d}/{:02d} {:s}".format(example_index + 1, len(predictor_errors), each_predictor.__class__.__name__))
-            pyplot.draw()
-            pyplot.pause(.001)
+        pyplot.plot(time_axis, predictor_errors, label="{:s} {:d}".format(each_predictor.__class__.__name__, each_predictor.no_examples))
+        pyplot.draw()
+        pyplot.pause(.001)
