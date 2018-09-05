@@ -98,9 +98,9 @@ def rationalize_generator(source: CONCURRENT_EXAMPLES[IN_TYPE, OUT_TYPE]) -> CON
     def _convert(value: Hashable, c_dict: Dict[Hashable, float]) -> float:
         r_value = c_dict.get(value)
         if r_value is None:
-            r_value = len(c_dict)
+            r_value = distribute_circular(len(c_dict))
             c_dict[value] = r_value
-        return distribute_circular(r_value)
+        return r_value
 
     for input_values, target_values in source:
         rational_examples = []

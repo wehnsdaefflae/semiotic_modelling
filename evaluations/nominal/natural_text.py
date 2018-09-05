@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # coding=utf-8
+import os
 
 from matplotlib import pyplot
 
@@ -8,7 +9,7 @@ from data.example_generation import example_sequence
 from environments.non_interactive import sequence_nominal_text
 from evaluations.experiments import experiment
 from modelling.predictors.nominal.semiotic import NominalSemioticModel
-from modelling.predictors.nominal.baseline import NominalMarkovModelIsolated, NominalMarkovModelIntegrated
+from modelling.predictors.nominal.baseline import NominalMarkovModel
 from tools.load_configs import Config
 
 
@@ -16,7 +17,7 @@ def _natural_isolated(iterations: int):
     c = Config("../../configs/config.json")
     sequences = example_sequence(sequence_nominal_text(c["data_dir"] + "Texts/pride_prejudice.txt"), history_length=1),
 
-    predictor_a = NominalMarkovModelIsolated(no_examples=len(sequences))
+    predictor_a = NominalMarkovModel(no_examples=len(sequences))
     predictor_b = NominalSemioticModel(no_examples=len(sequences), alpha=50, sigma=.1, trace_length=1)
     predictors = predictor_a, predictor_b
 
@@ -30,7 +31,7 @@ def _natural_synthesis(iterations: int):
     sequence_b = example_sequence(sequence_nominal_text(c["data_dir"] + "Texts/mansfield_park.txt"), history_length=1)
     sequence = sequence_a, sequence_b
 
-    predictor_a = NominalMarkovModelIntegrated(no_examples=len(sequence))
+    predictor_a = NominalMarkovModel(no_examples=len(sequence))
     predictor_b = NominalSemioticModel(no_examples=len(sequence), alpha=50, sigma=.1, trace_length=1)
     predictors = predictor_a, predictor_b
 
@@ -41,8 +42,9 @@ def _natural_synthesis(iterations: int):
 if __name__ == "__main__":
     duration = 500000
 
+    pyplot.suptitle(os.path.basename(__file__))
+
     _natural_isolated(duration)
     _natural_synthesis(duration)
 
-    pyplot.tight_layout()
     pyplot.show()
