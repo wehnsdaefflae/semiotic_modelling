@@ -102,13 +102,11 @@ def rationalize_generator(source: CONCURRENT_EXAMPLES[IN_TYPE, OUT_TYPE]) -> CON
             c_dict[value] = r_value
         return r_value
 
-    for input_values, target_values in source:
+    for concurrent_examples in source:
         rational_examples = []
-        for each_in, each_out in zip(input_values, target_values):
-            each_example = tuple(_convert(_x, in_values) for _x in flatten(each_in)), tuple(_convert(_x, out_values) for _x in flatten(each_out))
+        for input_values, output_values in concurrent_examples:
+            each_rational_input = tuple(_convert(_x, in_values) for _x in flatten(input_values))
+            each_rational_output = tuple(_convert(_x, out_values) for _x in flatten(output_values))
+            each_example = each_rational_input, each_rational_output
             rational_examples.append(each_example)
         yield tuple(rational_examples)
-
-
-if __name__ == "__main__":
-    pass

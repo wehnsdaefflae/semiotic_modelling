@@ -14,7 +14,7 @@ def _artificial_isolated(iterations: int):
     sequences = examples_rational_trigonometric(history_length=1),
 
     predictor_a = Regression(input_dimension=1, output_dimension=1, no_examples=len(sequences), drag=100)
-    predictor_b = RationalSemioticModel(input_dimensions=1, output_dimensions=1, no_examples=len(sequences), alpha=10, sigma=.5, drag=100,
+    predictor_b = RationalSemioticModel(input_dimension=1, output_dimension=1, no_examples=len(sequences), alpha=10, sigma=.5, drag=100,
                                         trace_length=1)
     predictors = predictor_a, predictor_b
 
@@ -31,7 +31,7 @@ def _artificial_synthesis(iterations: int):
     sequences = sequence_a, sequence_b
 
     predictor_a = Regression(input_dimension=1, output_dimension=1, no_examples=len(sequences), drag=100)
-    predictor_b = RationalSemioticModel(input_dimensions=1, output_dimensions=1, no_examples=len(sequences), alpha=10, sigma=.5, drag=100,
+    predictor_b = RationalSemioticModel(input_dimension=1, output_dimension=1, no_examples=len(sequences), alpha=10, sigma=.5, drag=100,
                                         trace_length=1)
     predictors = predictor_a, predictor_b
 

@@ -18,7 +18,7 @@ def _natural_isolated(iterations: int):
     sequences = example_sequence(sequence_a, history_length=1),
 
     predictor_a = Regression(input_dimension=1, output_dimension=1, no_examples=len(sequences), drag=100)
-    predictor_b = RationalSemioticModel(input_dimensions=1, output_dimensions=1, no_examples=len(sequences), alpha=10, sigma=.8, drag=100,
+    predictor_b = RationalSemioticModel(input_dimension=1, output_dimension=1, no_examples=len(sequences), alpha=10, sigma=.8, drag=100,
                                         trace_length=1)
     predictors = predictor_a, predictor_b
 
@@ -34,7 +34,7 @@ def _natural_synthesis(iterations: int):
     sequences = example_sequence(sequence_a, history_length=1), example_sequence(sequence_b, history_length=1)
 
     predictor_a = Regression(input_dimension=1, output_dimension=1, no_examples=len(sequences), drag=100)
-    predictor_b = RationalSemioticModel(input_dimensions=1, output_dimensions=1, no_examples=len(sequences), alpha=10, sigma=.8, drag=100,
+    predictor_b = RationalSemioticModel(input_dimension=1, output_dimension=1, no_examples=len(sequences), alpha=10, sigma=.8, drag=100,
                                         trace_length=1)
     predictors = predictor_a, predictor_b
 

@@ -11,11 +11,11 @@ from modelling.semiotic_functions import generate_state_layer, generate_content,
 class RationalSemioticModel(NominalSemioticModel):
     # TODO: instead of fix_level_size_at preconstruct model and prohibit content generation with boolean
     # avoids problem of two states writing to the same content until model is fixed
-    def __init__(self, input_dimensions: int, output_dimensions: int, no_examples: int, alpha: int, sigma: float, drag: int, trace_length: int,
+    def __init__(self, input_dimension: int, output_dimension: int, no_examples: int, alpha: int, sigma: float, drag: int, trace_length: int,
                  fix_level_size_at: Callable[[int], int] = lambda _level: -1):
         super().__init__(no_examples, alpha, sigma, trace_length, fix_level_size_at=fix_level_size_at)
-        self.output_dimensions = output_dimensions
-        self.base_content_factory = ContentFactory(input_dimensions, output_dimensions, drag, alpha)
+        self.output_dimensions = output_dimension
+        self.base_content_factory = ContentFactory(input_dimension, output_dimension, drag, alpha)
         self.model = [{0: self.base_content_factory.rational(0)}]                                           # type: MODEL
 
     def _fit(self, abs_input: Tuple[INPUT_TYPE, ...], abs_target: Tuple[OUTPUT_TYPE, ...]):
