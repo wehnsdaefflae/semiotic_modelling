@@ -6,7 +6,7 @@ from matplotlib import pyplot
 from data.data_types import from_parallel_sequences_to_concurrent_examples
 from data.example_generation import example_sequence
 from environments.non_interactive import sequence_rational_crypto
-from evaluations.experiments import experiment
+from evaluations.experiments import prediction
 from modelling.predictors.rational.semiotic import RationalSemioticModel
 from modelling.predictors.rational.baseline import Regression
 from tools.load_configs import Config
@@ -23,7 +23,7 @@ def _natural_isolated(iterations: int):
     predictors = predictor_a, predictor_b
 
     examples = from_parallel_sequences_to_concurrent_examples(sequences)
-    experiment(examples, predictors, iterations=iterations, rational=True)
+    prediction(examples, predictors, iterations=iterations, rational=True)
 
 
 def _natural_synthesis(iterations: int):
@@ -39,7 +39,7 @@ def _natural_synthesis(iterations: int):
     predictors = predictor_a, predictor_b
 
     examples = from_parallel_sequences_to_concurrent_examples(sequences)
-    experiment(examples, predictors, iterations=iterations, rational=True)
+    prediction(examples, predictors, iterations=iterations, rational=True)
 
 
 if __name__ == "__main__":

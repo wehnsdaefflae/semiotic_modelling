@@ -147,12 +147,8 @@ def change_state(grid: Tuple[Tuple[str, ...], ...],
         else:
             raise ValueError("undefined transition")
 
-        x, y = position
-        if grid[y][x] == "g":
-            position = list(random.choice(start_positions))
 
-
-def env_grid_world(file_path: str) -> Generator[Tuple[str, str, str, str], Optional[str], None]:
+def env_grid_world(file_path: str) -> Generator[Tuple[Tuple[str, str, str, str], float], Optional[str], None]:
     grid = _parse_text_to_grid(file_path)
     start_positions = tuple((x, y) for y, each_row in enumerate(grid) for x in range(len(each_row)) if each_row[x] == "s")
 
@@ -160,8 +156,16 @@ def env_grid_world(file_path: str) -> Generator[Tuple[str, str, str, str], Optio
     position, orientation = state_generator.send(None)
 
     while True:
+        x, y = position
+        if grid[y][x] == "g":
+            position = list(random.choice(start_positions))
+            reward = 1.
+        else:
+            reward = -1.
+
         sensor = _get_perception(grid, position, orientation)
-        motor = yield sensor
+        motor = yield sensor, reward
+
         position, orientation = state_generator.send(motor)
 
 

@@ -7,7 +7,7 @@ from matplotlib import pyplot
 from data.data_types import from_parallel_sequences_to_concurrent_examples
 from data.example_generation import example_sequence
 from environments.non_interactive import sequence_nominal_alternating
-from evaluations.experiments import experiment
+from evaluations.experiments import prediction
 from modelling.predictors.nominal.semiotic import NominalSemioticModel
 from modelling.predictors.nominal.baseline import NominalMarkovModel
 
@@ -20,7 +20,7 @@ def _artificial_isolated(iterations: int):
     predictors = predictor_a, predictor_b
 
     examples = from_parallel_sequences_to_concurrent_examples(sequences)
-    experiment(examples, predictors, rational=False, iterations=iterations)
+    prediction(examples, predictors, rational=False, iterations=iterations)
 
 
 def _artificial_synthesis(iterations: int):
@@ -33,7 +33,7 @@ def _artificial_synthesis(iterations: int):
     predictors = predictor_a, predictor_b
 
     examples = from_parallel_sequences_to_concurrent_examples(sequences)
-    experiment(examples, predictors, iterations=iterations, rational=False)
+    prediction(examples, predictors, iterations=iterations, rational=False)
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ from matplotlib import pyplot
 from data.controllers import random_nominal_controller
 from data.example_generation import example_interactive, example_interactive_senses
 from environments.interactive import env_grid_world
-from evaluations.experiments import experiment
+from evaluations.experiments import prediction
 from modelling.predictors.nominal.semiotic import NominalSemioticModel
 from modelling.predictors.nominal.baseline import NominalMarkovModel
 from tools.load_configs import Config
@@ -26,7 +26,7 @@ def _isolated(iterations: int, rotational: bool):
     predictor_b = NominalSemioticModel(no_examples=1, alpha=50, sigma=.1, trace_length=1)
     predictors = predictor_a, predictor_b
 
-    experiment(examples, predictors, iterations=iterations, rational=False)
+    prediction(examples, predictors, iterations=iterations, rational=False)
 
 
 def _analysis(iterations: int, rotational: bool):
@@ -42,7 +42,7 @@ def _analysis(iterations: int, rotational: bool):
     predictor_b = NominalSemioticModel(no_examples=4, alpha=50, sigma=.1, trace_length=1)
     predictors = predictor_a, predictor_b
 
-    experiment(examples, predictors, iterations=iterations, rational=False)
+    prediction(examples, predictors, iterations=iterations, rational=False)
 
 
 if __name__ == "__main__":

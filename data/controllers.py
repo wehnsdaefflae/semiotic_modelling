@@ -2,6 +2,8 @@
 import random
 from typing import Sequence, Any, Tuple, TypeVar, Generator, Hashable
 
+from modelling.semiotic_functions import STATE
+
 PERCEPTION = TypeVar("PERCEPTION")
 ACTION = TypeVar("ACTION")
 REWARD = float
@@ -66,3 +68,8 @@ def sarsa_nominal_controller(actions: Sequence[ACTION], alpha: float, gamma: flo
 
         last_perception = perception
         last_reward = reward
+
+
+def semiotic_nominal_controller(actions: Sequence[ACTION], model_state: STATE,
+                                alpha: float, gamma: float, epsilon: float) -> CONTROLLER[ACTION, NOMINAL_FEEDBACK]:
+    pass

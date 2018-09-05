@@ -14,8 +14,9 @@ IN_TYPE = TypeVar("IN_TYPE")
 OUT_TYPE = TypeVar("OUT_TYPE")
 
 
-def experiment(examples: CONCURRENT_EXAMPLES[IN_TYPE, OUT_TYPE], predictors: Tuple[Predictor[IN_TYPE, OUT_TYPE], ...],
+def prediction(examples: CONCURRENT_EXAMPLES[IN_TYPE, OUT_TYPE], predictors: Tuple[Predictor[IN_TYPE, OUT_TYPE], ...],
                rational: bool, iterations: int, steps: int = 100):
+    # TODO: plot cumulative reward
     assert steps >= 1
     time_axis = []
 
@@ -25,7 +26,7 @@ def experiment(examples: CONCURRENT_EXAMPLES[IN_TYPE, OUT_TYPE], predictors: Tup
     durations = tuple([] for _ in predictors)
     acc_durations = [0. for _ in predictors]
 
-    # TODO: add time complexity plot and print functionality
+    # TODO: print functionality
     """
     
     for _i, each_sequence in enumerate(sequences):

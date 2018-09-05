@@ -7,7 +7,7 @@ from matplotlib import pyplot
 from data.data_types import from_parallel_sequences_to_concurrent_examples
 from data.example_generation import example_sequence
 from environments.non_interactive import sequence_nominal_text
-from evaluations.experiments import experiment
+from evaluations.experiments import prediction
 from modelling.predictors.nominal.semiotic import NominalSemioticModel
 from modelling.predictors.nominal.baseline import NominalMarkovModel
 from tools.load_configs import Config
@@ -22,7 +22,7 @@ def _natural_isolated(iterations: int):
     predictors = predictor_a, predictor_b
 
     examples = from_parallel_sequences_to_concurrent_examples(sequences)
-    experiment(examples, predictors, iterations=iterations, rational=False)
+    prediction(examples, predictors, iterations=iterations, rational=False)
 
 
 def _natural_synthesis(iterations: int):
@@ -36,7 +36,7 @@ def _natural_synthesis(iterations: int):
     predictors = predictor_a, predictor_b
 
     examples = from_parallel_sequences_to_concurrent_examples(sequence)
-    experiment(examples, predictors, iterations=iterations, rational=False)
+    prediction(examples, predictors, iterations=iterations, rational=False)
 
 
 if __name__ == "__main__":
