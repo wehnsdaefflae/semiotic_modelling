@@ -101,3 +101,9 @@ def prediction(examples: CONCURRENT_EXAMPLES[IN_TYPE, OUT_TYPE], predictors: Tup
         Canvas.ax2.legend()
         pyplot.draw()
         pyplot.pause(.001)
+
+
+def interaction(examples: CONCURRENT_EXAMPLES[IN_TYPE, OUT_TYPE], predictors: Tuple[Predictor[IN_TYPE, OUT_TYPE], ...],
+                rational: bool, iterations: int, steps: int = 100):
+    assert len(predictors) == 1
+    prediction(examples, predictors, rational, iterations, steps=steps)
