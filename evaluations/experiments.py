@@ -16,7 +16,7 @@ OUT_TYPE = TypeVar("OUT_TYPE")
 
 def prediction(examples: CONCURRENT_EXAMPLES[IN_TYPE, OUT_TYPE], predictors: Tuple[Predictor[IN_TYPE, OUT_TYPE], ...],
                rational: bool, iterations: int, steps: int = 100):
-    # TODO: plot cumulative reward
+    # TODO: how to combine with example_generation?!
     assert steps >= 1
     time_axis = []
 

@@ -51,11 +51,12 @@ def example_interactive(source: ENVIRONMENT[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE]
         while history_length < len(history):
             history.pop(0)
 
-        each_sensor, each_reward = source.send(each_motor)
+        feedback = source.send(each_motor)
+        each_sensor, each_reward = feedback
         if len(history) == history_length:
             yield (tuple(history), each_sensor),
 
-        each_motor = controller.send(each_sensor)
+        each_motor = controller.send(feedback)
 
 
 GRID_SENSOR_VALUE = str
@@ -76,11 +77,12 @@ def example_interactive_senses(source: ENVIRONMENT[GRID_SENSOR_VALUE, GRID_MOTOR
             while history_length < len(each_history):
                 each_history.pop(0)
 
-        each_sensor, each_reward = source.send(each_motor)
+        feedback = source.send(each_motor)
+        each_sensor, each_reward = feedback
         if all(len(each_history) == history_length for each_history in histories):
             yield tuple((tuple(each_history), each_sensor[sensor_index]) for sensor_index, each_history in enumerate(histories))
 
-        each_motor = controller.send(each_sensor)
+        each_motor = controller.send(feedback)
 
 
 IN_TYPE = Hashable
