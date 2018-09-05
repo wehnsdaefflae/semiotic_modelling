@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # coding=utf-8
 import random
-from typing import Iterable, Generator, Tuple, TypeVar, List, Optional
+from typing import Iterable, Generator, Tuple, TypeVar, List, Optional, Hashable, Dict
 from data.data_types import CONCURRENT_EXAMPLES, EXAMPLE
+from tools.math_functions import distribute_circular, flatten
 
 EXAMPLE_SEQUENCE = Iterable[EXAMPLE]
 HOMOGENEOUS_TYPE = TypeVar("HOMOGENEOUS_TYPE")
@@ -81,6 +82,32 @@ def example_goal_interactive(source: Generator[Tuple[SENSOR_TYPE, ...], Optional
                              history_length: int) -> \
         Generator[Tuple[EXAMPLE[Tuple[Tuple[SENSOR_TYPE, MOTOR_TYPE], ...], SENSOR_TYPE], float], None, None]:
     raise NotImplementedError("also returns current reward")
+
+
+IN_TYPE = Hashable
+OUT_TYPE = Hashable
+
+IN_VECTOR = Tuple[float, ...]
+OUT_VECTOR = Tuple[float, ...]
+
+
+def rationalize_generator(source: CONCURRENT_EXAMPLES[IN_TYPE, OUT_TYPE]) -> CONCURRENT_EXAMPLES[IN_VECTOR, OUT_VECTOR]:
+    in_values = dict()
+    out_values = dict()
+
+    def _convert(value: Hashable, c_dict: Dict[Hashable, float]) -> float:
+        r_value = c_dict.get(value)
+        if r_value is None:
+            r_value = len(c_dict)
+            c_dict[value] = r_value
+        return distribute_circular(r_value)
+
+    for input_values, target_values in source:
+        rational_examples = []
+        for each_in, each_out in zip(input_values, target_values):
+            each_example = tuple(_convert(_x, in_values) for _x in flatten(each_in)), tuple(_convert(_x, out_values) for _x in flatten(each_out))
+            rational_examples.append(each_example)
+        yield tuple(rational_examples)
 
 
 if __name__ == "__main__":

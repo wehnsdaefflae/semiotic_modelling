@@ -1,12 +1,11 @@
 # coding=utf-8
 import time
 from math import sqrt
-from typing import Iterable, Tuple, TypeVar
+from typing import Tuple, TypeVar
 
 from matplotlib import pyplot
 
 from data.data_types import CONCURRENT_EXAMPLES
-from data.example_generation import EXAMPLE
 from modelling.predictors.abstract_predictor import Predictor
 from tools.timer import Timer
 

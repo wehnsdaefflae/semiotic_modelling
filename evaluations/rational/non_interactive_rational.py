@@ -1,7 +1,8 @@
 # coding=utf-8
 from matplotlib import pyplot
 
-from data.example_generation import example_sequence, from_parallel_sequences_to_concurrent_examples
+from data.data_types import from_parallel_sequences_to_concurrent_examples
+from data.example_generation import example_sequence
 from environments.non_interactive import examples_rational_trigonometric, sequence_rational_crypto
 from evaluations.experiments import experiment
 from modelling.predictors.rational.semiotic import RationalSemioticModel

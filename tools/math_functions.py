@@ -45,3 +45,16 @@ def smoothing_generator(values: Iterable[float], drag: int) -> Generator[float, 
         else:
             smooth = (smooth * drag + each_value) / (drag + 1.)
         yield smooth
+
+
+def flatten(container):
+    for i in container:
+        if isinstance(i, (list, tuple)):
+            for j in flatten(i):
+                yield j
+        else:
+            yield i
+
+
+if __name__ == "__main__":
+    print(list(flatten([0, 3, 5, 3])))
