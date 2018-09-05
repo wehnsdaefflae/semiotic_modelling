@@ -1,3 +1,4 @@
+# coding=utf-8
 import datetime
 import math
 from typing import List, Tuple, Sequence
@@ -10,6 +11,10 @@ from matplotlib.patches import Rectangle
 from data.deprecated_sequence_generation import TIME
 from tools.math_functions import distribute_circular, smoothing_generator
 from tools.timer import Timer
+
+
+class Canvas:
+    fig, (ax1, ax2) = pyplot.subplots(2, sharex="all")
 
 
 class ComparativeEvaluation:

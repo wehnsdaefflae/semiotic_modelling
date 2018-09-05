@@ -12,7 +12,7 @@ from tools.load_configs import Config
 
 
 def _isolated(iterations: int, rotational: bool):
-    c = Config("../configs/config.json")
+    c = Config("../../configs/config.json")
     if rotational:
         movement = "f", "b", "r", "l"
     else:
@@ -27,7 +27,7 @@ def _isolated(iterations: int, rotational: bool):
 
 
 def _analysis(iterations: int, rotational: bool):
-    c = Config("../configs/config.json")
+    c = Config("../../configs/config.json")
     if rotational:
         movement = "f", "b", "r", "l"
     else:
@@ -41,13 +41,12 @@ def _analysis(iterations: int, rotational: bool):
     experiment(examples, predictors, iterations=iterations, rational=False)
 
 
-def _experiment(iterations: int = 100000, rotational: bool = False):
-    _isolated(iterations, rotational)
-    _analysis(iterations, rotational)
-
-    pyplot.legend()
-    pyplot.show()
-
-
 if __name__ == "__main__":
-    _experiment(rotational=True)
+    duration = 100000
+    rotation = True
+
+    _isolated(duration, rotation)
+    _analysis(duration, rotation)
+
+    pyplot.tight_layout()
+    pyplot.show()
