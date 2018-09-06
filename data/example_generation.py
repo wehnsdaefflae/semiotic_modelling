@@ -2,6 +2,8 @@
 # coding=utf-8
 import random
 from typing import Iterable, Generator, Tuple, TypeVar, List, Optional, Hashable, Dict
+
+from data.controllers import CONTROLLER, random_nominal_controller
 from data.data_types import CONCURRENT_EXAMPLES, EXAMPLE
 from tools.math_functions import distribute_circular, flatten
 
@@ -25,63 +27,62 @@ def example_sequence(source: Iterable[HOMOGENEOUS_TYPE], history_length: int) ->
 
 SENSOR_TYPE = TypeVar("SENSOR_TYPE")
 MOTOR_TYPE = TypeVar("MOTOR_TYPE")
+REWARD = float
+
 INTERACTION_HISTORY = Tuple[Tuple[SENSOR_TYPE, MOTOR_TYPE], ...]
 
-ENVIRONMENT = Generator[SENSOR_TYPE, Optional[MOTOR_TYPE], None]
+ENVIRONMENT = Generator[Tuple[SENSOR_TYPE, REWARD], Optional[MOTOR_TYPE], None]
 
 GRID_SENSOR_VALUE = Tuple[str, str, str, str]
 GRID_MOTOR_VALUE = str
 GRID_HISTORY = INTERACTION_HISTORY[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE]
 
 
-def example_random_interactive(source: ENVIRONMENT[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE],
-                               actions: Tuple[GRID_MOTOR_VALUE, ...],
-                               history_length: int) -> CONCURRENT_EXAMPLES[GRID_HISTORY, GRID_SENSOR_VALUE]:
+def example_interactive(source: ENVIRONMENT[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE],
+                        controller: CONTROLLER[GRID_MOTOR_VALUE, GRID_SENSOR_VALUE],
+                        history_length: int) -> CONCURRENT_EXAMPLES[GRID_HISTORY, GRID_SENSOR_VALUE]:
     history = []    # type: List[Tuple[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE]]
 
-    each_sensor = source.send(None)
+    each_motor = controller.send(None)
+    each_sensor, each_reward = source.send(None)
     while True:
-        each_motor = random.choice(actions)
-
         each_condition = each_sensor, each_motor
         history.append(each_condition)
         while history_length < len(history):
             history.pop(0)
 
-        each_sensor = source.send(each_motor)
+        feedback = source.send(each_motor)
+        each_sensor, each_reward = feedback
         if len(history) == history_length:
             yield (tuple(history), each_sensor),
+
+        each_motor = controller.send(feedback)
 
 
 GRID_SENSOR_VALUE = str
 GRID_HISTORY = INTERACTION_HISTORY[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE]
 
 
-def example_random_interactive_senses(source: ENVIRONMENT[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE],
-                                      actions: Tuple[GRID_MOTOR_VALUE, ...],
-                                      history_length: int) -> CONCURRENT_EXAMPLES[GRID_HISTORY, GRID_SENSOR_VALUE]:
+def example_interactive_senses(source: ENVIRONMENT[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE],
+                               controller: CONTROLLER[GRID_MOTOR_VALUE, GRID_SENSOR_VALUE],
+                               history_length: int) -> CONCURRENT_EXAMPLES[GRID_HISTORY, GRID_SENSOR_VALUE]:
     histories = [], [], [], []
 
-    each_sensor = source.send(None)
+    each_motor = controller.send(None)
+    each_sensor, each_reward = source.send(None)
     while True:
-        each_motor = random.choice(actions)
-
         for sensor_index, each_history in enumerate(histories):
             each_condition = each_sensor[sensor_index], each_motor
             each_history.append(each_condition)
             while history_length < len(each_history):
                 each_history.pop(0)
 
-        each_sensor = source.send(each_motor)
+        feedback = source.send(each_motor)
+        each_sensor, each_reward = feedback
         if all(len(each_history) == history_length for each_history in histories):
             yield tuple((tuple(each_history), each_sensor[sensor_index]) for sensor_index, each_history in enumerate(histories))
 
-
-def example_goal_interactive(source: Generator[Tuple[SENSOR_TYPE, ...], Optional[MOTOR_TYPE], None],
-                             actions: Tuple[MOTOR_TYPE, ...],
-                             history_length: int) -> \
-        Generator[Tuple[EXAMPLE[Tuple[Tuple[SENSOR_TYPE, MOTOR_TYPE], ...], SENSOR_TYPE], float], None, None]:
-    raise NotImplementedError("also returns current reward")
+        each_motor = controller.send(feedback)
 
 
 IN_TYPE = Hashable
@@ -98,17 +99,15 @@ def rationalize_generator(source: CONCURRENT_EXAMPLES[IN_TYPE, OUT_TYPE]) -> CON
     def _convert(value: Hashable, c_dict: Dict[Hashable, float]) -> float:
         r_value = c_dict.get(value)
         if r_value is None:
-            r_value = len(c_dict)
+            r_value = distribute_circular(len(c_dict))
             c_dict[value] = r_value
-        return distribute_circular(r_value)
+        return r_value
 
-    for input_values, target_values in source:
+    for concurrent_examples in source:
         rational_examples = []
-        for each_in, each_out in zip(input_values, target_values):
-            each_example = tuple(_convert(_x, in_values) for _x in flatten(each_in)), tuple(_convert(_x, out_values) for _x in flatten(each_out))
+        for input_values, output_values in concurrent_examples:
+            each_rational_input = tuple(_convert(_x, in_values) for _x in flatten(input_values))
+            each_rational_output = tuple(_convert(_x, out_values) for _x in flatten(output_values))
+            each_example = each_rational_input, each_rational_output
             rational_examples.append(each_example)
         yield tuple(rational_examples)
-
-
-if __name__ == "__main__":
-    pass
