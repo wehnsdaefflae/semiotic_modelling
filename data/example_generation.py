@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 # coding=utf-8
-import random
 from typing import Iterable, Generator, Tuple, TypeVar, List, Optional, Hashable, Dict
 
-from data.controllers import CONTROLLER, random_nominal_controller
-from data.data_types import CONCURRENT_EXAMPLES, EXAMPLE
+
 from tools.math_functions import distribute_circular, flatten
 
-EXAMPLE_SEQUENCE = Iterable[EXAMPLE]
+INPUT_TYPE = TypeVar("INPUT_TYPE")
+OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
 HOMOGENEOUS_TYPE = TypeVar("HOMOGENEOUS_TYPE")
+
+EXAMPLE = Tuple[INPUT_TYPE, OUTPUT_TYPE]
+CONCURRENT_EXAMPLES = Iterable[Tuple[EXAMPLE, ...]]
+
+EXAMPLE_SEQUENCE = Iterable[EXAMPLE]
 
 
 def example_sequence(source: Iterable[HOMOGENEOUS_TYPE], history_length: int) -> EXAMPLE_SEQUENCE[HOMOGENEOUS_TYPE, HOMOGENEOUS_TYPE]:
@@ -17,7 +21,7 @@ def example_sequence(source: Iterable[HOMOGENEOUS_TYPE], history_length: int) ->
         if len(history) == history_length:
             input_value = tuple(history)
             target_value = each_value,
-            example = input_value, target_value   # type: EXAMPLE[HOMOGENEOUS_TYPE, HOMOGENEOUS_TYPE] # TODO: what's going on here?
+            example = input_value, target_value   # type: EXAMPLE[HOMOGENEOUS_TYPE, HOMOGENEOUS_TYPE]
             yield example
 
         history.append(each_value)
@@ -31,20 +35,22 @@ REWARD = float
 
 INTERACTION_HISTORY = Tuple[Tuple[SENSOR_TYPE, MOTOR_TYPE], ...]
 
-ENVIRONMENT = Generator[Tuple[SENSOR_TYPE, REWARD], Optional[MOTOR_TYPE], None]
+GRID_SENSOR_TYPE = Tuple[str, str, str, str]
+GRID_MOTOR_TYPE = str
+GRID_HISTORY = INTERACTION_HISTORY[GRID_SENSOR_TYPE, GRID_MOTOR_TYPE]
 
-GRID_SENSOR_VALUE = Tuple[str, str, str, str]
-GRID_MOTOR_VALUE = str
-GRID_HISTORY = INTERACTION_HISTORY[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE]
+FEEDBACK = Tuple[SENSOR_TYPE, REWARD]
+ENVIRONMENT = Generator[FEEDBACK, Optional[MOTOR_TYPE], None]
+CONTROLLER = Generator[MOTOR_TYPE, Optional[FEEDBACK], None]
 
 
-def example_interactive(source: ENVIRONMENT[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE],
-                        controller: CONTROLLER[GRID_MOTOR_VALUE, GRID_SENSOR_VALUE],
-                        history_length: int) -> CONCURRENT_EXAMPLES[GRID_HISTORY, GRID_SENSOR_VALUE]:
-    history = []    # type: List[Tuple[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE]]
+def example_interactive(source: ENVIRONMENT[GRID_SENSOR_TYPE, GRID_MOTOR_TYPE],
+                        controller: CONTROLLER[GRID_MOTOR_TYPE, GRID_SENSOR_TYPE],
+                        history_length: int) -> CONCURRENT_EXAMPLES[GRID_HISTORY, GRID_SENSOR_TYPE]:
+    history = []    # type: List[Tuple[GRID_SENSOR_TYPE, GRID_MOTOR_TYPE]]
 
-    each_motor = controller.send(None)
-    each_sensor, each_reward = source.send(None)
+    each_motor = controller.send(None)              # type: GRID_MOTOR_TYPE
+    each_sensor, each_reward = source.send(None)    # type: FEEDBACK[GRID_SENSOR_TYPE]
     while True:
         each_condition = each_sensor, each_motor
         history.append(each_condition)
@@ -52,20 +58,20 @@ def example_interactive(source: ENVIRONMENT[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE]
             history.pop(0)
 
         feedback = source.send(each_motor)
-        each_sensor, each_reward = feedback
+        each_sensor, _ = feedback
         if len(history) == history_length:
             yield (tuple(history), each_sensor),
 
         each_motor = controller.send(feedback)
 
 
-GRID_SENSOR_VALUE = str
-GRID_HISTORY = INTERACTION_HISTORY[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE]
+GRID_SENSOR_TYPE = str
+GRID_HISTORY = INTERACTION_HISTORY[GRID_SENSOR_TYPE, GRID_MOTOR_TYPE]
 
 
-def example_interactive_senses(source: ENVIRONMENT[GRID_SENSOR_VALUE, GRID_MOTOR_VALUE],
-                               controller: CONTROLLER[GRID_MOTOR_VALUE, GRID_SENSOR_VALUE],
-                               history_length: int) -> CONCURRENT_EXAMPLES[GRID_HISTORY, GRID_SENSOR_VALUE]:
+def example_interactive_senses(source: ENVIRONMENT[GRID_SENSOR_TYPE, GRID_MOTOR_TYPE],
+                               controller: CONTROLLER[GRID_MOTOR_TYPE, GRID_SENSOR_TYPE],
+                               history_length: int) -> CONCURRENT_EXAMPLES[GRID_HISTORY, GRID_SENSOR_TYPE]:
     histories = [], [], [], []
 
     each_motor = controller.send(None)
@@ -78,7 +84,7 @@ def example_interactive_senses(source: ENVIRONMENT[GRID_SENSOR_VALUE, GRID_MOTOR
                 each_history.pop(0)
 
         feedback = source.send(each_motor)
-        each_sensor, each_reward = feedback
+        each_sensor, _ = feedback
         if all(len(each_history) == history_length for each_history in histories):
             yield tuple((tuple(each_history), each_sensor[sensor_index]) for sensor_index, each_history in enumerate(histories))
 

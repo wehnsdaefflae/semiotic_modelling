@@ -1,7 +1,15 @@
 # coding=utf-8
 import random
 from math import sqrt
-from typing import Generator, Optional, Tuple, Sequence, Iterable
+from typing import Generator, Optional, Tuple, Sequence, Iterable, TypeVar
+
+SENSOR_TYPE = TypeVar("SENSOR_TYPE")
+MOTOR_TYPE = TypeVar("MOTOR_TYPE")
+FEEDBACK = Tuple[SENSOR_TYPE, float]
+
+
+def env_cart_pole():
+    raise NotImplemented
 
 
 def env_gradient_world(size: int, centers: Iterable[Tuple[float, float]], tile_size: int) -> Generator[Tuple[float, ...], Optional[float], None]:
@@ -20,7 +28,7 @@ def env_gradient_world(size: int, centers: Iterable[Tuple[float, float]], tile_s
         if any(_x < tile_size / 2. for _x in distances):
             position = list(start_position)
 
-        impulse = yield yield_value
+        impulse = yield yield_value  # TODO: also yield reward
 
         if impulse is None:
             impulse = random.random() / tile_size, random.random() / tile_size
@@ -148,7 +156,11 @@ def change_state(grid: Tuple[Tuple[str, ...], ...],
             raise ValueError("undefined transition")
 
 
-def env_grid_world(file_path: str) -> Generator[Tuple[Tuple[str, str, str, str], float], Optional[str], None]:
+GRID_SENSOR = Tuple[str, str, str, str]
+GRID_MOTOR = str
+
+
+def env_grid_world(file_path: str) -> Generator[FEEDBACK[GRID_SENSOR], Optional[GRID_MOTOR], None]:
     grid = _parse_text_to_grid(file_path)
     start_positions = tuple((x, y) for y, each_row in enumerate(grid) for x in range(len(each_row)) if each_row[x] == "s")
 

@@ -1,7 +1,7 @@
 # coding=utf-8
 import time
 from math import sqrt
-from typing import Tuple, TypeVar
+from typing import Tuple, TypeVar, Generator, Optional
 
 from matplotlib import pyplot
 
@@ -103,7 +103,86 @@ def prediction(examples: CONCURRENT_EXAMPLES[IN_TYPE, OUT_TYPE], predictors: Tup
         pyplot.pause(.001)
 
 
-def interaction(examples: CONCURRENT_EXAMPLES[IN_TYPE, OUT_TYPE], predictors: Tuple[Predictor[IN_TYPE, OUT_TYPE], ...],
-                rational: bool, iterations: int, steps: int = 100):
-    assert len(predictors) == 1
-    prediction(examples, predictors, rational, iterations, steps=steps)
+GRID_SENSOR = Tuple[str, str, str, str]
+GRID_MOTOR = str
+CONDITION = Tuple[Tuple[GRID_SENSOR, GRID_MOTOR], ...]
+
+
+def interaction(environment: Generator[Tuple[GRID_SENSOR, float], Optional[str], None],
+                controller: Generator[str, Tuple[Tuple[GRID_SENSOR, str], float], None],
+                predictor: Predictor[CONDITION, GRID_SENSOR],
+                rational: bool, iterations: int, history_length: int = 1, steps: int = 100):
+    assert steps >= 1
+    time_axis = []
+
+    errors = []
+    acc_errors = 0.
+
+    durations = []
+    acc_durations = 0.
+
+    history = []
+
+    sensor, reward = environment.send(None)     # type: GRID_SENSOR, float
+    motor = controller.send(None)               # type: GRID_MOTOR
+
+    for each_step in range(iterations):
+        if (each_step + 1) % steps == 0:
+            time_axis.append(each_step)
+
+        if len(history) == history_length:
+            input_value = tuple(history),
+            target_value = sensor,
+
+            # test and training
+            last_time = time.time()
+            output_value = predictor.predict(input_value)
+            predictor.fit(input_value, target_value)
+            this_duration = (time.time() - last_time) * 1000.
+
+            # TODO: check position in iteration, log reward
+            feedback = sensor, reward
+            motor = controller.send(feedback)
+            sensor, reward = environment.send(motor)
+
+            # determine error
+            this_error = 0.
+            for example_index, (target, output) in enumerate(zip(target_value, output_value)):
+                if rational:
+                    this_error += sqrt(sum((each_output - each_target) ** 2. for each_output, each_target in zip(output, target)))
+                else:
+                    this_error += float(output != target)
+
+            # memorize error and duration
+            acc_errors += this_error / len(output_value)
+            acc_durations += this_duration
+
+            # log error
+            if (each_step + 1) % steps == 0:
+                durations.append(acc_durations / steps)
+
+                if len(errors) < 1:
+                    errors.append(acc_errors / steps)
+                else:
+                    last_error = errors[-1]
+                    errors.append((last_error * (each_step - steps) + acc_errors) / each_step)
+
+                acc_durations = 0.
+                acc_errors = 0.
+
+            if Timer.time_passed(2000):
+                print("{:05.2f}% finished".format(100. * each_step / iterations))
+
+    print(predictor.get_structure())
+
+    Canvas.ax1.set_ylabel("average total error")
+    Canvas.ax1.plot(time_axis, errors,
+                    label="{:s} {:d}".format(predictor.__class__.__name__, predictor.no_examples))
+    Canvas.ax1.legend()
+
+    Canvas.ax2.set_ylabel("iteration time (ms)")
+    Canvas.ax2.plot(time_axis, durations,
+                    label="{:s} {:d}".format(predictor.__class__.__name__, predictor.no_examples))
+    Canvas.ax2.legend()
+    pyplot.draw()
+    pyplot.pause(.001)
