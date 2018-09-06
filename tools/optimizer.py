@@ -3,7 +3,7 @@
 import itertools
 import json
 from math import sqrt
-from typing import Callable, Sequence, Tuple, List, Optional
+from typing import Sequence, Tuple, List, Generator, Optional
 
 from matplotlib import pyplot
 
@@ -17,77 +17,64 @@ PRIORITY_ELEMENT = Tuple[float, POINT, AREA]
 
 
 # TODO: make into generator with send
-class StatefulOptimizer:
-    def __init__(self, evaluation_function: Callable[..., float], ranges: Sequence[RANGE], limit: int = 1000):
-        self.eval = evaluation_function                                         # type: Callable[[...], float]
-        self.dimensionality = len(ranges)                                       # type: int
-        self.limit = limit                                                      # type: int
+def stateful_optimizer(ranges: Sequence[RANGE], limit: int = 1000) -> Generator[POINT, Optional[float], None]:
+    dimensionality = len(ranges)                                        # type: int
+    origin = tuple(min(_x) for _x in ranges)                            # type: POINT
+    destination = tuple(max(_x) for _x in ranges)                       # type: POINT
+    complete_region = origin, destination                               # type: AREA
 
-        origin = tuple(min(_x) for _x in ranges)                                # type: POINT
-        destination = tuple(max(_x) for _x in ranges)                           # type: POINT
-        complete_region = origin, destination                                   # type: AREA
-        genesis_element = 0., self.__center(complete_region), complete_region   # type: PRIORITY_ELEMENT
-        self.priority_list = [genesis_element]                                  # type: List[PRIORITY_ELEMENT]
-        self.cache_list = []                                                    # type: List[AREA]
+    def __check_edges(_point_a: POINT, _point_b: POINT):
+        len_a, len_b = len(_point_a), len(_point_b)                     # type: int, int
+        if not (len_a == len_b == dimensionality):
+            raise ValueError("Not all edges have a dimensionality of {:d}.".format(dimensionality))
 
-        self.best_value = 0.                                                    # type: float
-        self.best_parameters = None                                             # type: Optional[POINT]
+    def __diagonal(_region: AREA) -> float:
+        point_a, point_b = region                                       # type: POINT, POINT
+        __check_edges(point_a, point_b)
+        return sqrt(sum((point_a[_i] - point_b[_i]) ** 2. for _i in range(dimensionality)))
 
-    def __enlist(self, value: float, center: POINT, region: AREA):
-        no_values = len(self.priority_list)                                     # type: int
-        priority = self.__diagonal(region) * value                              # type: float
-        i = 0                                                                   # type: int
-        while i < no_values and priority < self.priority_list[i][0]:
+    def __enqueue(_value: float, _center: POINT, _region: AREA):
+        no_values = len(priority_list)                                  # type: int
+        priority = __diagonal(_region) * _value                         # type: float
+        i = 0                                                           # type: int
+        while i < no_values and priority < priority_list[i][0]:
             i += 1
-        priority_element = priority, center, region                             # type: PRIORITY_ELEMENT
-        self.priority_list.insert(i, priority_element)
+        priority_element = priority, _center, _region                   # type: PRIORITY_ELEMENT
+        priority_list.insert(i, priority_element)
 
-    def __check_edges(self, point_a: POINT, point_b: POINT):
-        len_a, len_b = len(point_a), len(point_b)                               # type: int, int
-        if not (len_a == len_b == self.dimensionality):
-            raise ValueError("Not all edges have a dimensionality of {:d}.".format(self.dimensionality))
+    def __center(_region: AREA) -> POINT:
+        point_a, point_b = _region                                      # type: POINT, POINT
+        __check_edges(point_a, point_b)
+        return tuple((point_a[_i] + point_b[_i]) / 2. for _i in range(dimensionality))
 
-    def __diagonal(self, region: AREA) -> float:
-        point_a, point_b = region                                               # type: POINT, POINT
-        self.__check_edges(point_a, point_b)
-        return sqrt(sum((point_a[_i] - point_b[_i]) ** 2. for _i in range(self.dimensionality)))
+    def _divide(_borders: AREA, _center: POINT) -> Tuple[AREA, ...]:
+        return tuple((_x, _center) for _x in itertools.product(*zip(*_borders)))
 
-    def __center(self, region: AREA) -> POINT:
-        point_a, point_b = region                                               # type: POINT, POINT
-        self.__check_edges(point_a, point_b)
-        return tuple((point_a[_i] + point_b[_i]) / 2. for _i in range(self.dimensionality))
+    genesis_element = 0., __center(complete_region), complete_region    # type: PRIORITY_ELEMENT
+    priority_list = [genesis_element]                                   # type: List[PRIORITY_ELEMENT]
+    cache_list = []                                                     # type: List[AREA]
 
-    @staticmethod
-    def _divide(borders: AREA, center: POINT) -> Tuple[AREA, ...]:
-        return tuple((_x, center) for _x in itertools.product(*zip(*borders)))
+    while True:
+        if len(cache_list) < 1:
+            _, center, region = priority_list.pop(0)                    # type: float, POINT, AREA
+            sub_regions = _divide(region, center)                       # type: Tuple[AREA, ...]
+            cache_list.extend(sub_regions)
+            # cache_list = list(sub_regions) + cache_list
 
-    def next(self) -> SAMPLE:
-        if len(self.cache_list) < 1:
-            _, center, region = self.priority_list.pop(0)   # type: float, POINT, AREA
-            sub_regions = self._divide(region, center)      # type: Tuple[AREA, ...]
-            self.cache_list.extend(sub_regions)
+        current_region = cache_list.pop()                               # type: AREA
+        current_center = __center(current_region)                       # type: POINT
+        current_value = yield current_center
 
-        current_region = self.cache_list.pop()              # type: AREA
-        current_center = self.__center(current_region)      # type: POINT
-        current_value = self.eval(*current_center)          # type: float
-
-        if self.best_value < current_value:
-            self.best_value = current_value                 # type: float
-            self.best_parameters = current_center           # type: POINT
-
-        self.__enlist(current_value, current_center, current_region)
-
-        while 0 < self.limit < len(self.priority_list):
-            self.priority_list.pop()
-
-        return current_center, current_value
+        __enqueue(current_value, current_center, current_region)
+        while 0 < limit < len(priority_list):
+            priority_list.pop()
 
 
 def test_optimizer():
-    with open("../configs/time_series.json", mode="r") as file:
+    with open("../configs/config.json", mode="r") as file:
         config = json.load(file)
 
-    time_series = series_generator(config["data_dir"] + "QTUMETH.csv")
+    time_series = series_generator(config["data_dir"] + "binance/QTUMETH.csv")
     y_values = [_x[1] for _x in time_series]
     length = len(y_values)
     x_values = list(range(length))
@@ -100,21 +87,25 @@ def test_optimizer():
 
     max_value = max(y_values)
     parameter_ranges = (0., length),
-    o = StatefulOptimizer(f, parameter_ranges)
+    optimizer = stateful_optimizer(parameter_ranges)
 
-    pyplot.plot(x_values, y_values)
+    pyplot.plot(x_values, y_values, color="white")
 
-    last_best = float("-inf")
-    for _i in range(1000):
-        c, v = o.next()
-        pyplot.axvline(x=c[0], alpha=.1)
+    parameters = optimizer.send(None)
+    optimal_value = 0.
+    for _i in range(1000000):
+        value = f(*parameters)
+        if optimal_value < value:
+            print("{:05.2f}% of maximum after {:d} iterations".format(100. * value / max_value, _i))
+            optimal_parameters = parameters
+            optimal_value = value
+            # pyplot.plot(optimal_parameters, [optimal_value], "o")
 
-        if last_best < v:
-            print("{:05.2f}% of maximum after {:d} iterations".format(100. * v / max_value, _i))
-            p = o.best_parameters
-            v = o.best_value
-            pyplot.plot(p, [v], "o")
-            last_best = v
+        parameters = optimizer.send(value)
+        # pyplot.axvline(x=parameters[0], alpha=.2)
+        pyplot.plot(parameters, [value], "o", alpha=.2, color="blue")
+        pyplot.draw()
+        pyplot.pause(.01)
 
     pyplot.show()
 
