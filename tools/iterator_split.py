@@ -5,6 +5,7 @@ from typing import TypeVar, Generator, Tuple, Iterator, Optional
 TYPE_A = TypeVar("TYPE_A")
 
 
+# TODO: add buffer!
 def _next_value(source: Iterator[Tuple[TYPE_A, ...]], size: int) -> Generator[Tuple[TYPE_A, ...], Optional[int], None]:
     checked = [False for _ in range(size)]
     value = next(source)
@@ -24,16 +25,10 @@ def _sub_iterator(index: int, callback: Generator[Tuple[TYPE_A, ...], int, None]
 
 
 def split_iterator(source: Iterator[Tuple[TYPE_A, ...]], size: int) -> Tuple[Generator[TYPE_A, Optional[TYPE_A], None], ...]:
-    generators = []
-
     _cb = _next_value(source, size)
     _cb.send(None)
 
-    for _i in range(size):
-        each_generator = _sub_iterator(_i, _cb)
-        generators.append(each_generator)
-
-    return tuple(generators)
+    return tuple(_sub_iterator(_i, _cb) for _i in range(size))
 
 
 if __name__ == "__main__":
