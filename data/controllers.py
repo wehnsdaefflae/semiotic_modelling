@@ -51,7 +51,7 @@ def sarsa_nominal_controller(actions: Sequence[ACTION], alpha: float, gamma: flo
             if sub_dict is None:
                 evaluation = 0.
             else:
-                evaluation = sub_dict.get(action)
+                evaluation = sub_dict.get(action, 0.)
             last_sub_dict[last_action] = last_evaluation + alpha * (last_reward + gamma * evaluation - last_evaluation)
 
         # action selection

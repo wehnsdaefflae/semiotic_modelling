@@ -1,5 +1,5 @@
 # coding=utf-8
-from typing import TypeVar, Tuple, Union, List, Dict, Optional, Callable, Iterable
+from typing import TypeVar, Tuple, List, Dict, Optional, Callable, Iterable
 
 from modelling.content import Content, ContentFactory
 
@@ -7,13 +7,11 @@ TIME = TypeVar("TIME")
 BASIC_IN = TypeVar("BASIC_IN")
 BASIC_OUT = TypeVar("BASIC_OUT")
 
-ABSTRACT_SHAPE = int                                        # TODO: make generic hashable
-APPEARANCE = Union[BASIC_IN, BASIC_OUT, ABSTRACT_SHAPE]
-HISTORY = Union[List[APPEARANCE], Tuple[APPEARANCE, ...]]
-
+APPEARANCE = int
 LEVEL = Dict[APPEARANCE, Content]
 MODEL = List[LEVEL]
 STATE = List[APPEARANCE]
+HISTORY = List[int]
 TRACE = List[HISTORY]
 
 
@@ -36,7 +34,7 @@ def get_content(model: MODEL, state: STATE, level: int) -> Content:
     layer = model[level]        # type: LEVEL
 
     assert level < len(state)
-    shape = state[level]    # type: APPEARANCE
+    shape = state[level]        # type: APPEARANCE
 
     content = layer.get(shape)  # type: Content
     assert content is not None

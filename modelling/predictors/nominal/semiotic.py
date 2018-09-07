@@ -7,6 +7,8 @@ from modelling.semiotic_functions import update_state, generate_state_layer, gen
     adapt_base_contents, update_traces, get_outputs, TRACE, MODEL, STATE
 
 
+# TODO: define abstract shapes here, and input and output as typevars?
+
 class NominalSemioticModel(Predictor[NOMINAL_INPUT, NOMINAL_OUTPUT]):
     def __init__(self, no_examples: int, alpha: int, sigma: float, trace_length: int,
                  fix_level_size_at: Callable[[int], int] = lambda _level: -1):
@@ -62,3 +64,6 @@ class NominalSemioticModel(Predictor[NOMINAL_INPUT, NOMINAL_OUTPUT]):
         base_layer = self.model[0]
         base_contents = tuple(base_layer[each_shape] for each_shape in base_shapes)
         return tuple(content.probability(_input, _target) for (content, _input, _target) in zip(base_contents, input_values, target_values))
+
+    def get_state(self) -> Tuple[Tuple[int, ...]]:
+        return tuple(tuple(_x) for _x in self.states)

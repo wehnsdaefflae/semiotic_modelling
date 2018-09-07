@@ -103,17 +103,21 @@ def prediction(examples: CONCURRENT_EXAMPLES[IN_TYPE, OUT_TYPE], predictors: Tup
         pyplot.pause(.001)
 
 
-GRID_SENSOR = Tuple[str, str, str, str]
-GRID_MOTOR = str
-CONDITION = Tuple[Tuple[GRID_SENSOR, GRID_MOTOR], ...]
+SENSOR = TypeVar("SENSOR")
+MOTOR = TypeVar("MOTOR")
+
+CONDITION = Tuple[Tuple[SENSOR, MOTOR], ...]
 
 
-def interaction(environment: Generator[Tuple[GRID_SENSOR, float], Optional[str], None],
-                controller: Generator[str, Tuple[Tuple[GRID_SENSOR, str], float], None],
-                predictor: Predictor[CONDITION, GRID_SENSOR],
+def interaction(environment: Generator[Tuple[SENSOR, float], Optional[MOTOR], None],
+                controller: Generator[MOTOR, Optional[Tuple[SENSOR, float]], None],
+                predictor: Predictor[CONDITION, SENSOR],
                 rational: bool, iterations: int, history_length: int = 1, steps: int = 100):
     assert steps >= 1
     time_axis = []
+
+    rewards = []
+    acc_rewards = 0.
 
     errors = []
     acc_errors = 0.
@@ -123,8 +127,8 @@ def interaction(environment: Generator[Tuple[GRID_SENSOR, float], Optional[str],
 
     history = []
 
-    sensor, reward = environment.send(None)     # type: GRID_SENSOR, float
-    motor = controller.send(None)               # type: GRID_MOTOR
+    sensor, reward = environment.send(None)     # type: SENSOR, float
+    motor = controller.send(None)               # type: MOTOR
 
     for each_step in range(iterations):
         if (each_step + 1) % steps == 0:
@@ -141,10 +145,12 @@ def interaction(environment: Generator[Tuple[GRID_SENSOR, float], Optional[str],
             this_duration = (time.time() - last_time) * 1000.
 
             # TODO: check position in iteration, log reward
-            feedback = sensor, reward
+            feedback = sensor + predictor.get_state(), reward
             motor = controller.send(feedback)
             sensor, reward = environment.send(motor)
 
+            # determine reward
+            acc_rewards += reward
             # determine error
             this_error = 0.
             for example_index, (target, output) in enumerate(zip(target_value, output_value)):
@@ -159,6 +165,7 @@ def interaction(environment: Generator[Tuple[GRID_SENSOR, float], Optional[str],
 
             # log error
             if (each_step + 1) % steps == 0:
+                rewards.append(acc_rewards / steps)
                 durations.append(acc_durations / steps)
 
                 if len(errors) < 1:
@@ -170,19 +177,26 @@ def interaction(environment: Generator[Tuple[GRID_SENSOR, float], Optional[str],
                 acc_durations = 0.
                 acc_errors = 0.
 
-            if Timer.time_passed(2000):
-                print("{:05.2f}% finished".format(100. * each_step / iterations))
+        condition = sensor, motor
+        history.append(condition)
+        while history_length < len(history):
+            history.pop(0)
+
+        if Timer.time_passed(2000):
+            print("{:05.2f}% finished".format(100. * each_step / iterations))
 
     print(predictor.get_structure())
 
-    Canvas.ax1.set_ylabel("average total error")
-    Canvas.ax1.plot(time_axis, errors,
-                    label="{:s} {:d}".format(predictor.__class__.__name__, predictor.no_examples))
+    Canvas.ax1.set_ylabel("error")
+    Canvas.ax1.plot(time_axis, errors, label="error {:s} {:d}".format(predictor.__class__.__name__, predictor.no_examples))
     Canvas.ax1.legend()
+    ax11 = Canvas.ax1.twinx()
+    ax11.set_ylabel("reward")
+    ax11.plot(time_axis, rewards, color="orange", label="reward {:s} {:d}".format(predictor.__class__.__name__, predictor.no_examples))
+    ax11.legend()
 
     Canvas.ax2.set_ylabel("iteration time (ms)")
-    Canvas.ax2.plot(time_axis, durations,
-                    label="{:s} {:d}".format(predictor.__class__.__name__, predictor.no_examples))
+    Canvas.ax2.plot(time_axis, durations, label="{:s} {:d}".format(predictor.__class__.__name__, predictor.no_examples))
     Canvas.ax2.legend()
     pyplot.draw()
     pyplot.pause(.001)
