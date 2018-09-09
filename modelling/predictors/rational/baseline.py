@@ -34,6 +34,9 @@ class MovingAverage(Predictor[RATIONAL_VECTOR, RATIONAL_VECTOR]):
     def get_structure(self) -> Tuple[int, ...]:
         return -1,
 
+    def get_state(self, *args, **kwargs) -> Tuple[int, ...]:
+        return 0,
+
 
 class Regression(Predictor[RATIONAL_VECTOR, RATIONAL_VECTOR]):
     def __init__(self, input_dimension: int, output_dimension: int, no_examples: int, drag: int):
@@ -62,3 +65,6 @@ class Regression(Predictor[RATIONAL_VECTOR, RATIONAL_VECTOR]):
 
     def get_structure(self) -> Tuple[int, ...]:
         return -1,
+
+    def get_state(self, *args, **kwargs) -> Tuple[int, ...]:
+        return 0,

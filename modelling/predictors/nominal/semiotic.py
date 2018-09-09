@@ -65,5 +65,5 @@ class NominalSemioticModel(Predictor[NOMINAL_INPUT, NOMINAL_OUTPUT]):
         base_contents = tuple(base_layer[each_shape] for each_shape in base_shapes)
         return tuple(content.probability(_input, _target) for (content, _input, _target) in zip(base_contents, input_values, target_values))
 
-    def get_state(self) -> Tuple[Tuple[int, ...]]:
-        return tuple(tuple(_x) for _x in self.states)
+    def get_state(self, index: int = 0) -> Tuple[Tuple[int, ...]]:
+        return tuple(self.states[index])

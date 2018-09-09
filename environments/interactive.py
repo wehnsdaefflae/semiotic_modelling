@@ -1,5 +1,6 @@
 # coding=utf-8
 import random
+import string
 from math import sqrt
 from typing import Generator, Optional, Tuple, Sequence, Iterable, TypeVar
 
@@ -63,11 +64,11 @@ def _get_perception(grid: Tuple[Tuple[str, ...], ...], position: Sequence[int], 
     width = len(grid[0])
     assert y < height
     assert x < width
-    north: str = grid[y][(x - 1) % width]
-    east: str = grid[(y + 1) % height][x]
-    south: str = grid[y][(x + 1) % width]
-    west: str = grid[(y - 1) % height][x]
-    perception: Tuple[str, str, str, str] = (north, east, south, west)
+    north = "x" if grid[(y - 1) % height][x] == "x" else "."
+    east = "x" if grid[y][(x + 1) % width] == "x" else "."
+    south = "x" if grid[(y + 1) % height][x] == "x" else "."
+    west = "x" if grid[y][(x - 1) % width] == "x" else "."
+    perception = north, east, south, west
     no_perceptions = len(perception)
     return tuple(perception[(orientation + _x) % no_perceptions] for _x in range(no_perceptions))
 
@@ -105,8 +106,8 @@ def change_state(grid: Tuple[Tuple[str, ...], ...],
             position[0] = target_x
 
     while True:
-        # grid_str = [["a" if [_x, _y] == position else _c for _x, _c in enumerate(each_row)] for _y, each_row in enumerate(grid)]
-        # print("\n".join([" ".join(each_row) for each_row in grid_str]), end="\n\n")
+        grid_str = [["a" if [_x, _y] == position else _c for _x, _c in enumerate(each_row)] for _y, each_row in enumerate(grid)]
+        print("\n".join([" ".join(each_row) for each_row in grid_str]), end="\n\n")
 
         motor = yield tuple(position), orientation
 
@@ -163,15 +164,18 @@ GRID_MOTOR = str
 def env_grid_world(file_path: str) -> Generator[FEEDBACK[GRID_SENSOR], Optional[GRID_MOTOR], None]:
     grid = _parse_text_to_grid(file_path)
     start_positions = tuple((x, y) for y, each_row in enumerate(grid) for x in range(len(each_row)) if each_row[x] == "s")
+    goals = sorted([(x, y, int(g)) for y, each_row in enumerate(grid) for x, g in enumerate(each_row) if g in string.digits], key=lambda _x: _x[2])
+    goal_positions = [(x, y) for x, y, g in goals]
+    current_goal_index = 0
+    # TODO: convert gridworld to rotational goals, remove position reset, integrate goal alternation
 
     state_generator = change_state(grid, start_positions)
     position, orientation = state_generator.send(None)
 
     while True:
-        x, y = position
-        if grid[y][x] == "g":
-            position = list(random.choice(start_positions))
-            reward = 1.
+        if position == goal_positions[current_goal_index]:
+            current_goal_index = (current_goal_index + 1) % len(goal_positions)
+            reward = 10.
         else:
             reward = -1.
 

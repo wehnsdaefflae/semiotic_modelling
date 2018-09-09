@@ -5,6 +5,7 @@ from typing import Tuple, TypeVar, Generator, Optional
 
 from matplotlib import pyplot
 
+from data.classes import GridWorld, SarsaController, Environment, Controller
 from data.data_types import CONCURRENT_EXAMPLES
 from modelling.predictors.abstract_predictor import Predictor
 from tools.timer import Timer
@@ -109,9 +110,7 @@ MOTOR = TypeVar("MOTOR")
 CONDITION = Tuple[Tuple[SENSOR, MOTOR], ...]
 
 
-def interaction(environment: Generator[Tuple[SENSOR, float], Optional[MOTOR], None],
-                controller: Generator[MOTOR, Optional[Tuple[SENSOR, float]], None],
-                predictor: Predictor[CONDITION, SENSOR],
+def interaction(environment: Environment, controller: Controller, predictor: Predictor[CONDITION, SENSOR],
                 rational: bool, iterations: int, history_length: int = 1, steps: int = 100):
     assert steps >= 1
     time_axis = []
@@ -127,12 +126,22 @@ def interaction(environment: Generator[Tuple[SENSOR, float], Optional[MOTOR], No
 
     history = []
 
-    sensor, reward = environment.send(None)     # type: SENSOR, float
-    motor = controller.send(None)               # type: MOTOR
+    motor = None               # type: MOTOR
 
     for each_step in range(iterations):
         if (each_step + 1) % steps == 0:
             time_axis.append(each_step)
+
+        if False and each_step >= 80000:
+            print(environment)
+            print(motor)
+            time.sleep(.5)
+
+        experience = environment.react_to(motor)
+        sensor, reward = experience
+        perception = sensor, predictor.get_state()
+        experience = perception, reward
+        motor = controller.react_to(experience)
 
         if len(history) == history_length:
             input_value = tuple(history),
@@ -143,11 +152,6 @@ def interaction(environment: Generator[Tuple[SENSOR, float], Optional[MOTOR], No
             output_value = predictor.predict(input_value)
             predictor.fit(input_value, target_value)
             this_duration = (time.time() - last_time) * 1000.
-
-            # TODO: check position in iteration, log reward
-            feedback = sensor + predictor.get_state(), reward
-            motor = controller.send(feedback)
-            sensor, reward = environment.send(motor)
 
             # determine reward
             acc_rewards += reward
@@ -165,7 +169,6 @@ def interaction(environment: Generator[Tuple[SENSOR, float], Optional[MOTOR], No
 
             # log error
             if (each_step + 1) % steps == 0:
-                rewards.append(acc_rewards / steps)
                 durations.append(acc_durations / steps)
 
                 if len(errors) < 1:
@@ -174,8 +177,15 @@ def interaction(environment: Generator[Tuple[SENSOR, float], Optional[MOTOR], No
                     last_error = errors[-1]
                     errors.append((last_error * (each_step - steps) + acc_errors) / each_step)
 
+                if len(rewards) < 1:
+                    rewards.append(acc_rewards / steps)
+                else:
+                    last_reward = rewards[-1]
+                    rewards.append((last_reward * (each_step - steps) + acc_rewards) / each_step)
+
                 acc_durations = 0.
                 acc_errors = 0.
+                acc_rewards = 0.
 
         condition = sensor, motor
         history.append(condition)
@@ -188,12 +198,17 @@ def interaction(environment: Generator[Tuple[SENSOR, float], Optional[MOTOR], No
     print(predictor.get_structure())
 
     Canvas.ax1.set_ylabel("error")
-    Canvas.ax1.plot(time_axis, errors, label="error {:s} {:d}".format(predictor.__class__.__name__, predictor.no_examples))
-    Canvas.ax1.legend()
+    label_error = "error {:s} {:d}".format(predictor.__class__.__name__, predictor.no_examples)
+    Canvas.ax1.plot(time_axis, errors, label=label_error)
     ax11 = Canvas.ax1.twinx()
     ax11.set_ylabel("reward")
-    ax11.plot(time_axis, rewards, color="orange", label="reward {:s} {:d}".format(predictor.__class__.__name__, predictor.no_examples))
-    ax11.legend()
+    label_reward = "reward {:s} {:d}".format(predictor.__class__.__name__, predictor.no_examples)
+    ax11.plot(time_axis, rewards, color="orange", label=label_reward)
+
+    lines, labels = Canvas.ax1.get_legend_handles_labels()
+    lines2, labels2 = ax11.get_legend_handles_labels()
+
+    ax11.legend(lines + lines2, labels + labels2)
 
     Canvas.ax2.set_ylabel("iteration time (ms)")
     Canvas.ax2.plot(time_axis, durations, label="{:s} {:d}".format(predictor.__class__.__name__, predictor.no_examples))

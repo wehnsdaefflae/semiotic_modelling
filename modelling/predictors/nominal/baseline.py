@@ -23,3 +23,6 @@ class NominalMarkovModel(Predictor[NOMINAL_INPUT, NOMINAL_OUTPUT]):
 
     def get_structure(self) -> Tuple[int, ...]:
         return 0,
+
+    def get_state(self, *args, **kwargs) -> Tuple[int, ...]:
+        return 0,
