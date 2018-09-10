@@ -2,7 +2,7 @@
 # coding=utf-8
 import itertools
 import json
-from math import sqrt
+from math import sqrt, sin, cos
 from typing import Sequence, Tuple, List, Generator, Optional
 
 from matplotlib import pyplot
@@ -80,10 +80,10 @@ def test_optimizer():
     x_values = list(range(length))
     f = lambda _x: y_values[round(_x)]
 
-    #length = 1000
-    #x_values = list(range(length))
-    #f = lambda _x: sin(_x * .07) + cos(_x * .03) + 5.
-    #y_values = [f(x) for x in x_values]
+    length = 1000
+    x_values = list(range(length))
+    f = lambda _x: sin(_x * .07) + cos(_x * .03) + 5.
+    y_values = [f(x) for x in x_values]
 
     max_value = max(y_values)
     parameter_ranges = (0., length),
@@ -101,11 +101,12 @@ def test_optimizer():
             optimal_value = value
             # pyplot.plot(optimal_parameters, [optimal_value], "o")
 
-        parameters = optimizer.send(value)
-        # pyplot.axvline(x=parameters[0], alpha=.2)
         pyplot.plot(parameters, [value], "o", alpha=.2, color="blue")
         pyplot.draw()
         pyplot.pause(.01)
+
+        parameters = optimizer.send(value)
+        # pyplot.axvline(x=parameters[0], alpha=.2)
 
     pyplot.show()
 
