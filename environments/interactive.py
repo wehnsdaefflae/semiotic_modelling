@@ -106,8 +106,8 @@ def change_state(grid: Tuple[Tuple[str, ...], ...],
             position[0] = target_x
 
     while True:
-        grid_str = [["a" if [_x, _y] == position else _c for _x, _c in enumerate(each_row)] for _y, each_row in enumerate(grid)]
-        print("\n".join([" ".join(each_row) for each_row in grid_str]), end="\n\n")
+        #grid_str = [["a" if [_x, _y] == position else _c for _x, _c in enumerate(each_row)] for _y, each_row in enumerate(grid)]
+        #print("\n".join([" ".join(each_row) for each_row in grid_str]), end="\n\n")
 
         motor = yield tuple(position), orientation
 

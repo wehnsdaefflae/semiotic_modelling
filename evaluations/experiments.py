@@ -1,11 +1,11 @@
 # coding=utf-8
 import time
 from math import sqrt
-from typing import Tuple, TypeVar, Generator, Optional
+from typing import Tuple, TypeVar
 
 from matplotlib import pyplot
 
-from data.classes import GridWorld, SarsaController, Environment, Controller
+from data.systems.abstract_classes import Environment, Controller
 from data.data_types import CONCURRENT_EXAMPLES
 from modelling.predictors.abstract_predictor import Predictor
 from tools.timer import Timer
@@ -197,21 +197,4 @@ def interaction(environment: Environment, controller: Controller, predictor: Pre
 
     print(predictor.get_structure())
 
-    Canvas.ax1.set_ylabel("error")
-    label_error = "error {:s} {:d}".format(predictor.__class__.__name__, predictor.no_examples)
-    Canvas.ax1.plot(time_axis, errors, label=label_error)
-    ax11 = Canvas.ax1.twinx()
-    ax11.set_ylabel("reward")
-    label_reward = "reward {:s} {:d}".format(predictor.__class__.__name__, predictor.no_examples)
-    ax11.plot(time_axis, rewards, color="orange", label=label_reward)
-
-    lines, labels = Canvas.ax1.get_legend_handles_labels()
-    lines2, labels2 = ax11.get_legend_handles_labels()
-
-    ax11.legend(lines + lines2, labels + labels2)
-
-    Canvas.ax2.set_ylabel("iteration time (ms)")
-    Canvas.ax2.plot(time_axis, durations, label="{:s} {:d}".format(predictor.__class__.__name__, predictor.no_examples))
-    Canvas.ax2.legend()
-    pyplot.draw()
-    pyplot.pause(.001)
+    return time_axis, errors, rewards

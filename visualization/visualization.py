@@ -15,6 +15,7 @@ from tools.timer import Timer
 
 class Canvas:
     fig, (ax1, ax2) = pyplot.subplots(2, sharex="all")
+    ax11 = ax1.twinx()
 
 
 class ComparativeEvaluation:
