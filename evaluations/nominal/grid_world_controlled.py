@@ -1,7 +1,7 @@
 # coding=utf-8
 from matplotlib import pyplot
 
-from data.systems.environment_gridworld import GridWorldGlobal, GridWorldLocal
+from data.systems.environments import GridWorldGlobal, GridWorldLocal
 from data.systems.controller_nominal import SarsaController
 from evaluations.experiments import interaction
 from modelling.predictors.nominal.baseline import NominalMarkovModel
