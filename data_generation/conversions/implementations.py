@@ -1,75 +1,50 @@
 # coding=utf-8
-from typing import Tuple, Sequence, Iterator, TypeVar
+from typing import Tuple, Iterator, TypeVar
+
+from data_generation.systems.abstract_classes import System
 
 INPUT = TypeVar("INPUT")
 TARGET = TypeVar("TARGET")
 
-SEQUENCE_OF_CONCURRENT_EXAMPLES = Iterator[Tuple[Tuple[INPUT, ...], Tuple[TARGET, ...]]]
-RATIONAL_SEQUENCE = Iterator[float]
+INPUT_SEQUENCE = Iterator[INPUT]
+TARGET_SEQUENCE = Iterator[TARGET]
+EXAMPLE_SEQUENCE = Tuple[INPUT_SEQUENCE, TARGET_SEQUENCE]
 
-INPUT_SEQUENCES = Sequence[RATIONAL_SEQUENCE]
-TARGET_SEQUENCES = Sequence[RATIONAL_SEQUENCE]
-
-EXAMPLE_SEQUENCE = Tuple[INPUT_SEQUENCES, TARGET_SEQUENCES]
+EXAMPLE = Tuple[INPUT, TARGET]
+CONCURRENT_EXAMPLES = Tuple[EXAMPLE, ...]
 
 
-def from_sequences(sequences: Sequence[EXAMPLE_SEQUENCE],
-                   in_frame_size: int = 1,
-                   frame_start_offset: int = 0,
-                   out_frame_size: int = 1) -> SEQUENCE_OF_CONCURRENT_EXAMPLES[float, float]:
+def from_sequences(sequences: Tuple[EXAMPLE_SEQUENCE, ...]) -> Iterator[CONCURRENT_EXAMPLES]:
+    no_examples = len(sequences)
 
-    all_sequences = [id(_seq) for _ex in sequences for _io in _ex for _seq in _io]
-    if not len(all_sequences) == len(set(all_sequences)):
+    all_sequence_ids = tuple(id(_seq) for _ex in sequences for _seq in _ex)
+    if not len(all_sequence_ids) == len(set(all_sequence_ids)):
         raise ValueError("All sequences must be individual iterator instances.")
 
-    # initialize input and target frames
-    in_frames = tuple([] for _ in sequences)
-    out_frames = tuple([] for _ in sequences)
-
-    # progress targets by defined offset
-    for _, target_sequences in sequences:
-        for _ in range(frame_start_offset):
-            for _seq in target_sequences:
-                next(_seq)
-
     while True:
-        for _i, (input_sequences, target_sequences) in enumerate(sequences):
-            each_in_frame = in_frames[_i]
-            # add new
-            for _ in range(in_frame_size - len(each_in_frame)):
-                new_input = tuple(next(_seq) for _seq in input_sequences)
-                if len(new_input) < 1:
-                    raise StopIteration()
-                each_in_frame.append(new_input)
+        examples = tuple((next(_in), next(_tar)) for _in, _tar in sequences)
+        if len(examples) != no_examples:
+            raise StopIteration()
 
-            each_out_frame = out_frames[_i]
-            # add new
-            for _ in range(out_frame_size - len(each_out_frame)):
-                new_target = tuple(next(_seq) for _seq in target_sequences)
-                if len(new_target) < 1:
-                    raise StopIteration()
-                each_out_frame.append(new_target)
+        yield examples
 
-        yield tuple(in_frames), tuple(out_frames)
 
-        for each_in_frame, each_out_frame in zip(in_frames, out_frames):
-            # remove old
-            for _ in range(len(each_in_frame) - in_frame_size + 1):
-                each_in_frame.pop(0)
+DATA_A = TypeVar("DATA_A")
+DATA_B = TypeVar("DATA_B")
 
-            # remove old
-            for _ in range(len(each_out_frame) - out_frame_size + 1):
-                each_out_frame.pop(0)
+
+def from_systems(this_system: System[DATA_A, DATA_B],
+                 that_system: System[DATA_B, DATA_A]) -> Iterator[CONCURRENT_EXAMPLES[DATA_B, DATA_A]]:
+    ...
 
 
 if __name__ == "__main__":
-    sequence_a = (_x for _x in range(0, 10))
-    sequence_b = (_x for _x in range(0, 10))
-    sequence_c = (_x for _x in range(0, 10))
+    generators_even = tuple((_x for _x in range(0, 100, 2)) for _ in range(10))
+    generators_odd = tuple((_x for _x in range(1, 100, 2)) for _ in range(10))
 
-    s = [([sequence_a], [sequence_b])]
+    s = (generators_even[0], generators_odd[0]), (generators_even[1], generators_odd[1])
 
     g = from_sequences(s)
-    for _v in g:
-        print(_v)
+    for _ in range(55):
+        print(next(g))
         pass
