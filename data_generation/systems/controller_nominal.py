@@ -3,7 +3,7 @@
 import random
 from typing import Sequence, Hashable, Tuple
 
-from data.systems.abstract_classes import Controller, EXPERIENCE, SENSOR_TYPE, MOTOR_TYPE
+from data_generation.systems.abstract_classes import Controller, EXPERIENCE, SENSOR_TYPE, MOTOR_TYPE
 
 NOMINAL_SENSOR = Hashable
 NOMINAL_MOTOR = Hashable

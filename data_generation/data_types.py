@@ -12,7 +12,7 @@ EXAMPLE = Tuple[INPUT_TYPE, OUTPUT_TYPE]
 CONCURRENT_INPUTS = Tuple[INPUT_TYPE, ...]
 CONCURRENT_OUTPUTS = Tuple[OUTPUT_TYPE, ...]
 
-# sequential data formats
+# sequential data_generation formats
 PARALLEL_SEQUENCES = Tuple[Iterable[EXAMPLE], ...]
 CONCURRENT_EXAMPLES = Iterable[Tuple[EXAMPLE, ...]]
 CONCURRENT_IOS = Iterable[Tuple[CONCURRENT_INPUTS, CONCURRENT_OUTPUTS]]

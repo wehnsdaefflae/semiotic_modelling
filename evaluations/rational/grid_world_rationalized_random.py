@@ -4,8 +4,8 @@ import os
 
 from matplotlib import pyplot
 
-from data.controllers import random_nominal_controller
-from data.example_generation import example_interactive, example_interactive_senses, rationalize_generator
+from data_generation.controllers import random_nominal_controller
+from data_generation.example_generation import example_interactive, example_interactive_senses, rationalize_generator
 from environments.interactive import env_grid_world
 from evaluations.experiments import prediction
 from modelling.predictors.rational.baseline import Regression

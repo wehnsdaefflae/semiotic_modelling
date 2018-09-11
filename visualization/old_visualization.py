@@ -1,14 +1,13 @@
 # coding=utf-8
 import datetime
 import math
-from typing import List, Tuple, Sequence
+from typing import List, Tuple, Sequence, Any
 
 from matplotlib import pyplot
 from matplotlib.colors import hsv_to_rgb
 from matplotlib.dates import date2num
 from matplotlib.patches import Rectangle
 
-from data.deprecated_sequence_generation import TIME
 from tools.math_functions import distribute_circular, smoothing_generator
 from tools.timer import Timer
 
@@ -29,7 +28,7 @@ class ComparativeEvaluation:
         self.errors = tuple([] for _ in method_names)
         self.time_axis = []
 
-    def log_predictors(self, time: TIME, all_output_values: Sequence[Tuple[float, ...]], target_value: Tuple[float, ...]):
+    def log_predictors(self, time: Any, all_output_values: Sequence[Tuple[float, ...]], target_value: Tuple[float, ...]):
         assert len(all_output_values) == len(self.method_names)
         self.time_axis.append(time)
         for _i, each_target in enumerate(target_value):
@@ -116,7 +115,7 @@ class QualitativeEvaluationMultiSequence:
         self.certainties = tuple([] for _ in range(no_examples))                                                # type: Tuple[List[float], ...]
         self.errors = tuple([] for _ in range(no_examples))                                                     # type: Tuple[List[float], ...]
 
-    def log_multisequence(self, time: TIME,
+    def log_multisequence(self, time: Any,
                           target_values: Tuple[Tuple[float, ...], ...], output_values: Tuple[Tuple[float, ...], ...],
                           certainties: Tuple[float, ...]):
         assert self.no_examples == len(target_values) == len(output_values) == len(certainties)
@@ -163,7 +162,7 @@ class QualitativeEvaluationSingleSequence(ComparativeEvaluation):
 
         self.certainties = []                                                               # type: List[float]
 
-    def log_semiotic_model(self, time: TIME,
+    def log_semiotic_model(self, time: Any,
                            input_value: Tuple[float, ...], target_value: Tuple[float, ...], output_value: Tuple[float, ...],
                            certainty: float, structure: Tuple[int, ...], state: Tuple[int, ...]):
         assert len(target_value) == len(output_value) == self.output_dimension
@@ -181,7 +180,7 @@ class QualitativeEvaluationSingleSequence(ComparativeEvaluation):
         raise NotImplementedError()
 
     @staticmethod
-    def _get_segments(time_axis: Sequence[TIME], states: List[Tuple[int, ...]]) -> Tuple[Sequence[Tuple[int, TIME]], ...]:
+    def _get_segments(time_axis: Sequence[Any], states: List[Tuple[int, ...]]) -> Tuple[Sequence[Tuple[int, Any]], ...]:
         assert(len(time_axis) == len(states))
         max_level = max(len(_x) for _x in states)
         levels = tuple([] for _ in range(max_level))
@@ -205,7 +204,7 @@ class QualitativeEvaluationSingleSequence(ComparativeEvaluation):
         return levels
 
     @staticmethod
-    def _plot_h_stacked_bars(axis: pyplot.Axes.axes, segments: Sequence[Sequence[Tuple[TIME, float]]]):
+    def _plot_h_stacked_bars(axis: pyplot.Axes.axes, segments: Sequence[Sequence[Tuple[Any, float]]]):
         for _i, each_level in enumerate(segments):
             for _x in range(len(each_level) - 1):
                 each_left, each_shape = each_level[_x]

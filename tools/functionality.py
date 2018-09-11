@@ -3,7 +3,7 @@ from typing import Tuple, Hashable, Sequence
 
 from matplotlib import pyplot
 
-from data.example_generation import EXAMPLE_SEQUENCE
+from data_generation.example_generation import EXAMPLE_SEQUENCE
 from environments.non_interactive import sequence_nominal_text, sequence_rational_crypto, examples_rational_trigonometric
 from tools.load_configs import Config
 from tools.timer import Timer

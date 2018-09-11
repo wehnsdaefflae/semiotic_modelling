@@ -4,8 +4,8 @@ import os
 
 from matplotlib import pyplot
 
-from data.data_types import from_parallel_sequences_to_concurrent_examples
-from data.example_generation import example_sequence
+from data_generation.data_types import from_parallel_sequences_to_concurrent_examples
+from data_generation.example_generation import example_sequence
 from environments.non_interactive import sequence_nominal_text
 from evaluations.experiments import prediction
 from modelling.predictors.nominal.semiotic import NominalSemioticModel

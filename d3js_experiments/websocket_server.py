@@ -17,7 +17,7 @@ class WebSocketHandler(websocket.WebSocketHandler):
     # on open of this socket
     def open(self):
         print('Connection established.')
-        # ioloop to wait for 3 seconds before starting to send data
+        # ioloop to wait for 3 seconds before starting to send data_generation
         ioloop.IOLoop.instance().add_timeout(datetime.
                                              timedelta(seconds=3), self.send_data)
 
@@ -25,10 +25,10 @@ class WebSocketHandler(websocket.WebSocketHandler):
     def on_close(self):
         print('Connection closed.')
 
-    # Our function to send new (random) data for charts
+    # Our function to send new (random) data_generation for charts
     def send_data(self):
         print("Sending Data")
-        # create a bunch of random data for various dimensions we want
+        # create a bunch of random data_generation for various dimensions we want
         qty = random.randrange(1, 4)
         total = random.randrange(30, 1000)
         tip = random.randrange(10, 100)
@@ -36,7 +36,7 @@ class WebSocketHandler(websocket.WebSocketHandler):
         name = namesArray[random.randrange(0, 4)]
         spent = random.randrange(1, 150);
         year = random.randrange(2012, 2016)
-        # create a new data point
+        # create a new data_generation point
         point_data = {
             'quantity': qty,
             'total': total,
@@ -53,7 +53,7 @@ class WebSocketHandler(websocket.WebSocketHandler):
         # write the json object to the socket
         self.write_message(json.dumps(point_data))
 
-        # create new ioloop instance to intermittently publish data
+        # create new ioloop instance to intermittently publish data_generation
         ioloop.IOLoop.instance().add_timeout(datetime.timedelta(seconds=1), self.send_data)
 
 

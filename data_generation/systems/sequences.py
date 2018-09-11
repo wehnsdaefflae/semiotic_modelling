@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
+# coding=utf-8
 import string
 from math import sin, cos
 from typing import Tuple
 
-from data.systems.abstract_classes import Sequence, ELEMENT
+from data_generation.systems.abstract_classes import Sequence, ELEMENT
 from environments.non_interactive import sequence_nominal_alternating
 
 
@@ -32,12 +33,10 @@ class Text(Sequence[str]):
             element = self.text[self.index]
 
             if element in string.ascii_letters:
-                experience = element.lower()    # type: EXPERIENCE[str]
-                return experience
+                return element.lower()
 
             if element in self.permissible_non_letter:
-                experience = element            # type: EXPERIENCE[str]
-                return experience
+                return element
 
 
 class ArtificialRational(Sequence[float]):

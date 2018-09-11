@@ -7,7 +7,7 @@ from typing import Generator, Union, Tuple, Optional
 from dateutil import parser
 from matplotlib import pyplot
 
-from data.data_processing import equisample, series_generator
+from data_generation.data_processing import equisample, series_generator
 
 
 def sequence_nominal_text(file_path: str) -> Generator[str, None, None]:

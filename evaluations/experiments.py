@@ -5,11 +5,11 @@ from typing import Tuple, TypeVar
 
 from matplotlib import pyplot
 
-from data.systems.abstract_classes import Environment, Controller
-from data.data_types import CONCURRENT_EXAMPLES
+from data_generation.systems.abstract_classes import Environment, Controller
+from data_generation.data_types import CONCURRENT_EXAMPLES
 from modelling.predictors.abstract_predictor import Predictor
 from tools.timer import Timer
-from visualization.visualization import Canvas
+from visualization.old_visualization import Canvas
 
 IN_TYPE = TypeVar("IN_TYPE")
 OUT_TYPE = TypeVar("OUT_TYPE")
