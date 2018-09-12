@@ -5,7 +5,7 @@ from typing import Tuple, TypeVar
 
 from matplotlib import pyplot
 
-from data_generation.data_sources.abstract_classes import Environment, Controller
+from data_generation.data_sources.systems.abstract_classes import Environment, Controller
 from data_generation.deprecated_data_types import CONCURRENT_EXAMPLES
 from modelling.predictors.abstract_predictor import Predictor
 from tools.timer import Timer

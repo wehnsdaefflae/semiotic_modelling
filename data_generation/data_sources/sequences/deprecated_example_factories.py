@@ -2,12 +2,12 @@
 # coding=utf-8
 from typing import Tuple, Collection
 
-from data_generation.data_sources.abstract_classes import ExampleFactory, EXAMPLE_INPUT, EXAMPLE_OUTPUT
+from data_generation.data_sources.systems.abstract_classes import DeprecatedExampleFactory, EXAMPLE_INPUT, EXAMPLE_OUTPUT
 from environments.non_interactive import sequence_rational_crypto
 from tools.load_configs import Config
 
 
-class ExchangeRates(ExampleFactory[Tuple[Tuple[float, ...], ...], float]):
+class ExchangeRates(DeprecatedExampleFactory[Tuple[Tuple[float, ...], ...], float]):
     def __init__(self, in_currencies: Collection[str], out_currency: str,
                  seconds_interval: int = 60, start: int=-1, end: int=-1, history_length: int=1):
         self.history_length = history_length

@@ -1,6 +1,6 @@
 import datetime
 from math import sin
-from typing import Generator, Tuple, Iterator
+from typing import Generator, Tuple, Iterator, TypeVar, Iterable
 
 from dateutil.tz import tzutc
 from matplotlib import pyplot
@@ -63,6 +63,19 @@ def equisample(iterator: Iterator[Tuple[float, float]], target_delta: float) -> 
                 yield last_time, last_value
 
 
+TYPE_A = TypeVar("TYPE_A")
+
+
+def trail(sequence: Iterator[TYPE_A], trail_length: int) -> Generator[Tuple[TYPE_A, ...], None, None]:
+    trace = []
+    for _ in range(trail_length):
+        trace.append(next(sequence))
+    while True:
+        yield tuple(trace)
+        trace.pop(0)
+        trace.append(next(sequence))
+
+
 def difference(source_generator: Generator[float, None, None]) -> Generator[float, None, None]:
     last_value = next(source_generator)
     for each_value in source_generator:
@@ -100,10 +113,6 @@ def zscore_normalization(source_generator: Generator[float, None, None], drag: i
 
 
 if __name__ == "__main__":
-    # time_stamp_test()
-    X = range(1000)
-    # Y = [sin(_x/10.) for _x in X]
-    Y = list(my_normalization((sin(_x / 10.) for _x in range(1000)), 100))
-    pyplot.plot(X, Y)
-    pyplot.show()
-    exit()
+    X = (_x for _x in range(1000))
+    for _x in trail(X, 3):
+        print(_x)

@@ -2,24 +2,24 @@
 # coding=utf-8
 import string
 from math import sin, cos
-from typing import Tuple
+from typing import Optional, Union, Iterator
 
-from data_generation.data_sources.abstract_classes import Sequence, ELEMENT
+from dateutil import parser
+
+from data_generation.data_processing import series_generator, equisample
 from environments.non_interactive import sequence_nominal_alternating
 
 
-class ArtificialNominal(Sequence[str]):
-    def __init__(self, history_length: int = 1):
-        super().__init__(history_length=history_length)
+class ArtificialNominal(Iterator[str]):
+    def __init__(self):
         self.generator = sequence_nominal_alternating()
 
-    def _next_element(self) -> ELEMENT:
+    def __next__(self) -> str:
         return next(self.generator)
 
 
-class Text(Sequence[str]):
-    def __init__(self, file_path: str, history_length: int = 1):
-        super().__init__(history_length=history_length)
+class Text(Iterator[str]):
+    def __init__(self, file_path: str):
         self.file_path = file_path
         self.permissible_non_letter = string.digits + string.punctuation + " "
         with open(self.file_path, mode="r") as file:
@@ -27,7 +27,7 @@ class Text(Sequence[str]):
         self.text_len = len(self.text)
         self.index = -1
 
-    def _next_element(self) -> ELEMENT:
+    def __next__(self) -> str:
         while True:
             self.index = (self.index + 1) % self.text_len
             element = self.text[self.index]
@@ -39,24 +39,57 @@ class Text(Sequence[str]):
                 return element
 
 
-class ArtificialRational(Sequence[float]):
-    def __init__(self, history_length: int = 1):
-        super().__init__(history_length=history_length)
+class ArtificialRationalCosine(Iterator[float]):
+    def __init__(self):
         self.i = -1
-        self.history = []
 
-    def get_example(self) -> Tuple[Tuple[ELEMENT, ...], ELEMENT]:
-        for _ in range(self.history_length - len(self.history)):
-            self.i += 1
-            self.history.append(sin(self.i / 100.))
+    def __next__(self) -> float:
+        return float(cos(self.i / 100.) >= 0.) * 2. - 1.
 
-        input_value = tuple(self.history)
-        target_value = float(cos(self.i / 100.) >= 0.) * 2. - 1.
 
-        for _ in range(len(self.history) - self.history_length + 1):
-            self.history.pop(0)
+class ArtificialRationalSinus(Iterator[float]):
+    def __init__(self):
+        self.i = -1
 
-        return input_value, target_value
+    def __next__(self) -> float:
+        self.i += 1
+        return sin(self.i / 100.)
 
-    def _next_element(self) -> ELEMENT:
-        pass
+
+class ExchangeRates(Iterator[float]):
+    def __init__(self, file_path: str, interval_seconds: int,
+                 start_val: Optional[Union[int, str]] = None, end_val: Optional[Union[int, str]] = None):
+        self.start_ts = ExchangeRates._convert_to_timestamp(start_val)
+        self.end_ts = ExchangeRates._convert_to_timestamp(end_val)
+
+        self.raw_generator = series_generator(file_path, start_timestamp=self.start_ts, end_timestamp=self.end_ts)
+        self.generator = equisample(self.raw_generator, interval_seconds)
+
+        self.file_path = file_path
+        self.interval_seconds = interval_seconds
+
+    @staticmethod
+    def _convert_to_timestamp(time_val: Optional[Union[int, str]]) -> int:
+        if time_val is None:
+            return -1
+
+        time_type = type(time_val)
+        if time_type == int:
+            return time_val
+
+        elif time_type == str:
+            date_time = parser.parse(time_val)
+            return date_time.timestamp()
+
+        raise ValueError()
+
+    def __next__(self) -> float:
+        try:
+            t, value = next(self.generator)
+
+        except StopIteration:
+            self.raw_generator = series_generator(self.file_path, start_timestamp=self.start_ts, end_timestamp=self.end_ts)
+            self.generator = equisample(self.raw_generator, self.interval_seconds)
+            t, value = next(self.generator)
+
+        return value

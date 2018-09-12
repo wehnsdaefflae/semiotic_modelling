@@ -1,8 +1,17 @@
 # coding=utf-8
 import time
-from typing import TypeVar, Generator, Tuple, Iterator, Optional
+from typing import TypeVar, Generator, Tuple, Iterator, Optional, Sequence
 
 TYPE_A = TypeVar("TYPE_A")
+
+
+def merge_iterators(iterators: Sequence[Iterator[TYPE_A]]) -> Generator[Tuple[TYPE_A, ...], None, None]:
+    no_iterators = len(iterators)
+    while True:
+        yield_value = tuple(next(_it) for _it in iterators)
+        if len(yield_value) != no_iterators:
+            raise StopIteration()
+        yield yield_value
 
 
 # TODO: add buffer!

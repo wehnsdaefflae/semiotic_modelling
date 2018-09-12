@@ -2,7 +2,7 @@
 # coding=utf-8
 from typing import TypeVar, Tuple, Iterable, Generator
 
-from tools.iterator_split import split_iterator
+from tools.split_merge import split_iterator
 
 INPUT_TYPE = TypeVar("INPUT_TYPE")
 OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")

@@ -3,9 +3,7 @@
 import random
 from typing import Sequence, Hashable, Tuple
 
-from data_generation.data_sources.abstract_classes import Controller, EXPERIENCE, SENSOR_TYPE, MOTOR_TYPE, \
-    INTERACTION_HISTORY
-from modelling.predictors.abstract_predictor import Predictor
+from data_generation.data_sources.systems.abstract_classes import Controller, EXPERIENCE, SENSOR_TYPE, MOTOR_TYPE
 
 NOMINAL_SENSOR = Hashable
 NOMINAL_MOTOR = Hashable
@@ -83,25 +81,3 @@ class SarsaController(NominalController):
         self.last_perception = sensor
         self.last_action = action
         return action
-
-
-class SarsaModellingController(SarsaController):
-    def __init__(self, motor_range: Sequence[NOMINAL_MOTOR],
-                 predictor: Predictor[INTERACTION_HISTORY, SENSOR_TYPE],
-                 alpha: float, gamma: float, epsilon: float,
-                 default_evaluation: float = 1000.):
-        super().__init__(motor_range, alpha, gamma, epsilon, default_evaluation=default_evaluation)
-        self.predictor = predictor
-
-    def react_to(self, experience: EXPERIENCE[NOMINAL_SENSOR]) -> NOMINAL_MOTOR:
-        sensor, reward = experience
-        perception = sensor, self.predictor.get_state()
-
-        action, evaluation = self._select_action(perception)
-        self._update_evaluation(reward, evaluation)
-
-        self.last_perception = perception
-        self.last_action = action
-        return action
-
-

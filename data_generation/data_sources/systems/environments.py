@@ -3,7 +3,7 @@
 import string
 from typing import Tuple, List
 
-from data_generation.data_sources.abstract_classes import Environment, EXPERIENCE
+from data_generation.data_sources.systems.abstract_classes import Environment, EXPERIENCE
 
 GRID_SENSOR = Tuple[str, ...]
 GRID_MOTOR = str

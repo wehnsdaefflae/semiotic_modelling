@@ -1,5 +1,5 @@
 # coding=utf-8
-from typing import Generic, TypeVar, Tuple, Hashable
+from typing import Generic, TypeVar, Tuple, Hashable, Sequence
 
 INPUT_TYPE = TypeVar("INPUT_TYPE")
 OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
@@ -16,7 +16,10 @@ class Predictor(Generic[INPUT_TYPE, OUTPUT_TYPE]):
     def _fit(self, input_values: Tuple[INPUT_TYPE, ...], target_values: Tuple[OUTPUT_TYPE, ...]):
         raise NotImplementedError
 
-    def fit(self, input_values: Tuple[INPUT_TYPE, ...], target_values: Tuple[OUTPUT_TYPE, ...]):
+    def fit(self, examples: Sequence[Tuple[INPUT_TYPE, OUTPUT_TYPE]]):
+        self.separated_fit(*zip(*examples))     # TODO: if this doesn't work make tuple or list instead
+
+    def separated_fit(self, input_values: Tuple[INPUT_TYPE, ...], target_values: Tuple[OUTPUT_TYPE, ...]):
         assert len(input_values) == len(target_values) == self.no_examples
         self._fit(input_values, target_values)
 

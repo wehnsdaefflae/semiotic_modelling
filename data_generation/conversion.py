@@ -1,13 +1,13 @@
 # coding=utf-8
 from typing import Tuple, Iterator, TypeVar
 
-from data_generation.data_sources.abstract_classes import System
+from data_generation.data_sources.systems.abstract_classes import System, Sequence
 
 INPUT = TypeVar("INPUT")
 TARGET = TypeVar("TARGET")
 
-INPUT_SEQUENCE = Iterator[INPUT]
-TARGET_SEQUENCE = Iterator[TARGET]
+INPUT_SEQUENCE = Sequence[INPUT]
+TARGET_SEQUENCE = Sequence[TARGET]
 EXAMPLE_SEQUENCE = Tuple[INPUT_SEQUENCE, TARGET_SEQUENCE]
 
 EXAMPLE = Tuple[INPUT, TARGET]
@@ -15,11 +15,11 @@ CONCURRENT_EXAMPLES = Tuple[EXAMPLE, ...]
 
 
 def from_sequences(sequences: Tuple[EXAMPLE_SEQUENCE, ...]) -> Iterator[CONCURRENT_EXAMPLES]:
-    no_examples = len(sequences)
-
     all_sequence_ids = tuple(id(_seq) for _ex in sequences for _seq in _ex)
     if not len(all_sequence_ids) == len(set(all_sequence_ids)):
         raise ValueError("All sequences must be individual iterator instances.")
+
+    no_examples = len(sequences)
 
     while True:
         examples = tuple((next(_in), next(_tar)) for _in, _tar in sequences)
@@ -36,9 +36,9 @@ INTERACTION_CONDITION = Tuple[DATA_IN, DATA_OUT]
 INTERACTION_HISTORY = Tuple[INTERACTION_CONDITION, ...]
 
 
-def from_systems(this_system: System[DATA_IN, DATA_OUT],
-                 that_system: System[DATA_OUT, DATA_IN],
-                 history_length: int = 1) -> Iterator[CONCURRENT_EXAMPLES[INTERACTION_HISTORY, DATA_IN]]:
+def deprecated_from_systems(this_system: System[DATA_IN, DATA_OUT],
+                            that_system: System[DATA_OUT, DATA_IN],
+                            history_length: int = 1) -> Iterator[CONCURRENT_EXAMPLES[INTERACTION_HISTORY, DATA_IN]]:
     history = []
     motor = None
 
