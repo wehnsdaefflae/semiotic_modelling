@@ -35,5 +35,5 @@ class Predictor(Generic[INPUT_TYPE, OUTPUT_TYPE]):
     def get_structure(self) -> Tuple[int, ...]:
         raise NotImplementedError
 
-    def get_state(self, *args, **kwargs) -> Tuple[int, ...]:
+    def get_state(self) -> Hashable:
         raise NotImplementedError

@@ -10,7 +10,7 @@ GRID_MOTOR = str
 
 
 class GridWorld(Environment[GRID_MOTOR, GRID_SENSOR]):
-    def react_to(self, motor: Optional[GRID_MOTOR]) -> EXPERIENCE[GRID_SENSOR]:
+    def react_to(self, motor: GRID_MOTOR) -> EXPERIENCE[GRID_SENSOR]:
         raise NotImplementedError()
 
 
@@ -120,7 +120,7 @@ class GridWorldGlobal(GridWorld):
         else:
             raise ValueError("undefined transition")
 
-    def react_to(self, motor: Optional[GRID_MOTOR]) -> EXPERIENCE[GRID_SENSOR]:
+    def react_to(self, motor: GRID_MOTOR) -> EXPERIENCE[GRID_SENSOR]:
         if motor is not None:
             self.change_state(motor)
 
@@ -156,7 +156,7 @@ class GridWorldLocal(GridWorldGlobal):
         rotated_perception = tuple(perception[(self.orientation + _x) % no_perceptions] for _x in range(no_perceptions))
         return rotated_perception
 
-    def react_to(self, motor: Optional[GRID_MOTOR]) -> EXPERIENCE[GRID_SENSOR]:
+    def react_to(self, motor: GRID_MOTOR) -> EXPERIENCE[GRID_SENSOR]:
         if motor is not None:
             self.change_state(motor)
 

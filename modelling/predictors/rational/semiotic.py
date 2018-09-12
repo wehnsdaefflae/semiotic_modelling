@@ -4,8 +4,8 @@ from typing import Callable, Tuple
 from modelling.content import ContentFactory
 from modelling.predictors.abstract_predictor import INPUT_TYPE, OUTPUT_TYPE
 from modelling.predictors.nominal.semiotic import NominalSemioticModel
-from modelling.semiotic_functions import generate_state_layer, generate_content, generate_trace_layer, adapt_abstract_content, adapt_base_contents, \
-    update_traces, MODEL
+from modelling.semiotic_functions import generate_state_layer, generate_content, generate_trace_layer, \
+    adapt_abstract_content, adapt_base_contents, update_traces, MODEL
 
 
 class RationalSemioticModel(NominalSemioticModel):

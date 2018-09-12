@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # coding=utf-8
-from typing import TypeVar, Generic, Tuple
+from typing import TypeVar, Generic, Tuple, Optional
+
+from modelling.predictors.abstract_predictor import Predictor
 
 ELEMENT = TypeVar("ELEMENT")
 
@@ -32,7 +34,7 @@ OUTPUT_DATA = TypeVar("OUTPUT_DATA")
 
 
 class System(Generic[INPUT_DATA, OUTPUT_DATA]):
-    def react_to(self, input_data: INPUT_DATA) -> OUTPUT_DATA:
+    def react_to(self, input_data: Optional[INPUT_DATA]) -> OUTPUT_DATA:
         raise NotImplementedError()
 
 
@@ -52,9 +54,14 @@ class Environment(System[MOTOR_TYPE, EXPERIENCE]):
         raise NotImplementedError()
 
 
+INTERACTION_CONDITION = Tuple[SENSOR_TYPE, MOTOR_TYPE]
+INTERACTION_HISTORY = Tuple[INTERACTION_CONDITION, ...]
+
+
 class Controller(System[EXPERIENCE, MOTOR_TYPE]):
-    def __init__(self, motor_range: Generic[MOTOR_TYPE]):
+    def __init__(self, motor_range: Generic[MOTOR_TYPE], predictor: Predictor[INTERACTION_HISTORY, SENSOR_TYPE] = None):
         self.motor_range = motor_range
+        self.predictor = predictor
 
     def react_to(self, experience: EXPERIENCE) -> MOTOR_TYPE:
         raise NotImplementedError()

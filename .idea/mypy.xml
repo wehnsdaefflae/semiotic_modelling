@@ -2,5 +2,6 @@
 <project version="4">
   <component name="MypyConfigService">
     <option name="mypyArguments" value="-ignore-missing-imports" />
+    <option name="pathToMypy" value="C:\Users\Mark\Anaconda3\Scripts\mypy.exe" />
   </component>
 </project>
