@@ -4,10 +4,10 @@ import os
 
 from matplotlib import pyplot
 
-from data_generation.controllers import random_nominal_controller
-from data_generation.example_generation import example_interactive, example_interactive_senses, rationalize_generator
-from environments.interactive import env_grid_world
-from evaluations.experiments import prediction
+from data_generation.deprecated_controllers import random_nominal_controller
+from data_generation.deprecated_example_generation import example_interactive, example_interactive_senses, rationalize_generator
+from environments.deprecated_interactive import env_grid_world
+from setups_deprecated.evaluations import prediction
 from modelling.predictors.rational.baseline import Regression
 from modelling.predictors.rational.semiotic import RationalSemioticModel
 from tools.load_configs import Config

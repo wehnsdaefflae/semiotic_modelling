@@ -3,9 +3,9 @@ import os
 
 from matplotlib import pyplot
 
-from data_generation.data_types import from_parallel_sequences_to_concurrent_examples
+from data_generation.deprecated_data_types import from_parallel_sequences_to_concurrent_examples
 from environments.non_interactive import examples_rational_trigonometric
-from evaluations.experiments import prediction
+from setups_deprecated.evaluations import prediction
 from modelling.predictors.rational.semiotic import RationalSemioticModel
 from modelling.predictors.rational.baseline import Regression
 

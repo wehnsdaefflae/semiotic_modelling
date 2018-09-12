@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # coding=utf-8
 import string
-from typing import Tuple, Optional, List
+from typing import Tuple, List
 
-from data_generation.systems.abstract_classes import Environment, EXPERIENCE
+from data_generation.data_sources.abstract_classes import Environment, EXPERIENCE
 
 GRID_SENSOR = Tuple[str, ...]
 GRID_MOTOR = str

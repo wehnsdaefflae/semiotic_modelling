@@ -4,7 +4,7 @@ import string
 from math import sin, cos
 from typing import Tuple
 
-from data_generation.systems.abstract_classes import Sequence, ELEMENT
+from data_generation.data_sources.abstract_classes import Sequence, ELEMENT
 from environments.non_interactive import sequence_nominal_alternating
 
 

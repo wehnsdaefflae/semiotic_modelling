@@ -1,9 +1,9 @@
 # coding=utf-8
 from matplotlib import pyplot
 
-from data_generation.systems.environments import GridWorldGlobal, GridWorldLocal
-from data_generation.systems.controller_nominal import SarsaController
-from evaluations.experiments import interaction
+from data_generation.data_sources.systems.environments import GridWorldGlobal, GridWorldLocal
+from data_generation.data_sources.systems import SarsaController
+from setups_deprecated.evaluations import interaction
 from modelling.predictors.nominal.baseline import NominalMarkovModel
 from modelling.predictors.nominal.semiotic import NominalSemioticModel
 from tools.load_configs import Config

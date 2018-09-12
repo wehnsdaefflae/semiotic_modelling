@@ -1,7 +1,7 @@
 # coding=utf-8
 from typing import Tuple, Iterator, TypeVar
 
-from data_generation.systems.abstract_classes import System, Controller
+from data_generation.data_sources.abstract_classes import System
 
 INPUT = TypeVar("INPUT")
 TARGET = TypeVar("TARGET")

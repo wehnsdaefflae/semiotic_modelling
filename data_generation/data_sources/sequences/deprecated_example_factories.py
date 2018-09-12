@@ -2,7 +2,7 @@
 # coding=utf-8
 from typing import Tuple, Collection
 
-from data_generation.systems.abstract_classes import ExampleFactory, EXAMPLE_INPUT, EXAMPLE_OUTPUT
+from data_generation.data_sources.abstract_classes import ExampleFactory, EXAMPLE_INPUT, EXAMPLE_OUTPUT
 from environments.non_interactive import sequence_rational_crypto
 from tools.load_configs import Config
 

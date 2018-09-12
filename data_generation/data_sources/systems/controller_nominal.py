@@ -3,7 +3,7 @@
 import random
 from typing import Sequence, Hashable, Tuple
 
-from data_generation.systems.abstract_classes import Controller, EXPERIENCE, SENSOR_TYPE, MOTOR_TYPE, \
+from data_generation.data_sources.abstract_classes import Controller, EXPERIENCE, SENSOR_TYPE, MOTOR_TYPE, \
     INTERACTION_HISTORY
 from modelling.predictors.abstract_predictor import Predictor
 
