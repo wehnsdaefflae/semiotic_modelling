@@ -1,6 +1,5 @@
 import datetime
-from math import sin
-from typing import Generator, Tuple, Iterator, TypeVar, Iterable
+from typing import Generator, Tuple, Iterator, TypeVar
 
 from dateutil.tz import tzutc
 from matplotlib import pyplot

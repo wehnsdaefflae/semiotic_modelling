@@ -3,19 +3,19 @@
 import random
 from typing import Sequence, Hashable, Tuple
 
-from data_generation.data_sources.systems.abstract_classes import Controller, EXPERIENCE, SENSOR_TYPE, MOTOR_TYPE
+from data_generation.data_sources.systems.abstract_classes import Controller, SENSOR_TYPE, MOTOR_TYPE
 
 NOMINAL_SENSOR = Hashable
 NOMINAL_MOTOR = Hashable
 
 
 class NominalController(Controller[NOMINAL_SENSOR, NOMINAL_MOTOR]):
-    def react_to(self, experience: EXPERIENCE[NOMINAL_SENSOR]) -> NOMINAL_MOTOR:
-        raise NotImplementedError()
+    def react_to(self, sensor: SENSOR_TYPE, reward: float) -> MOTOR_TYPE:
+        pass
 
 
 class NoneController(Controller[NOMINAL_SENSOR, type(None)]):
-    def react_to(self, experience: EXPERIENCE[SENSOR_TYPE]) -> MOTOR_TYPE:
+    def react_to(self, sensor: SENSOR_TYPE, reward: float) -> MOTOR_TYPE:
         return None
 
 
@@ -23,7 +23,7 @@ class RandomController(NominalController):
     def __init__(self, motor_range: Sequence[NOMINAL_MOTOR]):
         super().__init__(motor_range)
 
-    def react_to(self, experience: EXPERIENCE[NOMINAL_SENSOR]) -> NOMINAL_MOTOR:
+    def react_to(self, sensor: NOMINAL_SENSOR, reward: float) -> NOMINAL_MOTOR:
         return random.choice(self.motor_range)
 
 
@@ -72,9 +72,7 @@ class SarsaController(NominalController):
             last_evaluation += self.alpha * (new_value - last_evaluation)
             sub_dict[self.last_action] = last_evaluation
 
-    def react_to(self, experience: EXPERIENCE[NOMINAL_SENSOR]) -> NOMINAL_MOTOR:
-        sensor, reward = experience
-
+    def react_to(self, sensor: NOMINAL_SENSOR, reward: float) -> NOMINAL_MOTOR:
         action, evaluation = self._select_action(sensor)
         self._update_evaluation(reward, evaluation)
 

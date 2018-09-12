@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 # coding=utf-8
 import string
-from typing import Tuple, List
+from typing import Tuple, List, Optional, Generic
 
-from data_generation.data_sources.systems.abstract_classes import Environment, EXPERIENCE
+from data_generation.data_sources.systems.abstract_classes import Environment, MOTOR_TYPE
 
 GRID_SENSOR = Tuple[str, ...]
 GRID_MOTOR = str
 
 
 class GridWorld(Environment[GRID_MOTOR, GRID_SENSOR]):
-    def react_to(self, motor: GRID_MOTOR) -> EXPERIENCE[GRID_SENSOR]:
+    def __init__(self, rotational: bool = True):
+        self.actions = "f", "b", "l", "r" if rotational else "n", "e", "s", "w"
+
+    def get_motor_range(self) -> Generic[MOTOR_TYPE]:
+        return self.actions
+
+    def react_to(self, motor: Optional[GRID_MOTOR]) -> Tuple[GRID_SENSOR, float]:
         raise NotImplementedError()
 
 
@@ -120,7 +126,7 @@ class GridWorldGlobal(GridWorld):
         else:
             raise ValueError("undefined transition")
 
-    def react_to(self, motor: GRID_MOTOR) -> EXPERIENCE[GRID_SENSOR]:
+    def react_to(self, motor: Optional[GRID_MOTOR]) -> Tuple[GRID_SENSOR, float]:
         if motor is not None:
             self.change_state(motor)
 
@@ -132,8 +138,7 @@ class GridWorldGlobal(GridWorld):
         else:
             reward = -1.
 
-        experience = sensor, reward     # type: EXPERIENCE[GRID_SENSOR]
-        return experience
+        return sensor, reward
 
 
 class GridWorldLocal(GridWorldGlobal):
@@ -156,7 +161,7 @@ class GridWorldLocal(GridWorldGlobal):
         rotated_perception = tuple(perception[(self.orientation + _x) % no_perceptions] for _x in range(no_perceptions))
         return rotated_perception
 
-    def react_to(self, motor: GRID_MOTOR) -> EXPERIENCE[GRID_SENSOR]:
+    def react_to(self, motor: Optional[GRID_MOTOR]) -> Tuple[GRID_SENSOR, float]:
         if motor is not None:
             self.change_state(motor)
 
@@ -168,5 +173,4 @@ class GridWorldLocal(GridWorldGlobal):
         else:
             reward = -1.
 
-        experience = sensor, reward     # type: EXPERIENCE[GRID_SENSOR]
-        return experience
+        return sensor, reward

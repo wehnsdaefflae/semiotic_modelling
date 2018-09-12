@@ -18,7 +18,7 @@ class RationalSemioticModel(NominalSemioticModel):
         self.base_content_factory = ContentFactory(input_dimension, output_dimension, drag, alpha)
         self.model = [{0: self.base_content_factory.rational(0)}]                                           # type: MODEL
 
-    def _fit(self, abs_input: Tuple[INPUT_TYPE, ...], abs_target: Tuple[OUTPUT_TYPE, ...]):
+    def _fit(self, abs_input: Tuple[Tuple[INPUT_TYPE, ...], ...], abs_target: Tuple[OUTPUT_TYPE, ...]):
         input_values = abs_input
         target_values = abs_target
 

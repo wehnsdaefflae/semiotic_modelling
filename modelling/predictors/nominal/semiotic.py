@@ -29,7 +29,7 @@ class NominalSemioticModel(Predictor[NOMINAL_INPUT, NOMINAL_OUTPUT]):
                          self.model, self.traces[_i], self.states[_i],
                          self.sigma, self.fix_level_size_at)
 
-    def _fit(self, abs_input: Tuple[NOMINAL_INPUT, ...], abs_target: Tuple[NOMINAL_OUTPUT, ...]):
+    def _fit(self, abs_input: Tuple[Tuple[NOMINAL_INPUT, ...], ...], abs_target: Tuple[NOMINAL_OUTPUT, ...]):
         input_values = abs_input
         target_values = abs_target
 
@@ -46,7 +46,7 @@ class NominalSemioticModel(Predictor[NOMINAL_INPUT, NOMINAL_OUTPUT]):
         self.last_input = abs_input
         self.last_target = abs_target
 
-    def _predict(self, input_values: Tuple[NOMINAL_INPUT, ...]) -> Tuple[NOMINAL_OUTPUT, ...]:
+    def _predict(self, input_values: Tuple[Tuple[NOMINAL_INPUT, ...], ...]) -> Tuple[NOMINAL_OUTPUT, ...]:
         output_values = get_outputs(input_values, self.model, self.states)
         return tuple(output_values)
 
@@ -65,5 +65,5 @@ class NominalSemioticModel(Predictor[NOMINAL_INPUT, NOMINAL_OUTPUT]):
         base_contents = tuple(base_layer[each_shape] for each_shape in base_shapes)
         return tuple(content.probability(_input, _target) for content, _input, _target in zip(base_contents, input_values, target_values))
 
-    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
+    def _get_state(self) -> Tuple[Tuple[int, ...], ...]:
         return tuple(tuple(_sub_state) for _sub_state in self.states)

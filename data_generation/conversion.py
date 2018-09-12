@@ -1,13 +1,12 @@
 # coding=utf-8
 from typing import Tuple, Iterator, TypeVar
 
-from data_generation.data_sources.systems.abstract_classes import System, Sequence
 
 INPUT = TypeVar("INPUT")
 TARGET = TypeVar("TARGET")
 
-INPUT_SEQUENCE = Sequence[INPUT]
-TARGET_SEQUENCE = Sequence[TARGET]
+INPUT_SEQUENCE = Iterator[INPUT]
+TARGET_SEQUENCE = Iterator[TARGET]
 EXAMPLE_SEQUENCE = Tuple[INPUT_SEQUENCE, TARGET_SEQUENCE]
 
 EXAMPLE = Tuple[INPUT, TARGET]
@@ -27,33 +26,6 @@ def from_sequences(sequences: Tuple[EXAMPLE_SEQUENCE, ...]) -> Iterator[CONCURRE
             raise StopIteration()
 
         yield examples
-
-
-DATA_IN = TypeVar("DATA_IN")
-DATA_OUT = TypeVar("DATA_OUT")
-
-INTERACTION_CONDITION = Tuple[DATA_IN, DATA_OUT]
-INTERACTION_HISTORY = Tuple[INTERACTION_CONDITION, ...]
-
-
-def deprecated_from_systems(this_system: System[DATA_IN, DATA_OUT],
-                            that_system: System[DATA_OUT, DATA_IN],
-                            history_length: int = 1) -> Iterator[CONCURRENT_EXAMPLES[INTERACTION_HISTORY, DATA_IN]]:
-    history = []
-    motor = None
-
-    while True:
-        sensor = that_system.react_to(motor)
-        motor = this_system.react_to(sensor)
-
-        current_len = len(history)
-        if len(history) == history_length:
-            yield tuple(history), sensor
-        condition = sensor, motor
-        history.append(condition)
-
-        for _ in range(current_len - history_length):
-            history.pop(0)
 
 
 if __name__ == "__main__":
