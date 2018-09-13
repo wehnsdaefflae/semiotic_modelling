@@ -16,7 +16,7 @@ def _artificial_isolated(iterations: int):
     sequences = example_sequence(sequence_nominal_alternating(), history_length=1),
 
     predictor_a = NominalMarkovModel(no_examples=len(sequences))
-    predictor_b = NominalSemioticModel(no_examples=len(sequences), alpha=0, sigma=1., trace_length=1)
+    predictor_b = NominalSemioticModel(no_examples=len(sequences), alpha=0, sigma=1., history_length=1)
     predictors = predictor_a, predictor_b
 
     examples = from_parallel_sequences_to_concurrent_examples(sequences)
@@ -29,7 +29,7 @@ def _artificial_synthesis(iterations: int):
     sequences = sequence_a, sequence_b
 
     predictor_a = NominalMarkovModel(no_examples=len(sequences))
-    predictor_b = NominalSemioticModel(no_examples=len(sequences), alpha=0, sigma=1., trace_length=1)
+    predictor_b = NominalSemioticModel(no_examples=len(sequences), alpha=0, sigma=1., history_length=1)
     predictors = predictor_a, predictor_b
 
     examples = from_parallel_sequences_to_concurrent_examples(sequences)

@@ -10,7 +10,7 @@ RATIONAL_VECTOR = Tuple[float, ...]
 
 
 class Predictor(Generic[INPUT_TYPE, OUTPUT_TYPE]):
-    def __init__(self, no_examples: int, history_length: int = 1):
+    def __init__(self, no_examples: int, history_length: int):
         self.no_examples: int = no_examples
         self.histories = tuple([None for _ in range(history_length)] for _ in range(no_examples))
         self.history_length = history_length
@@ -54,4 +54,5 @@ class Predictor(Generic[INPUT_TYPE, OUTPUT_TYPE]):
         raise NotImplementedError
 
     def get_state(self) -> Tuple[Hashable, Hashable]:
+        # TODO: inconsistency in semiotic model: difference trace/state?! integrate again?
         return tuple(tuple(each_history) for each_history in self.histories), self._get_state()

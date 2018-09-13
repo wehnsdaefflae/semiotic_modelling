@@ -6,8 +6,8 @@ from modelling.predictors.abstract_predictor import Predictor, NOMINAL_INPUT, NO
 
 
 class NominalMarkovModel(Predictor[NOMINAL_INPUT, NOMINAL_OUTPUT]):
-    def __init__(self, no_examples: int):
-        super().__init__(no_examples)
+    def __init__(self, no_examples: int, history_length: int):
+        super().__init__(no_examples, history_length)
         self.models = tuple(NominalContent(0, 0) for _ in range(no_examples))
 
     def _fit(self, input_values: Tuple[Tuple[NOMINAL_INPUT, ...], ...], target_values: Tuple[NOMINAL_OUTPUT, ...]):

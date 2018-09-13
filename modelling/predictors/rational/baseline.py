@@ -6,8 +6,8 @@ from tools.regression import Regressor
 
 
 class MovingAverage(Predictor[RATIONAL_VECTOR, RATIONAL_VECTOR]):
-    def __init__(self, output_dimension: int, no_examples: int, drag: int):
-        super().__init__(no_examples)
+    def __init__(self, output_dimension: int, no_examples: int, drag: int, history_length: int):
+        super().__init__(no_examples, history_length)
         self.output_dimensions = output_dimension
         self.drag = drag
         self.average = tuple([0. for _ in range(output_dimension)] for _ in range(self.no_examples))
@@ -39,8 +39,8 @@ class MovingAverage(Predictor[RATIONAL_VECTOR, RATIONAL_VECTOR]):
 
 
 class Regression(Predictor[RATIONAL_VECTOR, RATIONAL_VECTOR]):
-    def __init__(self, input_dimension: int, output_dimension: int, no_examples: int, drag: int):
-        super().__init__(no_examples)
+    def __init__(self, input_dimension: int, output_dimension: int, no_examples: int, drag: int, history_length: int):
+        super().__init__(no_examples, history_length)
         self.input_dimension = input_dimension
         self.drag = drag
         self.regressions = tuple(tuple(Regressor(input_dimension, self.drag) for _ in range(output_dimension)) for _ in range(no_examples))

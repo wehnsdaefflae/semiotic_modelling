@@ -23,7 +23,7 @@ def _isolated(iterations: int, rotational: bool):
     examples = example_interactive(env_grid_world(c["data_dir"] + "grid_worlds/snake.txt"), controller, history_length=1)
 
     predictor_a = Regression(input_dimension=5, output_dimension=4, no_examples=1, drag=100)
-    predictor_b = RationalSemioticModel(input_dimension=5, output_dimension=4, no_examples=1, alpha=10, sigma=.5, drag=100, trace_length=1)
+    predictor_b = RationalSemioticModel(input_dimension=5, output_dimension=4, no_examples=1, alpha=10, sigma=.5, drag=100, history_length=1)
     predictors = predictor_a, predictor_b
 
     prediction(rationalize_generator(examples), predictors, iterations=iterations, rational=True)
@@ -39,7 +39,7 @@ def _analysis(iterations: int, rotational: bool):
     examples = example_interactive_senses(env_grid_world(c["data_dir"] + "grid_worlds/snake.txt"), controller, history_length=1)
 
     predictor_a = Regression(input_dimension=2, output_dimension=1, no_examples=4, drag=100)
-    predictor_b = RationalSemioticModel(input_dimension=2, output_dimension=1, no_examples=4, alpha=10, sigma=.5, drag=100, trace_length=1)
+    predictor_b = RationalSemioticModel(input_dimension=2, output_dimension=1, no_examples=4, alpha=10, sigma=.5, drag=100, history_length=1)
     predictors = predictor_a, predictor_b
 
     prediction(rationalize_generator(examples), predictors, iterations=iterations, rational=True)

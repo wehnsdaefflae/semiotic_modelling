@@ -15,7 +15,7 @@ def _artificial_isolated(iterations: int):
 
     predictor_a = Regression(input_dimension=1, output_dimension=1, no_examples=len(sequences), drag=100)
     predictor_b = RationalSemioticModel(input_dimension=1, output_dimension=1, no_examples=len(sequences), alpha=10, sigma=.5, drag=100,
-                                        trace_length=1)
+                                        history_length=1)
     predictors = predictor_a, predictor_b
 
     examples = from_parallel_sequences_to_concurrent_examples(sequences)
@@ -32,7 +32,7 @@ def _artificial_synthesis(iterations: int):
 
     predictor_a = Regression(input_dimension=1, output_dimension=1, no_examples=len(sequences), drag=100)
     predictor_b = RationalSemioticModel(input_dimension=1, output_dimension=1, no_examples=len(sequences), alpha=10, sigma=.5, drag=100,
-                                        trace_length=1)
+                                        history_length=1)
     predictors = predictor_a, predictor_b
 
     examples = from_parallel_sequences_to_concurrent_examples(sequences)

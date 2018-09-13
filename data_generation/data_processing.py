@@ -2,7 +2,6 @@ import datetime
 from typing import Generator, Tuple, Iterator, TypeVar
 
 from dateutil.tz import tzutc
-from matplotlib import pyplot
 
 
 def series_generator(file_path: str, start_timestamp: int = -1, end_timestamp: int = -1) -> Generator[Tuple[float, float], None, None]:

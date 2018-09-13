@@ -18,7 +18,7 @@ def semiotic(rotational, iterations):
         movement = "n", "e", "s", "w"
     controller = SarsaController(movement, alpha=.1, gamma=.1, epsilon=.1)
     environment = GridWorldLocal(c["data_dir"] + "grid_worlds/simple.txt")
-    predictor = NominalSemioticModel(no_examples=1, alpha=50, sigma=.2, trace_length=1)
+    predictor = NominalSemioticModel(no_examples=1, alpha=50, sigma=.2, history_length=1)
 
     return interaction(environment, controller, predictor, rational=False, iterations=iterations)
 

@@ -18,7 +18,7 @@ def _natural_isolated(iterations: int):
     sequences = example_sequence(sequence_nominal_text(c["data_dir"] + "Texts/pride_prejudice.txt"), history_length=1),
 
     predictor_a = NominalMarkovModel(no_examples=len(sequences))
-    predictor_b = NominalSemioticModel(no_examples=len(sequences), alpha=50, sigma=.1, trace_length=1)
+    predictor_b = NominalSemioticModel(no_examples=len(sequences), alpha=50, sigma=.1, history_length=1)
     predictors = predictor_a, predictor_b
 
     examples = from_parallel_sequences_to_concurrent_examples(sequences)
@@ -32,7 +32,7 @@ def _natural_synthesis(iterations: int):
     sequence = sequence_a, sequence_b
 
     predictor_a = NominalMarkovModel(no_examples=len(sequence))
-    predictor_b = NominalSemioticModel(no_examples=len(sequence), alpha=50, sigma=.1, trace_length=1)
+    predictor_b = NominalSemioticModel(no_examples=len(sequence), alpha=50, sigma=.1, history_length=1)
     predictors = predictor_a, predictor_b
 
     examples = from_parallel_sequences_to_concurrent_examples(sequence)

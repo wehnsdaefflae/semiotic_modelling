@@ -8,17 +8,17 @@ from modelling.semiotic_functions import update_state, generate_state_layer, gen
 
 
 class NominalSemioticModel(Predictor[NOMINAL_INPUT, NOMINAL_OUTPUT]):
-    def __init__(self, no_examples: int, alpha: int, sigma: float, trace_length: int,
+    def __init__(self, no_examples: int, alpha: int, sigma: float, history_length: int,
                  fix_level_size_at: Callable[[int], int] = lambda _level: -1):
-        super().__init__(no_examples)
+        super().__init__(no_examples, history_length)
         self.base_content_factory = ContentFactory(1, 1, 1, alpha)
         self.alpha = alpha
         self.sigma = sigma
-        self.trace_length = trace_length
+        self.trace_length = history_length
         self.fix_level_size_at = fix_level_size_at
 
         self.model = [{0: self.base_content_factory.nominal(0)}]                              # type: MODEL
-        self.traces = tuple([[0 for _ in range(trace_length)]] for _ in range(no_examples))   # type: Tuple[TRACE, ...]
+        self.traces = tuple([[0 for _ in range(history_length)]] for _ in range(no_examples))   # type: Tuple[TRACE, ...]
         self.states = tuple([0] for _ in range(no_examples))                                  # type: Tuple[STATE, ...]
         self.last_input = None
         self.last_target = None
