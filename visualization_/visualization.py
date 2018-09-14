@@ -57,6 +57,24 @@ class VisualizationPyplot(Visualization[OUTPUT_TYPE]):
 
             self.time.append(self.iteration)
 
+    def average(self):
+        raise NotImplementedError()
+
+    def clear(self):
+        self.iteration = 0
+        self.average_error = 1.
+        self.average_duration = 0.
+        self.average_reward = 0.
+
+        self.time.clear()
+
+        self.values_reward.clear()
+        self.values_output.clear()
+        self.values_target.clear()
+        self.values_error.clear()
+        self.values_structure.clear()
+        self.values_duration.clear()
+
     def show(self, name: str, legend: bool = True):
         color = self.colors.get(name)
         if color is None:
@@ -93,19 +111,7 @@ class VisualizationPyplot(Visualization[OUTPUT_TYPE]):
         pyplot.draw()
         pyplot.pause(.001)
 
-        self.iteration = 0
-        self.average_error = 1.
-        self.average_duration = 0.
-        self.average_reward = 0.
-
-        self.time.clear()
-
-        self.values_reward.clear()
-        self.values_output.clear()
-        self.values_target.clear()
-        self.values_error.clear()
-        self.values_structure.clear()
-        self.values_duration.clear()
+        self.clear()
 
     def finish(self):
         pyplot.show()
