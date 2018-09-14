@@ -73,8 +73,6 @@ def experiment_sequence(predictor: Predictor, example_generator, visualization: 
         if Timer.time_passed(2000):
             print("Finished {:05.2f}%...".format(100. * t / iterations))
 
-    visualization.show(predictor.name())
-
 
 def experiment_grid_interaction(predictor: Predictor, visualization: VisualizationPyplot, iterations: int = 500000):
     c = Config("../configs/config.json")
@@ -111,8 +109,6 @@ def experiment_grid_interaction(predictor: Predictor, visualization: Visualizati
         if Timer.time_passed(2000):
             print("Finished {:05.2f}%...".format(100. * t / iterations))
 
-    visualization.show(predictor.name())
-
 
 def sequence_evaluate():
     visualization = VisualizationPyplot("natural text", 1000)
@@ -137,10 +133,12 @@ def sequence_evaluate():
     sequence = nominal_sequence()
     # """
     experiment_sequence(predictor, sequence, visualization, iterations=500000)
+    visualization.show(predictor.name())
 
     predictor = NominalMarkovModel(no_examples=1)
     sequence = nominal_sequence()
     experiment_sequence(predictor, sequence, visualization, iterations=500000)
+    visualization.show(predictor.name())
 
     visualization.finish()
 
@@ -149,18 +147,20 @@ def interaction_evaluate(repeat: int = 10):
     visualization = VisualizationPyplot("rotational grid world", 1000)
 
     for _i in range(repeat):
-        print("Performing run {:d} of {:d}...".format(_i, repeat))
+        print("Performing run {:d} of {:d}...".format(_i + 1, repeat))
         predictor = NominalSemioticModel(
             no_examples=1,
             alpha=100,
             sigma=.2,
             trace_length=1)
         experiment_grid_interaction(predictor, visualization, iterations=500000)
+        visualization.show(predictor.name(), legend=_i == 0)
 
         predictor = NominalMarkovModel(no_examples=1)
         experiment_grid_interaction(predictor, visualization, iterations=500000)
+        visualization.show(predictor.name(), legend=_i == 0)
 
-        visualization.finish()
+    visualization.finish()
 
 
 if __name__ == "__main__":

@@ -40,6 +40,8 @@ class VisualizationPyplot(Visualization[OUTPUT_TYPE]):
         self.average_duration = 0.
         self.average_reward = 0.
 
+        self.colors = dict()
+
     def _update(self, reward: float, output: OUTPUT_TYPE, target: OUTPUT_TYPE, error: float, duration: float, structure: Tuple[int, ...]):
         self.average_reward = (self.average_reward * self.iteration + reward) / (self.iteration + 1)
         self.average_error = (self.average_error * self.iteration + error) / (self.iteration + 1)
@@ -55,28 +57,38 @@ class VisualizationPyplot(Visualization[OUTPUT_TYPE]):
 
             self.time.append(self.iteration)
 
-    def show(self, name: str):
-        self.axis_reward.plot(self.time, self.values_reward, label=name)
+    def show(self, name: str, legend: bool = True):
+        color = self.colors.get(name)
+        if color is None:
+            color = "C{:d}".format(len(self.colors))
+            self.colors[name] = color
+
+        self.axis_reward.plot(self.time, self.values_reward, alpha=.5, color=color, label=name)
         self.axis_reward.set_ylabel("reward")
-        self.axis_reward.legend()
+        if legend:
+            self.axis_reward.legend()
 
         #self.axis_out.plot(self.time_output, self.values_output, label="output")
         #self.axis_out.plot(self.time_target, self.values_target, label="target")
         self.axis_out.set_ylabel("output / target")
-        self.axis_out.legend()
+        if legend:
+            self.axis_out.legend()
 
-        self.axis_error.plot(self.time, self.values_error, label=name)
+        self.axis_error.plot(self.time, self.values_error, alpha=.5, color=color, label=name)
         self.axis_error.set_ylabel("error")
         self.axis_error.set_ylim([0., 1.])
-        self.axis_error.legend()
+        if legend:
+            self.axis_error.legend()
 
         # self.axis_structure.plot
         self.axis_structure.set_ylabel("structure")
-        self.axis_structure.legend()
+        if legend:
+            self.axis_structure.legend()
 
-        self.axis_duration.plot(self.time, self.values_duration, label=name)
+        self.axis_duration.plot(self.time, self.values_duration, alpha=.5, color=color, label=name)
         self.axis_duration.set_ylabel("duration (ms)")
-        self.axis_duration.legend()
+        if legend:
+            self.axis_duration.legend()
 
         pyplot.draw()
         pyplot.pause(.001)
