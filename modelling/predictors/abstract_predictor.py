@@ -8,7 +8,6 @@ OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
 class Predictor(Generic[INPUT_TYPE, OUTPUT_TYPE]):
     def __init__(self, no_examples: int):
         self.no_examples: int = no_examples
-        self.histories = tuple([] for _ in range(no_examples))
 
     def fit(self, examples: Sequence[Tuple[INPUT_TYPE, OUTPUT_TYPE]]):
         raise NotImplementedError
@@ -25,10 +24,16 @@ class Predictor(Generic[INPUT_TYPE, OUTPUT_TYPE]):
     def get_state(self) -> Hashable:
         raise NotImplementedError
 
+    def name(self) -> str:
+        return self.__class__.__name__
+
 
 class HistoricPredictor(Predictor[Sequence[INPUT_TYPE], OUTPUT_TYPE]):
+    # TODO: as mixin?
     def __init__(self, no_examples: int, history_length: int = 1):
         super().__init__(no_examples)
+        self.histories = tuple([] for _ in range(no_examples))
+        self.history_length = history_length
 
     def fit(self, examples: Sequence[Tuple[INPUT_TYPE, OUTPUT_TYPE]]):
         raise NotImplemented

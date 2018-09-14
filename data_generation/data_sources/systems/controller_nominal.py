@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # coding=utf-8
 import random
-from typing import Sequence, Hashable, Tuple
+from typing import Sequence, Hashable, Tuple, TypeVar
 
 from data_generation.data_sources.systems.abstract_classes import Controller, SENSOR_TYPE, MOTOR_TYPE
 
-NOMINAL_SENSOR = Hashable
-NOMINAL_MOTOR = Hashable
+NOMINAL_SENSOR = TypeVar("NOMINAL_SENSOR", bound=Hashable)
+NOMINAL_MOTOR = TypeVar("NOMINAL_MOTOR", bound=Hashable)
 
 
 class NominalController(Controller[NOMINAL_SENSOR, NOMINAL_MOTOR]):

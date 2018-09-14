@@ -14,7 +14,7 @@ class NominalMarkovModel(Predictor[NOMINAL_INPUT, NOMINAL_OUTPUT]):
         self.models = tuple(NominalContent(0, 0) for _ in range(no_examples))
 
     def fit(self, examples: Sequence[Tuple[NOMINAL_INPUT, NOMINAL_OUTPUT]]):
-        for _i, (each_input, each_target) in enumerate(zip(*examples)):
+        for _i, (each_input, each_target) in enumerate(examples):
             each_model = self.models[_i]
             each_model.adapt(each_input, each_target)
 

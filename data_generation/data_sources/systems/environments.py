@@ -10,7 +10,7 @@ GRID_MOTOR = str
 
 
 class GridWorld(Environment[GRID_MOTOR, GRID_SENSOR]):
-    def __init__(self, rotational: bool = True):
+    def __init__(self, rotational: bool):
         self.actions = "f", "b", "l", "r" if rotational else "n", "e", "s", "w"
 
     def get_motor_range(self) -> Generic[MOTOR_TYPE]:
@@ -21,8 +21,8 @@ class GridWorld(Environment[GRID_MOTOR, GRID_SENSOR]):
 
 
 class GridWorldGlobal(GridWorld):
-    def __init__(self, file_path: str):
-        super().__init__()
+    def __init__(self, file_path: str, rotational: bool = True):
+        super().__init__(rotational)
         self.grid = GridWorldGlobal._parse_text_to_grid(file_path)
 
         self.height = len(self.grid)
@@ -142,8 +142,8 @@ class GridWorldGlobal(GridWorld):
 
 
 class GridWorldLocal(GridWorldGlobal):
-    def __init__(self, file_path: str):
-        super().__init__(file_path)
+    def __init__(self, file_path: str, rotational: bool = True):
+        super().__init__(file_path, rotational=rotational)
 
     def _local_perception(self) -> GRID_SENSOR:
         assert len(self.position) == 2
