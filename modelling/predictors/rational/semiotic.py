@@ -1,5 +1,5 @@
 # coding=utf-8
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Sequence
 
 from modelling.content import ContentFactory
 from modelling.predictors.abstract_predictor import INPUT_TYPE, OUTPUT_TYPE
@@ -17,16 +17,15 @@ class RationalSemioticModel(NominalSemioticModel):
                  output_dimension: int,
                  no_examples: int,
                  alpha: int, sigma: float,
-                 drag: int, history_length: int,
+                 drag: int, trace_length: int,
                  fix_level_size_at: Callable[[int], int] = lambda _level: -1):
-        super().__init__(no_examples, alpha, sigma, history_length, fix_level_size_at=fix_level_size_at)
+        super().__init__(no_examples, alpha, sigma, trace_length, fix_level_size_at=fix_level_size_at)
         self.output_dimensions = output_dimension
         self.base_content_factory = ContentFactory(input_dimension, output_dimension, drag, alpha)
         self.model = [{0: self.base_content_factory.rational(0)}]                                           # type: MODEL
 
-    def _fit(self, abs_input: Tuple[Tuple[INPUT_TYPE, ...], ...], abs_target: Tuple[OUTPUT_TYPE, ...]):
-        input_values = abs_input
-        target_values = abs_target
+    def fit(self, examples: Sequence[Tuple[INPUT_TYPE, OUTPUT_TYPE]]):
+        input_values, target_values = zip(*examples)
 
         self._update_states(input_values, target_values)
         generate_state_layer(self.model, self.states)
@@ -37,9 +36,6 @@ class RationalSemioticModel(NominalSemioticModel):
         adapt_base_contents(input_values, target_values, self.model, self.states)
 
         update_traces(self.traces, self.states, self.trace_length)
-
-        self.last_input = abs_input
-        self.last_target = abs_target
 
     def save(self, file_path: str):
         raise NotImplementedError

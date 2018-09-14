@@ -7,7 +7,7 @@ from setups_deprecated.evaluations import interaction
 from modelling.predictors.nominal.baseline import NominalMarkovModel
 from modelling.predictors.nominal.semiotic import NominalSemioticModel
 from tools.load_configs import Config
-from visualization.old_visualization import Canvas
+from visualization_.old_visualization import Canvas
 
 
 def semiotic(rotational, iterations):

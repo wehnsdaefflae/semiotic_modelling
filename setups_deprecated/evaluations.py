@@ -9,7 +9,7 @@ from data_generation.data_sources.systems.abstract_classes import Environment, C
 from data_generation.deprecated_data_types import CONCURRENT_EXAMPLES
 from modelling.predictors.abstract_predictor import Predictor
 from tools.timer import Timer
-from visualization.old_visualization import Canvas
+from visualization_.old_visualization import Canvas
 
 IN_TYPE = TypeVar("IN_TYPE")
 OUT_TYPE = TypeVar("OUT_TYPE")
