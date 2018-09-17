@@ -12,7 +12,7 @@ from modelling.predictors.nominal.semiotic import NominalSemioticModel
 from tools.load_configs import Config
 from tools.split_merge import merge_iterators
 from tools.timer import Timer
-from visualization_.visualization import VisualizationPyplot
+from visualization_.visualization import VisualizationPyplot, VisualizeSingle
 
 
 def rational_sequence():
@@ -74,7 +74,7 @@ def experiment_sequence(predictor: Predictor, example_generator, visualization: 
             print("Finished {:05.2f}%...".format(100. * t / iterations))
 
 
-def experiment_grid_interaction(predictor: Predictor, visualization: VisualizationPyplot, iterations: int = 500000):
+def experiment_grid_interaction(predictor: Predictor, iterations: int = 500000):
     c = Config("../configs/config.json")
     data_dir = c["data_dir"] + "grid_worlds/"
 
@@ -84,6 +84,11 @@ def experiment_grid_interaction(predictor: Predictor, visualization: Visualizati
     last_sensor = None
     last_motor = None
     sensor, reward = grid_world.react_to(None)
+
+    visualization_steps = 1000
+    average_reward = .0
+    average_error = .0
+    average_duration = .0
     for t in range(iterations):
         # get data
         this_time = time.time()
@@ -99,7 +104,16 @@ def experiment_grid_interaction(predictor: Predictor, visualization: Visualizati
         motor = controller.react_to(perception, reward)
 
         error = sum(float(_o != _t) for _o, _t in zip(concurrent_outputs, concurrent_targets)) / len(concurrent_targets)
-        visualization.update(reward, concurrent_outputs, concurrent_targets, error, d, (0,))
+
+        average_reward = (average_reward * t + reward) / (t + 1)
+        average_error = (average_error * t + error) / (t + 1)
+        average_duration = (average_duration * t + d) / (t + 1)
+
+        if (t + 1) % visualization_steps == 0:
+            VisualizeSingle.update("reward", predictor.__class__.__name__, average_reward)
+            VisualizeSingle.update("output", predictor.__class__.__name__, 0.)
+            VisualizeSingle.update("error", predictor.__class__.__name__, average_error)
+            VisualizeSingle.update("duration", predictor.__class__.__name__, average_duration)
 
         sensor, reward = grid_world.react_to(motor)
 
@@ -144,7 +158,14 @@ def sequence_evaluate():
 
 
 def interaction_evaluate(repeat: int = 10):
-    visualization = VisualizationPyplot("rotational grid world", 1000)
+    VisualizeSingle.initialize(
+        {
+            "reward": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
+            "error": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
+            "output": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
+            "duration": {NominalSemioticModel.__name__, NominalMarkovModel.__name__}
+        },
+        "grid world")
 
     for _i in range(repeat):
         print("Performing run {:d} of {:d}...".format(_i + 1, repeat))
@@ -153,14 +174,13 @@ def interaction_evaluate(repeat: int = 10):
             alpha=100,
             sigma=.2,
             trace_length=1)
-        experiment_grid_interaction(predictor, visualization, iterations=500000)
-        visualization.show(predictor.name(), legend=_i == 0)
+        experiment_grid_interaction(predictor, iterations=500000)
 
         predictor = NominalMarkovModel(no_examples=1)
-        experiment_grid_interaction(predictor, visualization, iterations=500000)
-        visualization.show(predictor.name(), legend=_i == 0)
+        experiment_grid_interaction(predictor, iterations=500000)
+        VisualizeSingle.plot()
 
-    visualization.finish()
+    VisualizeSingle.finish()
 
 
 if __name__ == "__main__":

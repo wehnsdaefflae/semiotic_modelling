@@ -9,6 +9,9 @@ from typing import TypeVar, Generic, Tuple, Collection, Dict, List
 
 from matplotlib import pyplot, axes
 from matplotlib.artist import Artist
+from matplotlib.colors import hsv_to_rgb
+
+from tools.math_functions import distribute_circular
 
 OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
 
@@ -93,11 +96,14 @@ class VisualizeSingle:
                     _average = [(_a * VisualizeSingle.iteration + _s) / (VisualizeSingle.iteration + 1) for _a, _s in zip(each_average[each_plot_name], _series)]
 
                 else:
-                    _average = _series
+                    _average = _series[:]
 
-                each_axis.plot(_series, color=f"C{_i%10}", alpha=.5, label=each_plot_name)
+                each_color_soft = hsv_to_rgb((distribute_circular(_i), .5, 1.))
+                each_color_hard = hsv_to_rgb((distribute_circular(_i), .5, .75))
+                # each_color = f"C{_i % 10}"
+                each_axis.plot(_series, color=each_color_soft, alpha=.5, label=each_plot_name)
                 each_average[each_plot_name] = _average
-                each_average_plot[each_plot_name],  = each_axis.plot(_average, color="black", label="average " + each_plot_name)
+                each_average_plot[each_plot_name],  = each_axis.plot(_average, color=each_color_hard, label="average " + each_plot_name)
 
                 _series.clear()
 
