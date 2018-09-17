@@ -1,9 +1,117 @@
 # coding=utf-8
-from typing import TypeVar, Generic, Tuple
+import datetime
+import os
+import random
+import sys
+import time
+from math import sin, cos, tan
+from typing import TypeVar, Generic, Tuple, Collection, Dict, List
 
-from matplotlib import pyplot
+from matplotlib import pyplot, axes
+from matplotlib.artist import Artist
 
 OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
+
+
+class Logger:
+    _time = datetime.datetime.now()
+    _file_path = sys.argv[0]
+    _base_name = os.path.basename(_file_path)
+    _first_name = os.path.splitext(_base_name)[0]
+    _time_str = _time.strftime("%Y-%m-%d_%H-%M-%S")
+    log_name = _first_name + _time_str + ".log"
+
+    @staticmethod
+    def log(message: str):
+        print(message)
+        with open(Logger.log_name, mode="a") as file:
+            file.write(message + "\n")
+
+
+class VisualizeSingle:
+    fig = None
+    plot_axes = dict()                  # type: Dict[str, axes]
+    labels_axes_to_plots = dict()       # type: Dict[str, Collection[str]]
+
+    current_series = dict()             # type: Dict[str, Dict[str, List[float]]]
+    average_series = dict()             # type: Dict[str, Dict[str, List[float]]]
+
+    average_plots = dict()              # type: Dict[str, Dict[str, Artist]]
+    iteration = 0
+
+    @staticmethod
+    def initialize(labels_axes_to_plots: Dict[str, Collection[str]], title: str):
+        VisualizeSingle.fig, plot_axes = pyplot.subplots(len(labels_axes_to_plots), sharex="all")
+        VisualizeSingle.fig.suptitle(title)
+
+        VisualizeSingle.current_series.clear()
+        VisualizeSingle.average_series.clear()
+        VisualizeSingle.labels_axes_to_plots.clear()
+
+        VisualizeSingle.labels_axes_to_plots.update(labels_axes_to_plots)
+
+        for (_axis_name, _plot_names), _ax in zip(labels_axes_to_plots.items(), plot_axes):
+            _ax.set_ylabel(_axis_name)
+
+            VisualizeSingle.plot_axes[_axis_name] = _ax
+
+            axis_series = {_each_plot_name: [] for _each_plot_name in _plot_names}
+            VisualizeSingle.current_series[_axis_name] = axis_series
+
+            average_series = {_each_plot_name: [] for _each_plot_name in _plot_names}
+            VisualizeSingle.average_series[_axis_name] = average_series
+
+            VisualizeSingle.average_plots[_axis_name] = dict()
+
+    @staticmethod
+    def update(axis_label: str, plot_label: str, value: float):
+        try:
+            axis = VisualizeSingle.current_series[axis_label]
+        except KeyError:
+            raise ValueError(f"no axis called '{axis_label}'.")
+
+        try:
+            series = axis[plot_label]
+        except KeyError:
+            raise ValueError(f"no plot called '{plot_label}' in axis '{axis_label}'.")
+
+        series.append(value)
+
+    @staticmethod
+    def plot():
+        for each_axis_name in VisualizeSingle.labels_axes_to_plots:
+            each_axis = VisualizeSingle.plot_axes[each_axis_name]
+            each_series = VisualizeSingle.current_series[each_axis_name]
+            each_average = VisualizeSingle.average_series[each_axis_name]
+            each_average_plot = VisualizeSingle.average_plots[each_axis_name]
+
+            for _i, each_plot_name in enumerate(VisualizeSingle.labels_axes_to_plots[each_axis_name]):
+                _series = each_series[each_plot_name]
+                if 0 < VisualizeSingle.iteration:
+                    _plot = each_average_plot[each_plot_name]
+                    _plot.remove()
+                    _average = [(_a * VisualizeSingle.iteration + _s) / (VisualizeSingle.iteration + 1) for _a, _s in zip(each_average[each_plot_name], _series)]
+
+                else:
+                    _average = _series
+
+                each_axis.plot(_series, color=f"C{_i%10}", alpha=.5, label=each_plot_name)
+                each_average[each_plot_name] = _average
+                each_average_plot[each_plot_name],  = each_axis.plot(_average, color="black", label="average " + each_plot_name)
+
+                _series.clear()
+
+            if VisualizeSingle.iteration < 1:
+                each_axis.legend()
+
+        VisualizeSingle.iteration += 1
+
+        pyplot.draw()
+        pyplot.pause(.001)
+
+    @staticmethod
+    def finish():
+        pyplot.show()
 
 
 class Visualization(Generic[OUTPUT_TYPE]):
@@ -26,6 +134,11 @@ class VisualizationPyplot(Visualization[OUTPUT_TYPE]):
         self.fig, axes = pyplot.subplots(5, sharex="all")
         self.fig.suptitle(title)
         self.axis_reward, self.axis_out, self.axis_error, self.axis_structure, self.axis_duration = axes
+
+        self.no_runs = 0
+        self.average_reward_dict = [[], None]
+        self.average_error_dict = [[], None]
+        self.average_duration_dict = [[], None]
 
         self.accumulation_steps = accumulation_steps
 
@@ -60,7 +173,7 @@ class VisualizationPyplot(Visualization[OUTPUT_TYPE]):
     def average(self):
         raise NotImplementedError()
 
-    def clear(self):
+    def _clear(self):
         self.iteration = 0
         self.average_error = 1.
         self.average_duration = 0.
@@ -74,6 +187,11 @@ class VisualizationPyplot(Visualization[OUTPUT_TYPE]):
         self.values_error.clear()
         self.values_structure.clear()
         self.values_duration.clear()
+
+        self.no_runs = 0
+        self.average_reward_dict = [[], None]
+        self.average_error_dict = [[], None]
+        self.average_duration_dict = [[], None]
 
     def show(self, name: str, legend: bool = True):
         color = self.colors.get(name)
@@ -108,10 +226,48 @@ class VisualizationPyplot(Visualization[OUTPUT_TYPE]):
         if legend:
             self.axis_duration.legend()
 
+        if self.no_runs < 1:
+            self.average_reward_dict[0] = self.values_reward[:]
+            self.average_error_dict[0] = self.values_error[:]
+            self.average_duration_dict[0] = self.values_duration[:]
+
+        else:
+            self.average_reward_dict[0] = [(_a * self.no_runs + _v) / (self.no_runs + 1) for _a, _v in zip(self.average_reward_dict[0], self.values_reward)]
+            self.average_error_dict[0] = [(_a * self.no_runs + _v) / (self.no_runs + 1) for _a, _v in zip(self.average_error_dict[0], self.values_error)]
+            self.average_duration_dict[0] = [(_a * self.no_runs + _v) / (self.no_runs + 1) for _a, _v in zip(self.average_duration_dict[0], self.values_duration)]
+
+            self.average_reward_dict[1].remove()
+            self.average_error_dict[1].remove()
+            self.average_duration_dict[1].remove()
+
+        self.average_reward_dict[1], = self.axis_reward.plot(self.time, self.average_reward_dict[0], color="black")
+        self.average_error_dict[1], = self.axis_error.plot(self.time, self.average_error_dict[0], color="black")
+        self.average_duration_dict[1], = self.axis_duration.plot(self.time, self.average_duration_dict[0], color="black")
+
+        self.no_runs += 1
+
         pyplot.draw()
         pyplot.pause(.001)
 
-        self.clear()
+        self._clear()
 
     def finish(self):
         pyplot.show()
+
+
+if __name__ == "__main__":
+    labels = {"axis0": {"plot0", "plot1"}, "axis1": {"plot2"}}
+    VisualizeSingle.initialize(labels, "test figure")
+
+    f0 = lambda _x: sin(_x / 100.) * random.uniform(.5, 2.)
+    f1 = lambda _x: cos(_x / 100.) * random.uniform(.5, 2.)
+    f2 = lambda _x: tan(_x / 100.) * random.uniform(.5, 2.)
+
+    for _ in range(100):
+        for x in range(1000):
+            VisualizeSingle.update("axis0", "plot0", f0(x))
+            VisualizeSingle.update("axis0", "plot1", f1(x))
+            VisualizeSingle.update("axis1", "plot2", f2(x))
+        VisualizeSingle.plot()
+        # time.sleep(1.)
+    VisualizeSingle.finish()
