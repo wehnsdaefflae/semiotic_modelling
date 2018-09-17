@@ -181,6 +181,7 @@ def interaction_evaluate(repeat: int = 10):
         VisualizeSingle.plot()
 
     VisualizeSingle.finish()
+    print("done!")
 
 
 if __name__ == "__main__":
