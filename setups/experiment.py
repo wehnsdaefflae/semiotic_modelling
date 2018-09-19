@@ -4,8 +4,8 @@ import time
 from data_generation.conversion import from_sequences
 from data_generation.data_sources.sequences.sequences import ExchangeRates, Text
 from data_generation.data_sources.systems.abstract_classes import Controller
-from data_generation.data_sources.systems.controller_nominal import SarsaController
-from data_generation.data_sources.systems.environments import GridWorldLocal
+from data_generation.data_sources.systems.controller_nominal import SarsaController, RandomController
+from data_generation.data_sources.systems.environments import GridWorldLocal, GridWorldGlobal
 from modelling.predictors.abstract_predictor import Predictor
 from modelling.predictors.nominal.baseline import NominalMarkovModel
 from modelling.predictors.nominal.semiotic import NominalSemioticModel
@@ -79,7 +79,11 @@ def experiment_grid_interaction(predictor: Predictor, iterations: int = 500000):
     data_dir = c["data_dir"] + "grid_worlds/"
 
     grid_world = GridWorldLocal(data_dir + "square.txt", rotational=True)
+    # grid_world = GridWorldLocal(data_dir + "simple.txt", rotational=False)
+    # grid_world = GridWorldGlobal(data_dir + "sutton.txt", rotational=False)
+
     controller = SarsaController(grid_world.get_motor_range(), alpha=.8, gamma=.1, epsilon=.1)
+    # controller = RandomController(grid_world.get_motor_range())
 
     last_sensor = None
     last_motor = None
@@ -115,10 +119,10 @@ def experiment_grid_interaction(predictor: Predictor, iterations: int = 500000):
             VisualizeSingle.update("error", predictor.__class__.__name__, average_error)
             VisualizeSingle.update("duration", predictor.__class__.__name__, average_duration)
 
-        sensor, reward = grid_world.react_to(motor)
-
         last_sensor = sensor
         last_motor = motor
+
+        sensor, reward = grid_world.react_to(motor)
 
         if Timer.time_passed(2000):
             print("Finished {:05.2f}%...".format(100. * t / iterations))
@@ -180,8 +184,8 @@ def interaction_evaluate(repeat: int = 10):
         experiment_grid_interaction(predictor, iterations=500000)
         VisualizeSingle.plot()
 
-    VisualizeSingle.finish()
     print("done!")
+    VisualizeSingle.finish()
 
 
 if __name__ == "__main__":

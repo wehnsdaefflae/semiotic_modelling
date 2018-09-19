@@ -98,8 +98,8 @@ class VisualizeSingle:
                 else:
                     _average = _series[:]
 
-                each_color_soft = hsv_to_rgb((distribute_circular(_i), .5, 1.))
-                each_color_hard = hsv_to_rgb((distribute_circular(_i), .5, .75))
+                each_color_soft = hsv_to_rgb((distribute_circular(_i), .5, .8))
+                each_color_hard = hsv_to_rgb((distribute_circular(_i), .7, .5))
                 # each_color = f"C{_i % 10}"
                 each_axis.plot(_series, color=each_color_soft, alpha=.5, label=each_plot_name)
                 each_average[each_plot_name] = _average
