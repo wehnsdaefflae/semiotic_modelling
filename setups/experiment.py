@@ -39,7 +39,7 @@ def rational_sequence():
     return from_sequences(example_sequences)
 
 
-def nominal_sequence():
+def text_sequence():
     c = Config("../configs/config.json")
     data_dir = c["data_dir"] + "Texts/"
 
@@ -53,8 +53,10 @@ def nominal_sequence():
     return from_sequences(example_sequence)
 
 
-def experiment_sequence(predictor: Predictor, example_generator, visualization: VisualizationPyplot, iterations: int = 500000):
+def experiment_sequence(predictor: Predictor, example_generator, iterations: int = 500000):
     print("Starting experiment with {:s} for {:d} iterations...".format(predictor.name(), iterations))
+    average_error = 0.
+    average_duration = 0.
     for t in range(iterations):
         # get concurrent examples
         concurrent_examples = next(example_generator)
@@ -66,15 +68,20 @@ def experiment_sequence(predictor: Predictor, example_generator, visualization: 
         predictor.fit(concurrent_examples)
 
         # update plot
-        d = time.time() - this_time
+        duration = time.time() - this_time
         error = sum(float(_o != _t) for _o, _t in zip(concurrent_outputs, concurrent_targets)) / len(concurrent_targets)
-        visualization.update(0., concurrent_outputs, concurrent_targets, error, d, (0,))
+
+        average_error = (average_error * t + error) / (t + 1)
+        average_duration = (average_duration * t + duration) / (t + 1)
+        VisualizeSingle.update("error", predictor.__class__.__name__, average_error)
+        VisualizeSingle.update("output", predictor.__class__.__name__, 0.)
+        VisualizeSingle.update("duration", predictor.__class__.__name__, average_duration)
 
         if Timer.time_passed(2000):
             print("Finished {:05.2f}%...".format(100. * t / iterations))
 
 
-def experiment_grid_interaction(predictor: Predictor, iterations: int = 500000):
+def controlled_grid_interaction(predictor: Predictor, iterations: int = 500000):
     c = Config("../configs/config.json")
     data_dir = c["data_dir"] + "grid_worlds/"
 
@@ -128,9 +135,14 @@ def experiment_grid_interaction(predictor: Predictor, iterations: int = 500000):
             print("Finished {:05.2f}%...".format(100. * t / iterations))
 
 
-def sequence_evaluate():
-    visualization = VisualizationPyplot("natural text", 1000)
-
+def nominal_sequence():
+    VisualizeSingle.initialize(
+        {
+            "error": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
+            # "output": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
+            "duration": {NominalSemioticModel.__name__, NominalMarkovModel.__name__}
+        }, "sequence"
+    )
     """
     predictor = RationalSemioticModel(
         input_dimension=2,
@@ -143,45 +155,48 @@ def sequence_evaluate():
     sequence = rational_sequence()
     """
 
+    print("Generating semiotic model...")
     predictor = NominalSemioticModel(
         no_examples=1,
         alpha=100,
         sigma=.2,
         trace_length=1)
-    sequence = nominal_sequence()
+    sequence = text_sequence()
     # """
-    experiment_sequence(predictor, sequence, visualization, iterations=500000)
-    visualization.show(predictor.name())
+    experiment_sequence(predictor, sequence, iterations=500000)
+    VisualizeSingle.plot()
 
+    print("Generating Markov model...")
     predictor = NominalMarkovModel(no_examples=1)
-    sequence = nominal_sequence()
-    experiment_sequence(predictor, sequence, visualization, iterations=500000)
-    visualization.show(predictor.name())
+    sequence = text_sequence()
+    experiment_sequence(predictor, sequence, iterations=500000)
+    VisualizeSingle.plot()
 
-    visualization.finish()
+    VisualizeSingle.finish()
 
 
-def interaction_evaluate(repeat: int = 10):
+def nominal_interaction(repeat: int = 10):
     VisualizeSingle.initialize(
         {
             "reward": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
             "error": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
-            "output": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
+            # "output": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
             "duration": {NominalSemioticModel.__name__, NominalMarkovModel.__name__}
         },
         "grid world")
 
     for _i in range(repeat):
-        print("Performing run {:d} of {:d}...".format(_i + 1, repeat))
+        print("Run {:d} of {:d}...".format(_i * 2 + 1, repeat * 2))
         predictor = NominalSemioticModel(
             no_examples=1,
             alpha=100,
             sigma=.2,
             trace_length=1)
-        experiment_grid_interaction(predictor, iterations=500000)
+        controlled_grid_interaction(predictor, iterations=500000)
 
+        print("Run {:d} of {:d}...".format(_i * 2 + 2, repeat * 2))
         predictor = NominalMarkovModel(no_examples=1)
-        experiment_grid_interaction(predictor, iterations=500000)
+        controlled_grid_interaction(predictor, iterations=500000)
         VisualizeSingle.plot()
 
     print("done!")
@@ -189,5 +204,5 @@ def interaction_evaluate(repeat: int = 10):
 
 
 if __name__ == "__main__":
-    # sequence_evaluate()
-    interaction_evaluate()
+    # nominal_sequence()
+    nominal_interaction()

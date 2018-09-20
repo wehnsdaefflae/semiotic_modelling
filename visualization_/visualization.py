@@ -70,11 +70,13 @@ class VisualizeSingle:
         try:
             axis = VisualizeSingle.current_series[axis_label]
         except KeyError:
+            return
             raise ValueError(f"no axis called '{axis_label}'.")
 
         try:
             series = axis[plot_label]
         except KeyError:
+            return
             raise ValueError(f"no plot called '{plot_label}' in axis '{axis_label}'.")
 
         series.append(value)
