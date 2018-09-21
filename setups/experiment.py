@@ -9,13 +9,15 @@ from data_generation.data_sources.systems.environments import GridWorldLocal, Gr
 from modelling.predictors.abstract_predictor import Predictor
 from modelling.predictors.nominal.baseline import NominalMarkovModel
 from modelling.predictors.nominal.semiotic import NominalSemioticModel
+from modelling.predictors.rational.baseline import Regression, MovingAverage
+from modelling.predictors.rational.semiotic import RationalSemioticModel
 from tools.load_configs import Config
 from tools.split_merge import merge_iterators
 from tools.timer import Timer
 from visualization_.visualization import VisualizationPyplot, VisualizeSingle
 
 
-def rational_sequence():
+def exchange_rates():
     c = Config("../configs/config.json")
     data_dir = c["data_dir"] + "binance/"
 
@@ -53,10 +55,13 @@ def text_sequence():
     return from_sequences(example_sequence)
 
 
-def experiment_sequence(predictor: Predictor, example_generator, iterations: int = 500000):
+def sequence_prediction(predictor: Predictor, example_generator, rational: bool, iterations: int = 500000):
     print("Starting experiment with {:s} for {:d} iterations...".format(predictor.name(), iterations))
+
+    visualization_steps = iterations // 1000
     average_error = 0.
     average_duration = 0.
+
     for t in range(iterations):
         # get concurrent examples
         concurrent_examples = next(example_generator)
@@ -69,16 +74,24 @@ def experiment_sequence(predictor: Predictor, example_generator, iterations: int
 
         # update plot
         duration = time.time() - this_time
-        error = sum(float(_o != _t) for _o, _t in zip(concurrent_outputs, concurrent_targets)) / len(concurrent_targets)
+        if rational:
+            error = sum(abs(__o - __t) for _o, _t in zip(concurrent_outputs, concurrent_targets) for __o, __t in zip(_o, _t)) / len(concurrent_targets)
+        else:
+            error = sum(float(_o != _t) for _o, _t in zip(concurrent_outputs, concurrent_targets)) / len(concurrent_targets)
 
         average_error = (average_error * t + error) / (t + 1)
         average_duration = (average_duration * t + duration) / (t + 1)
-        VisualizeSingle.update("error", predictor.__class__.__name__, average_error)
-        VisualizeSingle.update("output", predictor.__class__.__name__, 0.)
-        VisualizeSingle.update("duration", predictor.__class__.__name__, average_duration)
+        if (t + 1) % visualization_steps == 0:
+            VisualizeSingle.update("error", predictor.__class__.__name__, average_error)
+            VisualizeSingle.update("output", predictor.__class__.__name__, 0.)
+            VisualizeSingle.update("duration", predictor.__class__.__name__, average_duration)
 
         if Timer.time_passed(2000):
             print("Finished {:05.2f}%...".format(100. * t / iterations))
+
+    VisualizeSingle.plot("error", predictor.__class__.__name__)
+    VisualizeSingle.plot("output", predictor.__class__.__name__)
+    VisualizeSingle.plot("duration", predictor.__class__.__name__)
 
 
 def controlled_grid_interaction(predictor: Predictor, iterations: int = 500000):
@@ -96,7 +109,7 @@ def controlled_grid_interaction(predictor: Predictor, iterations: int = 500000):
     last_motor = None
     sensor, reward = grid_world.react_to(None)
 
-    visualization_steps = 1000
+    visualization_steps = iterations // 1000
     average_reward = .0
     average_error = .0
     average_duration = .0
@@ -122,7 +135,6 @@ def controlled_grid_interaction(predictor: Predictor, iterations: int = 500000):
 
         if (t + 1) % visualization_steps == 0:
             VisualizeSingle.update("reward", predictor.__class__.__name__, average_reward)
-            VisualizeSingle.update("output", predictor.__class__.__name__, 0.)
             VisualizeSingle.update("error", predictor.__class__.__name__, average_error)
             VisualizeSingle.update("duration", predictor.__class__.__name__, average_duration)
 
@@ -134,26 +146,19 @@ def controlled_grid_interaction(predictor: Predictor, iterations: int = 500000):
         if Timer.time_passed(2000):
             print("Finished {:05.2f}%...".format(100. * t / iterations))
 
+    VisualizeSingle.plot("reward", predictor.__class__.__name__)
+    VisualizeSingle.plot("error", predictor.__class__.__name__)
+    VisualizeSingle.plot("duration", predictor.__class__.__name__)
+
 
 def nominal_sequence():
     VisualizeSingle.initialize(
         {
             "error": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
-            # "output": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
+            "output": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
             "duration": {NominalSemioticModel.__name__, NominalMarkovModel.__name__}
-        }, "sequence"
+        }, "nominal sequence"
     )
-    """
-    predictor = RationalSemioticModel(
-        input_dimension=2,
-        output_dimension=1,
-        no_examples=1,
-        alpha=100,
-        sigma=.2,
-        drag=100,
-        trace_length=1)
-    sequence = rational_sequence()
-    """
 
     print("Generating semiotic model...")
     predictor = NominalSemioticModel(
@@ -162,16 +167,56 @@ def nominal_sequence():
         sigma=.2,
         trace_length=1)
     sequence = text_sequence()
-    # """
-    experiment_sequence(predictor, sequence, iterations=500000)
-    VisualizeSingle.plot()
+
+    sequence_prediction(predictor, sequence, False, iterations=500000)
 
     print("Generating Markov model...")
     predictor = NominalMarkovModel(no_examples=1)
     sequence = text_sequence()
-    experiment_sequence(predictor, sequence, iterations=500000)
-    VisualizeSingle.plot()
+    sequence_prediction(predictor, sequence, False, iterations=500000)
 
+    VisualizeSingle.finish()
+
+
+def rational_sequence():
+    VisualizeSingle.initialize(
+        {
+            "error": {RationalSemioticModel.__name__, Regression.__name__, MovingAverage.__name__},
+            "output": {RationalSemioticModel.__name__, Regression.__name__, MovingAverage.__name__},
+            "duration": {RationalSemioticModel.__name__, Regression.__name__, MovingAverage.__name__}
+        }, "rational sequence"
+    )
+
+    print("Generating semiotic model...")
+    predictor = RationalSemioticModel(
+        input_dimension=2,
+        output_dimension=1,
+        no_examples=1,
+        alpha=100,
+        sigma=.2,
+        drag=100,
+        trace_length=1)
+    sequence = exchange_rates()
+    sequence_prediction(predictor, sequence, True, iterations=500000)
+
+    print("Generating regression model...")
+    predictor = Regression(
+        input_dimension=2,
+        output_dimension=1,
+        drag=100,
+        no_examples=1)
+    sequence = exchange_rates()
+    sequence_prediction(predictor, sequence, True, iterations=500000)
+
+    print("Generating average model...")
+    predictor = MovingAverage(
+        output_dimension=1,
+        drag=100,
+        no_examples=1)
+    sequence = exchange_rates()
+    sequence_prediction(predictor, sequence, True, iterations=500000)
+
+    print("done!")
     VisualizeSingle.finish()
 
 
@@ -197,7 +242,6 @@ def nominal_interaction(repeat: int = 10):
         print("Run {:d} of {:d}...".format(_i * 2 + 2, repeat * 2))
         predictor = NominalMarkovModel(no_examples=1)
         controlled_grid_interaction(predictor, iterations=500000)
-        VisualizeSingle.plot()
 
     print("done!")
     VisualizeSingle.finish()
@@ -205,4 +249,9 @@ def nominal_interaction(repeat: int = 10):
 
 if __name__ == "__main__":
     # nominal_sequence()
-    nominal_interaction()
+    # nominal_interaction()
+    rational_sequence()
+    # TODO: ascending descending nominal
+    # TODO: rational trigonometric
+    # TODO: rational pole cart
+    # TODO: remove deprecated stuff

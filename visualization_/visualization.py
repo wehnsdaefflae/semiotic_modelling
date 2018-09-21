@@ -39,7 +39,9 @@ class VisualizeSingle:
     average_series = dict()             # type: Dict[str, Dict[str, List[float]]]
 
     average_plots = dict()              # type: Dict[str, Dict[str, Artist]]
-    iteration = 0
+    iteration = dict()                  # type: Dict[str, Dict[str, int]]
+
+    indices = dict()                    # type: Dict[str, Dict[str, int]]
 
     @staticmethod
     def initialize(labels_axes_to_plots: Dict[str, Collection[str]], title: str):
@@ -70,48 +72,53 @@ class VisualizeSingle:
         try:
             axis = VisualizeSingle.current_series[axis_label]
         except KeyError:
+            print(f"no axis called '{axis_label}'.")
             return
-            raise ValueError(f"no axis called '{axis_label}'.")
 
         try:
             series = axis[plot_label]
         except KeyError:
+            print(f"no plot called '{plot_label}' in axis '{axis_label}'.")
             return
-            raise ValueError(f"no plot called '{plot_label}' in axis '{axis_label}'.")
 
         series.append(value)
 
     @staticmethod
-    def plot():
-        for each_axis_name in VisualizeSingle.labels_axes_to_plots:
-            each_axis = VisualizeSingle.plot_axes[each_axis_name]
-            each_series = VisualizeSingle.current_series[each_axis_name]
-            each_average = VisualizeSingle.average_series[each_axis_name]
-            each_average_plot = VisualizeSingle.average_plots[each_axis_name]
+    def plot(each_axis_name: str, each_plot_name: str):
+        each_axis = VisualizeSingle.plot_axes[each_axis_name]
+        each_series = VisualizeSingle.current_series[each_axis_name]
+        each_average = VisualizeSingle.average_series[each_axis_name]
+        each_average_plot = VisualizeSingle.average_plots[each_axis_name]
 
-            for _i, each_plot_name in enumerate(VisualizeSingle.labels_axes_to_plots[each_axis_name]):
-                _series = each_series[each_plot_name]
-                if 0 < VisualizeSingle.iteration:
-                    _plot = each_average_plot[each_plot_name]
-                    _plot.remove()
-                    _average = [(_a * VisualizeSingle.iteration + _s) / (VisualizeSingle.iteration + 1) for _a, _s in zip(each_average[each_plot_name], _series)]
+        sub_dict = VisualizeSingle.iteration.get(each_axis_name)
+        if sub_dict is None:
+            sub_dict = dict()
+            VisualizeSingle.iteration[each_axis_name] = sub_dict
+        iterations = sub_dict.get(each_plot_name, 0)
 
-                else:
-                    _average = _series[:]
+        _series = each_series[each_plot_name]
+        if 0 < iterations:
+            _plot = each_average_plot[each_plot_name]
+            _plot.remove()
+            _average = [(_a * iterations + _s) / (iterations + 1) for _a, _s in zip(each_average[each_plot_name], _series)]
 
-                each_color_soft = hsv_to_rgb((distribute_circular(_i), .5, .8))
-                each_color_hard = hsv_to_rgb((distribute_circular(_i), .7, .5))
-                # each_color = f"C{_i % 10}"
-                each_axis.plot(_series, color=each_color_soft, alpha=.5, label=each_plot_name)
-                each_average[each_plot_name] = _average
-                each_average_plot[each_plot_name],  = each_axis.plot(_average, color=each_color_hard, label="average " + each_plot_name)
+        else:
+            _average = _series[:]
 
-                _series.clear()
+        hue_value = distribute_circular(abs(hash(each_plot_name)))
+        each_color_soft = hsv_to_rgb((hue_value, .5, .8))
+        each_color_hard = hsv_to_rgb((hue_value, .7, .5))
 
-            if VisualizeSingle.iteration < 1:
-                each_axis.legend()
+        each_axis.plot(_series, color=each_color_soft, alpha=.5, label=each_plot_name)
+        each_average[each_plot_name] = _average
+        each_average_plot[each_plot_name],  = each_axis.plot(_average, color=each_color_hard, label="average " + each_plot_name)
 
-        VisualizeSingle.iteration += 1
+        _series.clear()
+
+        if iterations < 1:
+            each_axis.legend()
+
+        sub_dict[each_plot_name] = iterations + 1
 
         pyplot.draw()
         pyplot.pause(.001)
