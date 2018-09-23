@@ -1,10 +1,10 @@
 # coding=utf-8
-import random
 import time
 
 import gym
+import myenv
 
-env = gym.make("MsPacman-v0")
+env = gym.make("MyEnv-v10")
 
 action_space = env.action_space.n
 #action_meanings = env.env.get_action_meanings()
@@ -21,9 +21,9 @@ while True:
     action = env.action_space.sample()
     state, reward, done, info = env.step(action)
 
-    print(state)
-    print(reward)
-    print(done)
-    print(info)
+    #print(state)
+    #print(reward)
+    #print(done)
+    #print(info)
 
-    time.sleep(1)
+    time.sleep(.01)
