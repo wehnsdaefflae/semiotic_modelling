@@ -6,6 +6,7 @@ from data_generation.data_sources.sequences.sequences import ExchangeRates, Text
 from data_generation.data_sources.systems.abstract_classes import Controller
 from data_generation.data_sources.systems.controller_nominal import SarsaController, RandomController
 from data_generation.data_sources.systems.environments import GridWorldLocal, GridWorldGlobal
+from environments.non_interactive import examples_rational_trigonometric
 from modelling.predictors.abstract_predictor import Predictor
 from modelling.predictors.nominal.baseline import NominalMarkovModel
 from modelling.predictors.nominal.semiotic import NominalSemioticModel
@@ -28,9 +29,7 @@ def exchange_rates():
     in_cryptos = "eos", "snt"  # , "qtum", "bnt"
     out_crypto = "qtum"
 
-    inputs = tuple(ExchangeRates(data_dir + "{:s}ETH.csv".format(_c.upper()), interval_seconds,
-                                 start_val=start_stamp, end_val=end_stamp)
-                   for _c in in_cryptos)
+    inputs = tuple(ExchangeRates(data_dir + "{:s}ETH.csv".format(_c.upper()), interval_seconds, start_val=start_stamp, end_val=end_stamp) for _c in in_cryptos)
 
     input_sequence = merge_iterators(inputs)
     targets = ExchangeRates(data_dir + "{:s}ETH.csv".format(out_crypto.upper()), interval_seconds,
@@ -220,6 +219,48 @@ def rational_sequence():
     VisualizeSingle.finish()
 
 
+def trigonometry_sequence():
+    VisualizeSingle.initialize(
+        {
+            "error": {RationalSemioticModel.__name__, Regression.__name__, MovingAverage.__name__},
+            "output": {RationalSemioticModel.__name__, Regression.__name__, MovingAverage.__name__},
+            "duration": {RationalSemioticModel.__name__, Regression.__name__, MovingAverage.__name__}
+        }, "rational sequence"
+    )
+
+    print("Generating semiotic model...")
+    predictor = RationalSemioticModel(
+        input_dimension=1,
+        output_dimension=1,
+        no_examples=1,
+        alpha=100,
+        sigma=.2,
+        drag=100,
+        trace_length=1)
+    sequence = ((_x, ) for _x in examples_rational_trigonometric())
+    sequence_prediction(predictor, sequence, True, iterations=500000)
+
+    print("Generating regression model...")
+    predictor = Regression(
+        input_dimension=1,
+        output_dimension=1,
+        drag=100,
+        no_examples=1)
+    sequence = ((_x, ) for _x in examples_rational_trigonometric())
+    sequence_prediction(predictor, sequence, True, iterations=500000)
+
+    print("Generating average model...")
+    predictor = MovingAverage(
+        output_dimension=1,
+        drag=100,
+        no_examples=1)
+    sequence = ((_x, ) for _x in examples_rational_trigonometric())
+    sequence_prediction(predictor, sequence, True, iterations=500000)
+
+    print("done!")
+    VisualizeSingle.finish()
+
+
 def nominal_interaction(repeat: int = 10):
     VisualizeSingle.initialize(
         {
@@ -250,8 +291,8 @@ def nominal_interaction(repeat: int = 10):
 if __name__ == "__main__":
     # nominal_sequence()
     # nominal_interaction()
-    rational_sequence()
+    # rational_sequence()
+    trigonometry_sequence()
     # TODO: ascending descending nominal
-    # TODO: rational trigonometric
     # TODO: rational pole cart
     # TODO: remove deprecated stuff

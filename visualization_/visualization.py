@@ -41,7 +41,7 @@ class VisualizeSingle:
     average_plots = dict()              # type: Dict[str, Dict[str, Artist]]
     iteration = dict()                  # type: Dict[str, Dict[str, int]]
 
-    indices = dict()                    # type: Dict[str, Dict[str, int]]
+    indices = dict()                    # type: Dict[str, int]
 
     @staticmethod
     def initialize(labels_axes_to_plots: Dict[str, Collection[str]], title: str):
@@ -66,6 +66,9 @@ class VisualizeSingle:
             VisualizeSingle.average_series[_axis_name] = average_series
 
             VisualizeSingle.average_plots[_axis_name] = dict()
+
+            for _each_plot_name in _plot_names:
+                VisualizeSingle.indices[_axis_name + _each_plot_name] = len(VisualizeSingle.indices)
 
     @staticmethod
     def update(axis_label: str, plot_label: str, value: float):
@@ -105,7 +108,7 @@ class VisualizeSingle:
         else:
             _average = _series[:]
 
-        hue_value = distribute_circular(abs(hash(each_plot_name)))
+        hue_value = distribute_circular(VisualizeSingle.indices.get(each_axis_name + each_plot_name, 0))
         each_color_soft = hsv_to_rgb((hue_value, .5, .8))
         each_color_hard = hsv_to_rgb((hue_value, .7, .5))
 
