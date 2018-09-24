@@ -6,7 +6,7 @@ from data_generation.data_sources.sequences.sequences import ExchangeRates, Text
 from data_generation.data_sources.systems.abstract_classes import Controller
 from data_generation.data_sources.systems.controller_nominal import SarsaController, RandomController
 from data_generation.data_sources.systems.environments import GridWorldLocal, GridWorldGlobal
-from environments.non_interactive import examples_rational_trigonometric
+from environments.non_interactive import examples_rational_trigonometric, sequence_nominal_alternating, alternating_examples
 from modelling.predictors.abstract_predictor import Predictor
 from modelling.predictors.nominal.baseline import NominalMarkovModel
 from modelling.predictors.nominal.semiotic import NominalSemioticModel
@@ -44,8 +44,6 @@ def text_sequence():
     c = Config("../configs/config.json")
     data_dir = c["data_dir"] + "Texts/"
 
-    inputs = Text(data_dir + "mansfield_park.txt"), Text(data_dir + "pride_prejudice.txt")
-    # input_sequence = merge_iterators(inputs)
     input_sequence = Text(data_dir + "emma.txt")
     target_sequence = Text(data_dir + "emma.txt")
     next(target_sequence)
@@ -82,7 +80,8 @@ def sequence_prediction(predictor: Predictor, example_generator, rational: bool,
         average_duration = (average_duration * t + duration) / (t + 1)
         if (t + 1) % visualization_steps == 0:
             VisualizeSingle.update("error", predictor.__class__.__name__, average_error)
-            VisualizeSingle.update("output", predictor.__class__.__name__, 0.)
+            VisualizeSingle.update("output", predictor.__class__.__name__, 0. if not rational else concurrent_outputs[0][0])
+            VisualizeSingle.update("output", "target", 0. if not rational else concurrent_targets[0][0])
             VisualizeSingle.update("duration", predictor.__class__.__name__, average_duration)
 
         if Timer.time_passed(2000):
@@ -90,6 +89,7 @@ def sequence_prediction(predictor: Predictor, example_generator, rational: bool,
 
     VisualizeSingle.plot("error", predictor.__class__.__name__)
     VisualizeSingle.plot("output", predictor.__class__.__name__)
+    VisualizeSingle.plot("output", "target")
     VisualizeSingle.plot("duration", predictor.__class__.__name__)
 
 
@@ -177,6 +177,33 @@ def nominal_sequence():
     VisualizeSingle.finish()
 
 
+def artificial_nominal_sequence():
+    VisualizeSingle.initialize(
+        {
+            "error": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
+            "output": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
+            "duration": {NominalSemioticModel.__name__, NominalMarkovModel.__name__}
+        }, "nominal sequence"
+    )
+
+    for _i in range(20):
+        print("Generating semiotic model...")
+        predictor = NominalSemioticModel(
+            no_examples=1,
+            alpha=100,
+            sigma=.2,
+            trace_length=1)
+        sequence = ((_x,) for _x in alternating_examples())
+        sequence_prediction(predictor, sequence, False, iterations=500000)
+
+        print("Generating Markov model...")
+        predictor = NominalMarkovModel(no_examples=1)
+        sequence = ((_x,) for _x in alternating_examples())
+        sequence_prediction(predictor, sequence, False, iterations=500000)
+
+    VisualizeSingle.finish()
+
+
 def rational_sequence():
     VisualizeSingle.initialize(
         {
@@ -223,7 +250,7 @@ def trigonometry_sequence():
     VisualizeSingle.initialize(
         {
             "error": {RationalSemioticModel.__name__, Regression.__name__, MovingAverage.__name__},
-            "output": {RationalSemioticModel.__name__, Regression.__name__, MovingAverage.__name__},
+            "output": {RationalSemioticModel.__name__, Regression.__name__, MovingAverage.__name__, "target"},
             "duration": {RationalSemioticModel.__name__, Regression.__name__, MovingAverage.__name__}
         }, "rational sequence"
     )
@@ -266,7 +293,6 @@ def nominal_interaction(repeat: int = 10):
         {
             "reward": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
             "error": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
-            # "output": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
             "duration": {NominalSemioticModel.__name__, NominalMarkovModel.__name__}
         },
         "grid world")
@@ -293,6 +319,7 @@ if __name__ == "__main__":
     # nominal_interaction()
     # rational_sequence()
     trigonometry_sequence()
+    # artificial_nominal_sequence()
     # TODO: ascending descending nominal
     # TODO: rational pole cart
     # TODO: remove deprecated stuff

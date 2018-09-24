@@ -82,6 +82,14 @@ def sequence_nominal_alternating() -> Generator[str, None, None]:
         i = (i + int(forward) * 2 - 1) % length
 
 
+def alternating_examples() -> Generator[Tuple[str, str], None, None]:
+    g = sequence_nominal_alternating()
+    _in = next(g)
+    for _out in g:
+        yield _in, _out
+        _in = _out
+
+
 def examples_rational_trigonometric(history_length: int = 1) -> Generator[Tuple[Tuple[float], Tuple[float]], None, None]:
     # examples = [(sin(t / 100.), cos(t / 70.)*3. + sin(t/13.)*.7)]
     i = 0
