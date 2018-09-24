@@ -3,8 +3,7 @@ from typing import Tuple, Hashable, Sequence
 
 from matplotlib import pyplot
 
-from data_generation.deprecated_example_generation import EXAMPLE_SEQUENCE
-from environments.non_interactive import sequence_nominal_text, sequence_rational_crypto, examples_rational_trigonometric
+from data_generation.data_sources.sequences.non_interactive import sequence_nominal_text, sequence_rational_crypto, examples_rational_trigonometric
 from tools.load_configs import Config
 from tools.timer import Timer
 
@@ -128,7 +127,7 @@ if __name__ == "__main__":
     test_crypto_linear_functionality()
 
 
-def generic_functionality(examples: EXAMPLE_SEQUENCE, iterations: int, rational: bool = False) -> float:
+def generic_functionality(examples, iterations: int, rational: bool = False) -> float:
     example_sequence = []
     for _i, each_example in enumerate(examples):
         if _i >= iterations:

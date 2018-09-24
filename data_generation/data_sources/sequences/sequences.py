@@ -7,7 +7,7 @@ from typing import Optional, Union, Iterator
 from dateutil import parser
 
 from data_generation.data_processing import series_generator, equisample
-from environments.non_interactive import sequence_nominal_alternating
+from data_generation.data_sources.sequences.non_interactive import sequence_nominal_alternating
 
 
 class ArtificialNominal(Iterator[str]):

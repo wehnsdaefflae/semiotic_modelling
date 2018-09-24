@@ -3,10 +3,9 @@ import time
 
 from data_generation.conversion import from_sequences
 from data_generation.data_sources.sequences.sequences import ExchangeRates, Text
-from data_generation.data_sources.systems.abstract_classes import Controller
-from data_generation.data_sources.systems.controller_nominal import SarsaController, RandomController
-from data_generation.data_sources.systems.environments import GridWorldLocal, GridWorldGlobal
-from environments.non_interactive import examples_rational_trigonometric, sequence_nominal_alternating, alternating_examples
+from data_generation.data_sources.systems.controller_nominal import SarsaController
+from data_generation.data_sources.systems.environments import GridWorldLocal
+from data_generation.data_sources.sequences.non_interactive import examples_rational_trigonometric, alternating_examples
 from modelling.predictors.abstract_predictor import Predictor
 from modelling.predictors.nominal.baseline import NominalMarkovModel
 from modelling.predictors.nominal.semiotic import NominalSemioticModel
@@ -15,7 +14,7 @@ from modelling.predictors.rational.semiotic import RationalSemioticModel
 from tools.load_configs import Config
 from tools.split_merge import merge_iterators
 from tools.timer import Timer
-from visualization_.visualization import VisualizationPyplot, VisualizeSingle
+from visualization_.visualization import VisualizeSingle
 
 
 def exchange_rates():
