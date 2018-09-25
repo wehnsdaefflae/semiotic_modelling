@@ -14,7 +14,7 @@ from modelling.predictors.rational.semiotic import RationalSemioticModel
 from tools.load_configs import Config
 from tools.split_merge import merge_iterators
 from tools.timer import Timer
-from visualization_.visualization import VisualizeSingle
+from visualization.visualization import VisualizeSingle
 
 
 def exchange_rates():
