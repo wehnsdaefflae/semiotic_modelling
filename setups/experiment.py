@@ -324,12 +324,20 @@ def gif_segmentation():
         "gif"
     )
     config = Config("../configs/config.json")
+
     size = 5
+    # size = 200
+    # size = 100
+
     pixel_generator = generate_rbg_pixels(config["data_dir"] + "gifs/tenor.gif", window_size=size)
     predictor = RationalSemioticModel(
         input_dimension=3,
         output_dimension=3,
+
         no_examples=3072,
+        # no_examples=1,
+        # no_examples=6,
+
         alpha=100,
         sigma=.2,
         drag=100,
@@ -337,8 +345,10 @@ def gif_segmentation():
 
     average_error = 0.
     average_duration = 0.
-    for _t, concurrent_examples in enumerate(generate_pixel_examples(pixel_generator)):
-        print("frame {:05d}, error {:5.2f}, structure {:s}".format(_t, average_error, str(predictor.get_structure())))
+    example_sequence = generate_pixel_examples(pixel_generator)
+
+    for _t in range(1000000):
+        concurrent_examples = next(example_sequence)
         input_values, target_values = zip(*concurrent_examples)
 
         now = time.time()
@@ -351,12 +361,13 @@ def gif_segmentation():
         average_duration = (average_duration * _t + duration) / (_t + 1)
         average_error = (average_error * _t + error) / (_t + 1)
 
-        if _t + 1 % 1000 == 0:
+        if (_t + 1) % 10 == 0:
+            print("frame {:05d}, error {:5.2f}, structure {:s}".format(_t, average_error, str(predictor.get_structure())))
             VisualizeSingle.update("duration", NominalSemioticModel.__name__, average_duration)
             VisualizeSingle.update("error", NominalSemioticModel.__name__, average_error)
 
-            VisualizeSingle.plot("duration", NominalSemioticModel.__name__)
-            VisualizeSingle.plot("error", NominalSemioticModel.__name__)
+    VisualizeSingle.plot("duration", NominalSemioticModel.__name__)
+    VisualizeSingle.plot("error", NominalSemioticModel.__name__)
 
     VisualizeSingle.finish()
 

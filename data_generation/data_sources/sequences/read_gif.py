@@ -86,4 +86,5 @@ def check_examples():
 
 
 if __name__ == "__main__":
-    check_examples()
+    # check_examples()
+    check_frames()
