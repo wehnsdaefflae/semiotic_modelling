@@ -2,10 +2,9 @@
 import time
 
 from data_generation.conversion import from_sequences
-from data_generation.data_sources.sequences.sequences import ExchangeRates, Text
 from data_generation.data_sources.systems.controller_nominal import SarsaController
 from data_generation.data_sources.systems.environments import GridWorldLocal
-from data_generation.data_sources.sequences.non_interactive import examples_rational_trigonometric, alternating_examples
+from data_generation.data_sources.sequences.non_interactive import examples_rational_trigonometric, alternating_examples, sequence_rational_crypto, sequence_nominal_text
 from modelling.predictors.abstract_predictor import Predictor
 from modelling.predictors.nominal.baseline import NominalMarkovModel
 from modelling.predictors.nominal.semiotic import NominalSemioticModel
@@ -28,11 +27,12 @@ def exchange_rates():
     in_cryptos = "eos", "snt"  # , "qtum", "bnt"
     out_crypto = "qtum"
 
-    inputs = tuple(ExchangeRates(data_dir + "{:s}ETH.csv".format(_c.upper()), interval_seconds, start_val=start_stamp, end_val=end_stamp) for _c in in_cryptos)
+    # inputs = tuple(ExchangeRates(data_dir + "{:s}ETH.csv".format(_c.upper()), interval_seconds, start_val=start_stamp, end_val=end_stamp) for _c in in_cryptos)
+    inputs = tuple(sequence_rational_crypto(data_dir + "{:s}ETH.csv".format(_c.upper()), interval_seconds, start_val=start_stamp, end_val=end_stamp) for _c in in_cryptos)
 
     input_sequence = merge_iterators(inputs)
-    targets = ExchangeRates(data_dir + "{:s}ETH.csv".format(out_crypto.upper()), interval_seconds,
-                            start_val=start_stamp, end_val=end_stamp)
+    targets = sequence_rational_crypto(data_dir + "{:s}ETH.csv".format(out_crypto.upper()), interval_seconds,
+                                       start_val=start_stamp, end_val=end_stamp)
     target_sequence = ((_x, ) for _x in targets)
 
     example_sequences = (input_sequence, target_sequence),
@@ -43,8 +43,8 @@ def text_sequence():
     c = Config("../configs/config.json")
     data_dir = c["data_dir"] + "Texts/"
 
-    input_sequence = Text(data_dir + "emma.txt")
-    target_sequence = Text(data_dir + "emma.txt")
+    input_sequence = sequence_nominal_text(data_dir + "emma.txt")
+    target_sequence = sequence_nominal_text(data_dir + "emma.txt")
     next(target_sequence)
 
     example_sequence = (input_sequence, target_sequence),
@@ -311,6 +311,19 @@ def nominal_interaction(repeat: int = 10):
 
     print("done!")
     VisualizeSingle.finish()
+
+
+def gif_segmentation():
+    VisualizeSingle.initialize(
+        {
+            "error": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
+            "duration": {NominalSemioticModel.__name__, NominalMarkovModel.__name__}
+        },
+        "gif"
+    )
+
+    while True:
+        pass
 
 
 if __name__ == "__main__":

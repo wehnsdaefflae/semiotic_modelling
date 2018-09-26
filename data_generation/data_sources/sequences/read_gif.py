@@ -81,7 +81,7 @@ def check_examples():
     # pixel_generator = generate_grayscale_pixels(generate_rbg_pixels(config["data_dir"] + "gifs/tenor.gif", window_size=size))
     pixel_generator = generate_rbg_pixels(config["data_dir"] + "gifs/tenor.gif", window_size=size)
     for concurrent_examples in generate_pixel_examples(pixel_generator):
-        print(concurrent_examples[0])
+        print(concurrent_examples[:2])
         time.sleep(.5)
 
 
