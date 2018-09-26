@@ -338,7 +338,7 @@ def gif_segmentation():
     average_error = 0.
     average_duration = 0.
     for _t, concurrent_examples in enumerate(generate_pixel_examples(pixel_generator)):
-        print("frame {:05d}, error {:5.2f}".format(_t, average_error))
+        print("frame {:05d}, error {:5.2f}, structure {:s}".format(_t, average_error, str(predictor.get_structure())))
         input_values, target_values = zip(*concurrent_examples)
 
         now = time.time()
