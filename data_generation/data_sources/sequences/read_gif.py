@@ -67,7 +67,7 @@ def write_image(greyscale_pixels, width, height, file_path):
 
 
 def check_frames():
-    config = Config("../configs/config.json")
+    config = Config("../../../configs/config.json")
     size = 5
     original = Image.open(config["data_dir"] + "gifs/tenor.gif")
     for no_frame, values in enumerate(generate_grayscale_pixels(generate_rbg_pixels(config["data_dir"] + "gifs/tenor.gif", window_size=size))):
@@ -76,7 +76,7 @@ def check_frames():
 
 
 def check_examples():
-    config = Config("../configs/config.json")
+    config = Config("../../../configs/config.json")
     size = 5
     # pixel_generator = generate_grayscale_pixels(generate_rbg_pixels(config["data_dir"] + "gifs/tenor.gif", window_size=size))
     pixel_generator = generate_rbg_pixels(config["data_dir"] + "gifs/tenor.gif", window_size=size)

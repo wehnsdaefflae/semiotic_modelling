@@ -1,7 +1,9 @@
 # coding=utf-8
 import time
+from math import sqrt
 
 from data_generation.conversion import from_sequences
+from data_generation.data_sources.sequences.read_gif import generate_rbg_pixels, generate_pixel_examples
 from data_generation.data_sources.systems.controller_nominal import SarsaController
 from data_generation.data_sources.systems.environments import GridWorldLocal
 from data_generation.data_sources.sequences.non_interactive import examples_rational_trigonometric, alternating_examples, sequence_rational_crypto, sequence_nominal_text
@@ -316,22 +318,57 @@ def nominal_interaction(repeat: int = 10):
 def gif_segmentation():
     VisualizeSingle.initialize(
         {
-            "error": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
-            "duration": {NominalSemioticModel.__name__, NominalMarkovModel.__name__}
+            "error": {NominalSemioticModel.__name__},
+            "duration": {NominalSemioticModel.__name__}
         },
         "gif"
     )
+    config = Config("../configs/config.json")
+    size = 5
+    pixel_generator = generate_rbg_pixels(config["data_dir"] + "gifs/tenor.gif", window_size=size)
+    predictor = RationalSemioticModel(
+        input_dimension=3,
+        output_dimension=3,
+        no_examples=3072,
+        alpha=100,
+        sigma=.2,
+        drag=100,
+        trace_length=1)
 
-    while True:
-        pass
+    average_error = 0.
+    average_duration = 0.
+    for _t, concurrent_examples in enumerate(generate_pixel_examples(pixel_generator)):
+        print("frame {:05d}, error {:5.2f}".format(_t, average_error))
+        input_values, target_values = zip(*concurrent_examples)
+
+        now = time.time()
+        output_values = predictor.predict(input_values)
+        predictor.fit(concurrent_examples)
+
+        duration = time.time() - now
+        error = sum(sqrt(sum((_o - _t) ** 2 for _o, _t in zip(each_output, each_target))) for each_output, each_target in zip(output_values, target_values)) / len(target_values)
+
+        average_duration = (average_duration * _t + duration) / (_t + 1)
+        average_error = (average_error * _t + error) / (_t + 1)
+
+        if _t + 1 % 1000 == 0:
+            VisualizeSingle.update("duration", NominalSemioticModel.__name__, average_duration)
+            VisualizeSingle.update("error", NominalSemioticModel.__name__, average_error)
+
+            VisualizeSingle.plot("duration", NominalSemioticModel.__name__)
+            VisualizeSingle.plot("error", NominalSemioticModel.__name__)
+
+    VisualizeSingle.finish()
 
 
 if __name__ == "__main__":
     # nominal_sequence()
     # nominal_interaction()
     # rational_sequence()
-    trigonometry_sequence()
+    # trigonometry_sequence()
     # artificial_nominal_sequence()
+    gif_segmentation()
+
     # TODO: ascending descending nominal
     # TODO: rational pole cart
     # TODO: remove deprecated stuff
