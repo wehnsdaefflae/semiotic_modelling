@@ -1,5 +1,6 @@
 # coding=utf-8
 import random
+import time
 from math import sin, cos, tan
 from typing import TypeVar, Generic, Tuple, Collection, Dict, List
 
@@ -10,6 +11,141 @@ from matplotlib.colors import hsv_to_rgb
 from tools.math_functions import distribute_circular
 
 OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
+
+
+class Visualize:
+    _refresh_rate = 0
+    _designators = None
+    _figure = None
+
+    _axes = dict()
+    _plot_lines = dict()
+
+    _current_series = None
+    _average_series = None
+
+    _finished_iterations = None
+
+    @ staticmethod
+    def init(title: str, designators: Dict[str, Collection[str]], refresh_rate: int = 1000):
+        Visualize._figure, all_axes = pyplot.subplots(len(designators), sharex="all")
+        Visualize._figure.suptitle(title)
+
+        Visualize._axes = {axis_name: _axis for axis_name, _axis in zip(designators, all_axes)}
+
+        Visualize._refresh_rate = refresh_rate
+        Visualize._current_series = {_axis: {_plot: [] for _plot in plot_names} for _axis, plot_names in designators.items()}
+        Visualize._average_series = {_axis: {_plot: [] for _plot in plot_names} for _axis, plot_names in designators.items()}
+
+        Visualize._finished_iterations = {_axis: {_plot: 0 for _plot in plot_names} for _axis, plot_names in designators.items()}
+        Visualize._designators = dict(designators)
+
+    @staticmethod
+    def _get_series(axis_name: str, plot_name: str, average: bool) -> List[float]:
+        sub_dict = Visualize._average_series.get(axis_name) if average else Visualize._current_series.get(axis_name)
+        if sub_dict is None:
+            raise ValueError(f"No axis '{axis_name}' defined.")
+
+        series = sub_dict.get(plot_name)
+        if series is None:
+            raise ValueError(f"No plot '{plot_name}' defined on axis '{axis_name}'.")
+
+        return series
+
+    @staticmethod
+    def _iteration_increment(axis_name: str, plot_name: str, by: int = 0) -> int:
+        sub_dict = Visualize._finished_iterations.get(axis_name)
+        if sub_dict is None:
+            raise ValueError(f"No axis '{axis_name}' defined.")
+
+        iterations = sub_dict.get(plot_name)
+        if iterations is None:
+            raise ValueError(f"No plot '{plot_name}' defined on axis '{axis_name}'.")
+
+        if by < 1:
+            return iterations
+
+        new_value = iterations + by
+        sub_dict[plot_name] = new_value
+
+        return new_value
+
+    @staticmethod
+    def _update_axis(axis_name: str):
+        plot_names = Visualize._designators.get(axis_name)
+        if plot_names is None:
+            raise ValueError(f"No plot names for axis '{axis_name}'.")
+
+        axis = Visualize._axes.get(axis_name)
+        if axis is None:
+            raise ValueError(f"No axis for name '{axis_name}'.")
+
+        for _i, _plot in enumerate(sorted(plot_names)):
+            key_string = axis_name + "_" + _plot
+            hue_value = distribute_circular(_i)
+
+            current_key = key_string + "_current"
+            plot_line = Visualize._plot_lines.get(current_key)
+            series = Visualize._get_series(axis_name, _plot, False)
+            color_soft = hsv_to_rgb((hue_value, .5, .8))
+            if plot_line is not None:
+                plot_line.remove()
+                Visualize._plot_lines[current_key], = axis.plot(series, color=color_soft)
+            else:
+                Visualize._plot_lines[current_key], = axis.plot(series, color=color_soft, label=_plot)
+
+            average_key = key_string + "_average"
+            plot_line = Visualize._plot_lines.get(average_key)
+            average = Visualize._get_series(axis_name, _plot, True)
+            color_hard = hsv_to_rgb((hue_value, .7, .5))
+            if plot_line is not None:
+                plot_line.remove()
+                Visualize._plot_lines[average_key], = axis.plot(average, color=color_hard)
+            else:
+                Visualize._plot_lines[average_key], = axis.plot(average, color=color_hard, label="average " + _plot)
+
+    @staticmethod
+    def _update_all_axes():
+        for axis_name in Visualize._designators:
+            Visualize._update_axis(axis_name)
+
+        pyplot.draw()
+        pyplot.pause(.001)
+
+    @staticmethod
+    def append(axis_name: str, plot_name: str, value: float):
+        series = Visualize._get_series(axis_name, plot_name, False)
+        index = len(series)
+        series.append(value)
+
+        average = Visualize._get_series(axis_name, plot_name, True)
+        iterations = Visualize._iteration_increment(axis_name, plot_name)
+        if iterations < 1:
+            average.append(value)
+        else:
+            average[index] = (average[index] * iterations + value) / (iterations + 1)
+
+        if (0 < Visualize._refresh_rate) and (len(series) % Visualize._refresh_rate == 0):
+            Visualize._update_all_axes()
+
+    @staticmethod
+    def _clear_series(axis_name: str, plot_name: str):
+        series = Visualize._get_series(axis_name, plot_name, False)
+        series.clear()
+
+    @staticmethod
+    def finalize_all():
+        Visualize._update_all_axes()
+        for each_axis, plot_names in Visualize._designators.items():
+            for _plot in plot_names:
+                Visualize.finalize(each_axis, _plot)
+
+    @staticmethod
+    def finalize(axis_name: str, plot_name: str):
+        Visualize._update_all_axes()
+        Visualize._clear_series(axis_name, plot_name)
+        Visualize._iteration_increment(axis_name, plot_name, by=1)
+        pyplot.show()
 
 
 class VisualizeSingle:
@@ -256,7 +392,7 @@ class VisualizationPyplot(Visualization[OUTPUT_TYPE]):
 
 if __name__ == "__main__":
     labels = {"axis0": {"plot0", "plot1"}, "axis1": {"plot2"}}
-    VisualizeSingle.initialize(labels, "test figure")
+    Visualize.init("test figure", labels, refresh_rate=100)
 
     f0 = lambda _x: sin(_x / 100.) * random.uniform(.5, 2.)
     f1 = lambda _x: cos(_x / 100.) * random.uniform(.5, 2.)
@@ -264,9 +400,9 @@ if __name__ == "__main__":
 
     for _ in range(100):
         for x in range(1000):
-            VisualizeSingle.update("axis0", "plot0", f0(x))
-            VisualizeSingle.update("axis0", "plot1", f1(x))
-            VisualizeSingle.update("axis1", "plot2", f2(x))
-        VisualizeSingle.plot()
-        # time.sleep(1.)
-    VisualizeSingle.finish()
+            Visualize.append("axis0", "plot0", f0(x))
+            Visualize.append("axis0", "plot1", f1(x))
+            Visualize.append("axis1", "plot2", f2(x))
+            time.sleep(.0001)
+
+        Visualize.finalize_all()
