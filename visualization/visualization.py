@@ -27,8 +27,12 @@ class Visualize:
     _finished_iterations = None
 
     @ staticmethod
-    def init(title: str, designators: Dict[str, Collection[str]], refresh_rate: int = 1000):
+    def init(title: str, designators: Dict[str, Collection[str]], x_range: int = 0, refresh_rate: int = 1000):
         Visualize._figure, all_axes = pyplot.subplots(len(designators), sharex="all")
+        if 0 < x_range:
+            for each_axis in all_axes:
+                each_axis.set_xlim(left=0, right=x_range)
+
         Visualize._figure.suptitle(title)
 
         Visualize._axes = {axis_name: _axis for axis_name, _axis in zip(designators, all_axes)}
@@ -91,9 +95,7 @@ class Visualize:
             if plot_line is not None:
                 if not keep_previous_lines:
                     plot_line.remove()
-                Visualize._plot_lines[current_key], = axis.plot(series, color=color_soft, alpha=.5)
-            else:
-                Visualize._plot_lines[current_key], = axis.plot(series, color=color_soft, label=_plot, alpha=.5)
+            Visualize._plot_lines[current_key], = axis.plot(series, color=color_soft, alpha=.5)
 
             average_key = key_string + "_average"
             plot_line = Visualize._plot_lines.get(average_key)
@@ -101,14 +103,16 @@ class Visualize:
             color_hard = hsv_to_rgb((hue_value, .7, .5))
             if plot_line is not None:
                 plot_line.remove()
-                Visualize._plot_lines[average_key], = axis.plot(average, color=color_hard)
-            else:
-                Visualize._plot_lines[average_key], = axis.plot(average, color=color_hard, label="average " + _plot)
+            Visualize._plot_lines[average_key], = axis.plot(average, color=color_hard, label=_plot)
 
     @staticmethod
     def _update_all_axes(keep_previous_lines: bool = False):
         for axis_name in Visualize._designators:
             Visualize._update_axis(axis_name, keep_previous_lines=keep_previous_lines)
+            _axis = Visualize._axes.get(axis_name)
+            if _axis is None:
+                raise ValueError(f"No axis {axis_name}.")
+            _axis.legend()
 
         pyplot.draw()
         pyplot.pause(.001)
@@ -145,7 +149,10 @@ class Visualize:
     def _finalize(axis_name: str, plot_name: str):
         Visualize._clear_series(axis_name, plot_name)
         Visualize._iteration_increment(axis_name, plot_name, by=1)
-        # pyplot.show()
+
+    @staticmethod
+    def show():
+        pyplot.show()
 
 
 class VisualizeSingle:
@@ -392,17 +399,22 @@ class VisualizationPyplot(Visualization[OUTPUT_TYPE]):
 
 if __name__ == "__main__":
     labels = {"axis0": {"plot0", "plot1"}, "axis1": {"plot2"}}
-    Visualize.init("test figure", labels, refresh_rate=100)
+    Visualize.init("test figure", labels, x_range=1000, refresh_rate=100)
 
     f0 = lambda _x: sin(_x / 100.) * random.uniform(.5, 2.)
     f1 = lambda _x: cos(_x / 100.) * random.uniform(.5, 2.)
-    f2 = lambda _x: tan(_x / 100.) * random.uniform(.5, 2.)
+    f2 = lambda _x: sin(_x / 50.) * random.uniform(.5, 2.)
 
-    for _ in range(100):
+    for i in range(10):
+        print(f"starting iteration {i+1:03d}/10...")
         for x in range(1000):
             Visualize.append("axis0", "plot0", f0(x))
             Visualize.append("axis0", "plot1", f1(x))
             Visualize.append("axis1", "plot2", f2(x))
-            time.sleep(.0001)
+
+            # time.sleep(.0001)
 
         Visualize.finalize_all()
+
+    print("finished")
+    Visualize.show()
