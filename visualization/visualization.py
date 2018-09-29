@@ -71,7 +71,7 @@ class Visualize:
         return new_value
 
     @staticmethod
-    def _update_axis(axis_name: str):
+    def _update_axis(axis_name: str, keep_previous_lines: bool = False):
         plot_names = Visualize._designators.get(axis_name)
         if plot_names is None:
             raise ValueError(f"No plot names for axis '{axis_name}'.")
@@ -89,10 +89,11 @@ class Visualize:
             series = Visualize._get_series(axis_name, _plot, False)
             color_soft = hsv_to_rgb((hue_value, .5, .8))
             if plot_line is not None:
-                plot_line.remove()
-                Visualize._plot_lines[current_key], = axis.plot(series, color=color_soft)
+                if not keep_previous_lines:
+                    plot_line.remove()
+                Visualize._plot_lines[current_key], = axis.plot(series, color=color_soft, alpha=.5)
             else:
-                Visualize._plot_lines[current_key], = axis.plot(series, color=color_soft, label=_plot)
+                Visualize._plot_lines[current_key], = axis.plot(series, color=color_soft, label=_plot, alpha=.5)
 
             average_key = key_string + "_average"
             plot_line = Visualize._plot_lines.get(average_key)
@@ -105,9 +106,9 @@ class Visualize:
                 Visualize._plot_lines[average_key], = axis.plot(average, color=color_hard, label="average " + _plot)
 
     @staticmethod
-    def _update_all_axes():
+    def _update_all_axes(keep_previous_lines: bool = False):
         for axis_name in Visualize._designators:
-            Visualize._update_axis(axis_name)
+            Visualize._update_axis(axis_name, keep_previous_lines=keep_previous_lines)
 
         pyplot.draw()
         pyplot.pause(.001)
@@ -135,17 +136,16 @@ class Visualize:
 
     @staticmethod
     def finalize_all():
-        Visualize._update_all_axes()
+        Visualize._update_all_axes(keep_previous_lines=True)
         for each_axis, plot_names in Visualize._designators.items():
             for _plot in plot_names:
-                Visualize.finalize(each_axis, _plot)
+                Visualize._finalize(each_axis, _plot)
 
     @staticmethod
-    def finalize(axis_name: str, plot_name: str):
-        Visualize._update_all_axes()
+    def _finalize(axis_name: str, plot_name: str):
         Visualize._clear_series(axis_name, plot_name)
         Visualize._iteration_increment(axis_name, plot_name, by=1)
-        pyplot.show()
+        # pyplot.show()
 
 
 class VisualizeSingle:
