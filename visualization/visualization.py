@@ -36,6 +36,8 @@ class Visualize:
         Visualize._figure.suptitle(title)
 
         Visualize._axes = {axis_name: _axis for axis_name, _axis in zip(designators, all_axes)}
+        for _axis_label, _axis in Visualize._axes.items():
+            _axis.set_ylabel(_axis_label)
 
         Visualize._refresh_rate = refresh_rate
         Visualize._current_series = {_axis: {_plot: [] for _plot in plot_names} for _axis, plot_names in designators.items()}
@@ -403,11 +405,11 @@ if __name__ == "__main__":
 
     f0 = lambda _x: sin(_x / 100.) * random.uniform(.5, 2.)
     f1 = lambda _x: cos(_x / 100.) * random.uniform(.5, 2.)
-    f2 = lambda _x: sin(_x / 50.) * random.uniform(.5, 2.)
+    f2 = lambda _x: (sin(_x / 70.) + cos(_x / 60.)) * random.uniform(.5, 2.)
 
     for i in range(10):
-        print(f"starting iteration {i+1:03d}/10...")
-        for x in range(1000):
+        print(f"starting iteration {i + 1:03d}/10...")
+        for x in range(999):
             Visualize.append("axis0", "plot0", f0(x))
             Visualize.append("axis0", "plot1", f1(x))
             Visualize.append("axis1", "plot2", f2(x))
