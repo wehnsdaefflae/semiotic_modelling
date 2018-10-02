@@ -2,9 +2,9 @@
 import random
 import time
 from math import sin, cos, tan
-from typing import TypeVar, Generic, Tuple, Collection, Dict, List
+from typing import TypeVar, Generic, Tuple, Collection, Dict, List, Sequence, Any
 
-from matplotlib import pyplot, axes
+from matplotlib import pyplot, axes, animation
 from matplotlib.artist import Artist
 from matplotlib.colors import hsv_to_rgb
 
