@@ -2,7 +2,7 @@
 import datetime
 import os
 import sys
-from typing import Sequence, Any, Optional
+from typing import Sequence, Optional
 
 
 class Logger:
@@ -26,7 +26,14 @@ class Logger:
             file.write(now_str + "\t" + content + "\n")
 
     @staticmethod
-    def log_to(target: str, *data: str, header: Optional[Sequence[str]] = None):
+    def log_to(target: str, *data: str, directory_path: Optional[str] = None, header: Optional[Sequence[str]] = None):
+        if directory_path is not None:
+            if not directory_path.endswith("/"):
+                raise IOError(f"Directory path {directory_path} must wnd with '/'.")
+            if os.path.isdir(directory_path):
+                raise IOError(f"Directory {directory_path} already exists.")
+            os.makedirs(directory_path)
+
         row = "\t".join(data)
         file_name = Logger._main_name + "_" + target + ".log"
         if header is not None:
