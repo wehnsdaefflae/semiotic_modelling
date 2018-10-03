@@ -1,13 +1,15 @@
 # coding=utf-8
 
-from setups.experiments.experiments_gifs import experiment
+# from setups.experiments.experiments_gifs import experiment
+# from setups.experiments.experiments_exchange_rates import experiment
+from setups.experiments.experiments_interactive import experiment
+from setups.experiments.experiments_toy import experiment_nominal, experiment_rational
 
 if __name__ == "__main__":
-    # nominal_sequence()
+    # experiment_nominal()
+    # experiment_rational()
+    # experiment()
     # nominal_interaction()
-    # rational_sequence()
-    # trigonometry_sequence()
-    # artificial_nominal_sequence()
     experiment()
 
     # TODO: ascending descending nominal

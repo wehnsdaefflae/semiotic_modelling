@@ -36,7 +36,8 @@ def _convert_to_timestamp(time_val: Optional[Union[int, str]]) -> int:
 
 
 def sequence_rational_crypto(file_path: str, interval_seconds: int,
-                             start_val: Optional[Union[int, str]] = None, end_val: Optional[Union[int, str]]=None) -> Generator[float, None, None]:
+                             start_val: Optional[Union[int, str]] = None,
+                             end_val: Optional[Union[int, str]]= None) -> Generator[float, None, None]:
     start_ts = _convert_to_timestamp(start_val)
     end_ts = _convert_to_timestamp(end_val)
 

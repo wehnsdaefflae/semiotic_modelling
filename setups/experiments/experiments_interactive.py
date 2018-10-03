@@ -8,17 +8,20 @@ from modelling.predictors.nominal.baseline import NominalMarkovModel
 from modelling.predictors.nominal.semiotic import NominalSemioticModel
 from tools.load_configs import Config
 from tools.timer import Timer
-from visualization.visualization import VisualizeSingle
+from visualization.visualization import VisualizeSingle, Visualize
 
 
 def experiment(repeat: int = 10):
-    VisualizeSingle.initialize(
+    Visualize.init(
+        "grid world",
         {
             "reward": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
             "error": {NominalSemioticModel.__name__, NominalMarkovModel.__name__},
             "duration": {NominalSemioticModel.__name__, NominalMarkovModel.__name__}
         },
-        "grid world")
+        refresh_rate=100,
+        x_range=1000
+        )
 
     for _i in range(repeat):
         print("Run {:d} of {:d}...".format(_i * 2 + 1, repeat * 2))
@@ -34,7 +37,7 @@ def experiment(repeat: int = 10):
         controlled_grid_interaction(predictor, iterations=500000)
 
     print("done!")
-    VisualizeSingle.finish()
+    Visualize.show()
 
 
 def controlled_grid_interaction(predictor: Predictor, iterations: int = 500000):
@@ -77,9 +80,9 @@ def controlled_grid_interaction(predictor: Predictor, iterations: int = 500000):
         average_duration = (average_duration * t + d) / (t + 1)
 
         if (t + 1) % visualization_steps == 0:
-            VisualizeSingle.update("reward", predictor.__class__.__name__, average_reward)
-            VisualizeSingle.update("error", predictor.__class__.__name__, average_error)
-            VisualizeSingle.update("duration", predictor.__class__.__name__, average_duration)
+            Visualize.append("reward", predictor.__class__.__name__, average_reward)
+            Visualize.append("error", predictor.__class__.__name__, average_error)
+            Visualize.append("duration", predictor.__class__.__name__, average_duration)
 
         last_sensor = sensor
         last_motor = motor
@@ -89,6 +92,6 @@ def controlled_grid_interaction(predictor: Predictor, iterations: int = 500000):
         if Timer.time_passed(2000):
             print("Finished {:05.2f}%...".format(100. * t / iterations))
 
-    VisualizeSingle.plot("reward", predictor.__class__.__name__)
-    VisualizeSingle.plot("error", predictor.__class__.__name__)
-    VisualizeSingle.plot("duration", predictor.__class__.__name__)
+    Visualize.finalize("reward", predictor.__class__.__name__)
+    Visualize.finalize("error", predictor.__class__.__name__)
+    Visualize.finalize("duration", predictor.__class__.__name__)

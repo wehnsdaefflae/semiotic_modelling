@@ -20,17 +20,19 @@ class Visualize:
 
     _axes = dict()
     _plot_lines = dict()
+    _progress_lines = dict()
 
     _current_series = None
     _average_series = None
 
-    _finished_iterations = None
+    _finished_iterations = dict()
+
+    _plot_legend = set()
 
     @ staticmethod
     def init(title: str, designators: Dict[str, Collection[str]], x_range: int = 0, refresh_rate: int = 1000):
-        with pyplot.xkcd():
-            Visualize._figure, all_axes = pyplot.subplots(len(designators), sharex="all")
-            Visualize._figure.suptitle(title)
+        Visualize._figure, all_axes = pyplot.subplots(len(designators), sharex="all")
+        Visualize._figure.suptitle(title)
 
         if 0 < x_range:
             for each_axis in all_axes:
@@ -44,8 +46,7 @@ class Visualize:
         Visualize._current_series = {_axis: {_plot: [] for _plot in plot_names} for _axis, plot_names in designators.items()}
         Visualize._average_series = {_axis: {_plot: [] for _plot in plot_names} for _axis, plot_names in designators.items()}
 
-        Visualize._finished_iterations = {_axis: {_plot: 0 for _plot in plot_names} for _axis, plot_names in designators.items()}
-        Visualize._designators = dict(designators)
+        Visualize._designators = {axis_name: sorted(plot_names) for axis_name, plot_names in designators.items()}
 
     @staticmethod
     def _get_series(axis_name: str, plot_name: str, average: bool) -> List[float]:
@@ -63,11 +64,11 @@ class Visualize:
     def _iteration_increment(axis_name: str, plot_name: str, by: int = 0) -> int:
         sub_dict = Visualize._finished_iterations.get(axis_name)
         if sub_dict is None:
-            raise ValueError(f"No axis '{axis_name}' defined.")
+            sub_dict = {plot_name: by}
+            Visualize._finished_iterations[axis_name] = sub_dict
+            return by
 
-        iterations = sub_dict.get(plot_name)
-        if iterations is None:
-            raise ValueError(f"No plot '{plot_name}' defined on axis '{axis_name}'.")
+        iterations = sub_dict.get(plot_name, 0)
 
         if by < 1:
             return iterations
@@ -78,52 +79,55 @@ class Visualize:
         return new_value
 
     @staticmethod
-    def _update_axis(axis_name: str):
-        plot_names = Visualize._designators.get(axis_name)
-        if plot_names is None:
-            raise ValueError(f"No plot names for axis '{axis_name}'.")
-
+    def _update_plot(axis_name: str, plot_name: str):
         axis = Visualize._axes.get(axis_name)
         if axis is None:
             raise ValueError(f"No axis for name '{axis_name}'.")
 
-        for _i, _plot in enumerate(sorted(plot_names)):
-            key_string = axis_name + "_" + _plot
-            hue_value = distribute_circular(_i)
+        plot_names = Visualize._designators.get(axis_name)
+        if plot_names is None:
+            raise ValueError(f"No plot names for axis '{axis_name}'.")
 
-            current_key = key_string + "_current"
-            plot_line = Visualize._plot_lines.get(current_key)
-            series = Visualize._get_series(axis_name, _plot, False)
-            color_soft = hsv_to_rgb((hue_value, .5, .8))
-            if plot_line is not None:
-                plot_line.remove()
-            Visualize._plot_lines[current_key], = axis.plot(series, color=color_soft, alpha=.1)
+        key_string = axis_name + "_" + plot_name
+        plot_index = plot_names.index(plot_name)
+        hue_value = distribute_circular(plot_index)
 
-            with pyplot.xkcd():
-                average_key = key_string + "_average"
-                plot_line = Visualize._plot_lines.get(average_key)
-                average = Visualize._get_series(axis_name, _plot, True)
-                color_hard = hsv_to_rgb((hue_value, .7, .5))
-                if plot_line is not None:
-                    plot_line.remove()
-                Visualize._plot_lines[average_key], = axis.plot(average, color=color_hard, label=_plot)
+        current_key = key_string + "_current"
+        plot_line = Visualize._plot_lines.get(current_key)
+        series = Visualize._get_series(axis_name, plot_name, False)
+        color_soft = hsv_to_rgb((hue_value, .5, .8))
+        if plot_line is not None:
+            plot_line.remove()
+        Visualize._plot_lines[current_key], = axis.plot(series, color=color_soft, alpha=.2)
 
-    @staticmethod
-    def _update_all_axes():
-        for axis_name in Visualize._designators:
-            Visualize._update_axis(axis_name)
-            _axis = Visualize._axes.get(axis_name)
-            if _axis is None:
-                raise ValueError(f"No axis {axis_name}.")
-            with pyplot.xkcd():
-                _axis.legend()
+        average_key = key_string + "_average"
+        plot_line = Visualize._plot_lines.get(average_key)
+        average = Visualize._get_series(axis_name, plot_name, True)
+        color_hard = hsv_to_rgb((hue_value, .7, .5))
+        if plot_line is not None:
+            plot_line.remove()
+        Visualize._plot_lines[average_key], = axis.plot(average, color=color_hard, label=plot_name)
+
+        legend_key = axis_name + plot_name
+        if legend_key not in Visualize._plot_legend:
+            axis.legend()
+            Visualize._plot_legend.add(legend_key)
+
+        previous_progress = Visualize._progress_lines.get(key_string)
+        if previous_progress is not None:
+            previous_progress.remove()
+        Visualize._progress_lines[key_string] = axis.axvline(x=len(series), color=color_hard)
 
         pyplot.draw()
         pyplot.pause(.001)
 
     @staticmethod
     def append(axis_name: str, plot_name: str, value: float):
-        series = Visualize._get_series(axis_name, plot_name, False)
+        try:
+            series = Visualize._get_series(axis_name, plot_name, False)
+        except ValueError:
+            return
+
         index = len(series)
         series.append(value)
 
@@ -135,22 +139,27 @@ class Visualize:
             average[index] = (average[index] * iterations + value) / (iterations + 1)
 
         if (0 < Visualize._refresh_rate) and (len(series) % Visualize._refresh_rate == 0):
-            Visualize._update_all_axes()
+            Visualize._update_plot(axis_name, plot_name)
 
     @staticmethod
     def finalize_all():
-        Visualize._update_all_axes()
         for each_axis, plot_names in Visualize._designators.items():
             for _plot in plot_names:
-                Visualize._finalize(each_axis, _plot)
+                Visualize.finalize(each_axis, _plot)
 
     @staticmethod
-    def _finalize(axis_name: str, plot_name: str):
+    def finalize(axis_name: str, plot_name: str):
+        Visualize._update_plot(axis_name, plot_name)
+
         series = Visualize._get_series(axis_name, plot_name, False)
         series.clear()
 
         Visualize._plot_lines.pop(axis_name + "_" + plot_name + "_current")
         Visualize._iteration_increment(axis_name, plot_name, by=1)
+
+    @staticmethod
+    def reset(axis_name: str, plot_name: str):
+        pass
 
     @staticmethod
     def show():
@@ -400,17 +409,18 @@ class VisualizationPyplot(Visualization[OUTPUT_TYPE]):
 
 
 if __name__ == "__main__":
+    size = 1000
     labels = {"axis0": {"plot0", "plot1"}, "axis1": {"plot2"}}
-    Visualize.init("test figure", labels, x_range=100, refresh_rate=100)
+    Visualize.init("test figure", labels, x_range=size, refresh_rate=100)
 
-    f0 = lambda _x: sin(_x / 10.) * random.gauss(1., .5)
-    f1 = lambda _x: cos(_x / 10.) * random.gauss(1., .5)
-    f2 = lambda _x: (sin(_x / 7.) + cos(_x / 60.)) * random.gauss(1., .5)
+    f0 = lambda _x: sin(_x / 10.) + random.gauss(1., .5)
+    f1 = lambda _x: cos(_x / 10.) + random.gauss(1., .5)
+    f2 = lambda _x: (sin(_x / 7.) + cos(_x / 60.)) + random.gauss(1., .5)
 
     for i in range(100):
         print(f"starting iteration {i + 1:03d}/10...")
         now = time.time()
-        for x in range(100):
+        for x in range(size):
             Visualize.append("axis0", "plot0", f0(x))
             Visualize.append("axis0", "plot1", f1(x))
             Visualize.append("axis1", "plot2", f2(x))
