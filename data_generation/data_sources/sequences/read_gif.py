@@ -42,7 +42,10 @@ def generate_pixel_examples(pixel_generator):
     last_pixels = next(pixel_generator)
     while True:
         pixels = next(pixel_generator)
-        yield tuple(zip(last_pixels, pixels))
+        transitions = zip(last_pixels, pixels)
+        change = tuple(((__l, ), (float(__n >= __l), )) for _l, _n in transitions for __l, __n in zip(_l, _n))
+        yield change
+        # yield tuple(transitions)
         last_pixels = pixels
 
 

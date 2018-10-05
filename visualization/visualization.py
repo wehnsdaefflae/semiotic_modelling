@@ -158,6 +158,12 @@ class Visualize:
         series = Visualize._get_series(axis_name, plot_name, False)
         series.clear()
 
+        try:
+            progress = Visualize._progress_lines.pop(axis_name + "_" + plot_name)
+            progress.remove()
+        except KeyError:
+            pass
+
         Visualize._plot_lines.pop(axis_name + "_" + plot_name + "_current")
         Visualize._iteration_increment(axis_name, plot_name, by=1)
 

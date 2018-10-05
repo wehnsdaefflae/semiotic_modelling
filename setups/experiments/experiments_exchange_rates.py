@@ -72,7 +72,13 @@ def greater_or_equal_than_before(generator, steps_ahead: int):
     window = [next(generator) for _ in range(steps_ahead)]
     while True:
         # yield float(window[-1] >= window[0])
-        yield float(window[-1] / window[0] >= 1.02)
+        ratio = window[-1] / window[0]
+        if ratio >= 1.02:
+            yield 1.
+        elif ratio < .98:
+            yield -1.
+        else:
+            yield 0.
         window.append(next(generator))
         window.pop(0)
 
