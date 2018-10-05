@@ -2,7 +2,8 @@
 
 # from setups.experiments.experiments_gifs import experiment
 # from setups.experiments.experiments_exchange_rates import experiment
-from setups.experiments.experiments_interactive import experiment
+# from setups.experiments.experiments_interactive import experiment
+from setups.experiments.experiments_gifs import experiment
 from setups.experiments.experiments_toy import experiment_nominal, experiment_rational
 
 if __name__ == "__main__":

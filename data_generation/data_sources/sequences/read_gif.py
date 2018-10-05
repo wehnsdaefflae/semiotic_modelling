@@ -33,9 +33,9 @@ def generate_rbg_pixels(file_path, window_size=1) -> Generator[Tuple[Tuple[int, 
             n_frames = 0
 
 
-def generate_grayscale_pixels(pixel_generator) -> Generator[Tuple[int, ...], None, None]:
+def generate_grayscale_pixels(pixel_generator) -> Generator[Tuple[Tuple[int], ...], None, None]:
     for each_frame in pixel_generator:
-        yield tuple(sum(_p) // 3 for _p in each_frame)
+        yield tuple((sum(_p) // 3, ) for _p in each_frame)
 
 
 def generate_pixel_examples(pixel_generator):
@@ -77,14 +77,13 @@ def check_frames():
 
 def check_examples():
     config = Config("../../../configs/config.json")
-    size = 5
+    size = 120
     # pixel_generator = generate_grayscale_pixels(generate_rbg_pixels(config["data_dir"] + "gifs/tenor.gif", window_size=size))
     pixel_generator = generate_rbg_pixels(config["data_dir"] + "gifs/tenor.gif", window_size=size)
     for concurrent_examples in generate_pixel_examples(pixel_generator):
-        print(concurrent_examples[:2])
         time.sleep(.5)
 
 
 if __name__ == "__main__":
-    # check_examples()
-    check_frames()
+    check_examples()
+    # check_frames()

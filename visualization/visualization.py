@@ -30,7 +30,7 @@ class Visualize:
     _plot_legend = set()
 
     @ staticmethod
-    def init(title: str, designators: Dict[str, Collection[str]], x_range: int = 0, refresh_rate: int = 1000):
+    def init(title: str, designators: Dict[str, Collection[str]], x_range: int = 0, refresh_rate: int = 2000):
         Visualize._figure, all_axes = pyplot.subplots(len(designators), sharex="all")
         Visualize._figure.suptitle(title)
 
@@ -70,12 +70,16 @@ class Visualize:
 
         iterations = sub_dict.get(plot_name, 0)
 
-        if by < 1:
+        if by == 0:
             return iterations
 
-        new_value = iterations + by
-        sub_dict[plot_name] = new_value
+        elif by < 0:
+            new_value = 0
 
+        else:
+            new_value = iterations + by
+
+        sub_dict[plot_name] = new_value
         return new_value
 
     @staticmethod
@@ -138,7 +142,7 @@ class Visualize:
         else:
             average[index] = (average[index] * iterations + value) / (iterations + 1)
 
-        if (0 < Visualize._refresh_rate) and (len(series) % Visualize._refresh_rate == 0):
+        if (0 < Visualize._refresh_rate) and (len(series) % Visualize._refresh_rate == 0):  # todo: replace with timer
             Visualize._update_plot(axis_name, plot_name)
 
     @staticmethod
@@ -159,7 +163,31 @@ class Visualize:
 
     @staticmethod
     def reset(axis_name: str, plot_name: str):
-        pass
+        try:
+            line = Visualize._plot_lines.pop(axis_name + "_" + plot_name + "_current")
+            line.remove()
+        except KeyError:
+            pass
+
+        try:
+            line = Visualize._plot_lines.pop(axis_name + "_" + plot_name + "_average")
+            line.remove()
+        except KeyError:
+            pass
+
+        try:
+            series = Visualize._get_series(axis_name, plot_name, False)
+            series.clear()
+        except ValueError:
+            pass
+
+        try:
+            series = Visualize._get_series(axis_name, plot_name, True)
+            series.clear()
+        except ValueError:
+            pass
+
+        Visualize._iteration_increment(axis_name, plot_name, by=-1)
 
     @staticmethod
     def show():

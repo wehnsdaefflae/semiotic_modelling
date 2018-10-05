@@ -39,7 +39,9 @@ def experiment(iterations: int = 500000):
         drag=100,
         trace_length=1)
     sequence = exchange_rate_sequence()
-    setup(predictor, sequence, iterations=iterations)
+    setup(predictor, sequence, iterations // 1000, iterations=iterations)
+    for _each_output in outputs:
+        Visualize.finalize(_each_output, "target")
 
     print("Generating regression model...")
     predictor = Regression(
@@ -48,7 +50,9 @@ def experiment(iterations: int = 500000):
         drag=100,
         no_examples=no_ex)
     sequence = exchange_rate_sequence()
-    setup(predictor, sequence, iterations=iterations)
+    setup(predictor, sequence, iterations // 1000, iterations=iterations)
+    for _each_output in outputs:
+        Visualize.finalize(_each_output, "target")
 
     print("Generating average model...")
     predictor = MovingAverage(
@@ -56,7 +60,9 @@ def experiment(iterations: int = 500000):
         drag=100,
         no_examples=no_ex)
     sequence = exchange_rate_sequence()
-    setup(predictor, sequence, iterations=iterations)
+    setup(predictor, sequence, iterations // 1000, iterations=iterations)
+    for _each_output in outputs:
+        Visualize.finalize(_each_output, "target")
 
     print("done!")
     Visualize.show()
@@ -65,7 +71,8 @@ def experiment(iterations: int = 500000):
 def greater_or_equal_than_before(generator, steps_ahead: int):
     window = [next(generator) for _ in range(steps_ahead)]
     while True:
-        yield float(window[-1] >= window[0]) * 2. - 1.
+        # yield float(window[-1] >= window[0])
+        yield float(window[-1] / window[0] >= 1.02)
         window.append(next(generator))
         window.pop(0)
 

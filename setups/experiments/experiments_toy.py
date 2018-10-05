@@ -37,7 +37,7 @@ def experiment_rational(iterations: int = 50000):
         drag=100,
         trace_length=1)
     sequence = ((_x, ) for _x in examples_rational_trigonometric())
-    setup(predictor, sequence, iterations=iterations)
+    setup(predictor, sequence, iterations // 1000, iterations=iterations)
 
     print("Generating regression model...")
     predictor = Regression(
@@ -46,7 +46,7 @@ def experiment_rational(iterations: int = 50000):
         drag=100,
         no_examples=no_ex)
     sequence = ((_x, ) for _x in examples_rational_trigonometric())
-    setup(predictor, sequence, iterations=iterations)
+    setup(predictor, sequence, iterations // 1000, iterations=iterations)
 
     print("Generating average model...")
     predictor = MovingAverage(
@@ -54,7 +54,7 @@ def experiment_rational(iterations: int = 50000):
         drag=100,
         no_examples=no_ex)
     sequence = ((_x, ) for _x in examples_rational_trigonometric())
-    setup(predictor, sequence, iterations=iterations)
+    setup(predictor, sequence, iterations // 1000, iterations=iterations)
 
     print("done!")
     Visualize.show()
@@ -79,11 +79,11 @@ def experiment_nominal(iterations: int = 25000):
             sigma=1.,
             trace_length=1)
         sequence = ((_x,) for _x in alternating_examples())
-        setup(predictor, sequence, iterations=iterations)
+        setup(predictor, sequence, iterations // 1000, iterations=iterations)
 
         print("Generating Markov model...")
         predictor = NominalMarkovModel(no_examples=1)
         sequence = ((_x,) for _x in alternating_examples())
-        setup(predictor, sequence, iterations=iterations)
+        setup(predictor, sequence, iterations // 1000, iterations=iterations)
 
     Visualize.show()
