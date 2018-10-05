@@ -10,6 +10,7 @@ from visualization.visualization import VisualizeSingle, Visualize
 
 
 def experiment(iterations: int = 500000):
+    in_dim = 2
     out_dim = 1
     no_ex = 1
 
@@ -31,7 +32,7 @@ def experiment(iterations: int = 500000):
 
     print("Generating semiotic model...")
     predictor = RationalSemioticModel(
-        input_dimension=2,
+        input_dimension=in_dim,
         output_dimension=out_dim,
         no_examples=no_ex,
         alpha=100,
@@ -45,7 +46,7 @@ def experiment(iterations: int = 500000):
 
     print("Generating regression model...")
     predictor = Regression(
-        input_dimension=2,
+        input_dimension=in_dim,
         output_dimension=out_dim,
         drag=100,
         no_examples=no_ex)
@@ -91,8 +92,8 @@ def exchange_rate_sequence():
     end_stamp = 1532508240
     interval_seconds = 60
 
-    in_cryptos = "eos", "snt"  # , "qtum", "bnt"
-    out_crypto = "qtum"
+    in_cryptos = "qtum", "eos"  # "bnt"  # , "snt"
+    out_crypto = "eos"
 
     inputs = tuple(sequence_rational_crypto(data_dir + "{:s}ETH.csv".format(_c.upper()), interval_seconds, start_val=start_stamp, end_val=end_stamp) for _c in in_cryptos)
 

@@ -27,7 +27,7 @@ def experiment(iterations: int = 500):
         "gif",
         plots,
         x_range=iterations,
-        refresh_rate=40
+        refresh_rate=400
     )
     config = Config("../configs/config.json")
 
