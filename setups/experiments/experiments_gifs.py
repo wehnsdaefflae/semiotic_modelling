@@ -17,17 +17,37 @@ def experiment(iterations: int = 500):
     no_ex = 4
 
     plots = {
-        "error": {RationalSemioticModel.__name__, Regression.__name__, MovingAverage.__name__},
+        "error train": {RationalSemioticModel.__name__, Regression.__name__, MovingAverage.__name__},
+        "error test": {RationalSemioticModel.__name__, Regression.__name__, MovingAverage.__name__},
         "duration": {RationalSemioticModel.__name__, Regression.__name__, MovingAverage.__name__}
     }
-    outputs = {f"output {_o:02d}/{_e:02d}": {RationalSemioticModel.__name__, Regression.__name__, MovingAverage.__name__, "target"} for _o in range(out_dim) for _e in range(no_ex)}
-    plots.update(outputs)
+
+    outputs_train = {
+        f"output train{_o:02d}/{_e:02d}": {
+            RationalSemioticModel.__name__,
+            Regression.__name__,
+            MovingAverage.__name__,
+            "target train"}
+        for _o in range(out_dim) for _e in range(no_ex)
+    }
+
+    outputs_test = {
+        f"output test{_o:02d}/{_e:02d}": {
+            RationalSemioticModel.__name__,
+            Regression.__name__,
+            MovingAverage.__name__,
+            "target test"}
+        for _o in range(out_dim) for _e in range(no_ex)
+    }
+
+    plots.update(outputs_train)
+    plots.update(outputs_test)
 
     Visualize.init(
         "gif",
         plots,
         x_range=iterations,
-        refresh_rate=400
+        refresh_rate=40
     )
     config = Config("../configs/config.json")
 
@@ -42,10 +62,13 @@ def experiment(iterations: int = 500):
         drag=100,
         trace_length=1)
     pixel_generator = generate_grayscale_pixels(generate_rbg_pixels(config["data_dir"] + "gifs/tenor.gif", window_size=size))
-    example_sequence = generate_pixel_examples(pixel_generator)
-    setup(predictor, example_sequence, 1, iterations=iterations)
-    for _each_output in outputs:
-        Visualize.finalize(_each_output, "target")
+    train_streams = generate_pixel_examples(pixel_generator)
+    test_streams = generate_pixel_examples(pixel_generator)
+    setup(predictor, train_streams, test_streams, 1, iterations=iterations)
+    for _each_output in outputs_train:
+        Visualize.finalize(_each_output, "target train")
+    for _each_output in outputs_test:
+        Visualize.finalize(_each_output, "target test")
 
     print("Generating regression model...")
     predictor = Regression(
@@ -54,10 +77,13 @@ def experiment(iterations: int = 500):
         drag=100,
         no_examples=no_ex)
     pixel_generator = generate_grayscale_pixels(generate_rbg_pixels(config["data_dir"] + "gifs/tenor.gif", window_size=size))
-    example_sequence = generate_pixel_examples(pixel_generator)
-    setup(predictor, example_sequence, 1, iterations=iterations)
-    for _each_output in outputs:
-        Visualize.finalize(_each_output, "target")
+    train_streams = generate_pixel_examples(pixel_generator)
+    test_streams = generate_pixel_examples(pixel_generator)
+    setup(predictor, train_streams, test_streams, 1, iterations=iterations)
+    for _each_output in outputs_train:
+        Visualize.finalize(_each_output, "target train")
+    for _each_output in outputs_test:
+        Visualize.finalize(_each_output, "target test")
 
     print("Generating average model...")
     predictor = MovingAverage(
@@ -65,10 +91,13 @@ def experiment(iterations: int = 500):
         drag=100,
         no_examples=no_ex)
     pixel_generator = generate_grayscale_pixels(generate_rbg_pixels(config["data_dir"] + "gifs/tenor.gif", window_size=size))
-    example_sequence = generate_pixel_examples(pixel_generator)
-    setup(predictor, example_sequence, 1, iterations=iterations)
-    for _each_output in outputs:
-        Visualize.finalize(_each_output, "target")
+    train_streams = generate_pixel_examples(pixel_generator)
+    test_streams = generate_pixel_examples(pixel_generator)
+    setup(predictor, train_streams, test_streams, 1, iterations=iterations)
+    for _each_output in outputs_train:
+        Visualize.finalize(_each_output, "target train")
+    for _each_output in outputs_test:
+        Visualize.finalize(_each_output, "target test")
 
     print("done!")
     Visualize.show()
