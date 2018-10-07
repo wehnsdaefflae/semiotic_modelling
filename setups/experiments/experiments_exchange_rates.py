@@ -28,7 +28,7 @@ def experiment(iterations: int = 500000):
 
     start_stamp = 1501113780
     end_stamp = 1532508240
-    ahead = 600
+    ahead = 60
 
     plots = {
             "error train": {RationalSemioticModel.__name__, Regression.__name__, MovingAverage.__name__},
