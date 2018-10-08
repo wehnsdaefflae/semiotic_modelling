@@ -1,5 +1,6 @@
 # coding=utf-8
 import _thread
+import random
 import time
 from typing import List, Tuple
 
@@ -10,15 +11,25 @@ from plotly import graph_objs
 
 
 class VisualizationInterface:
-    _size = 1000
+    _size = 0
     _queues = dict()
     _stacks = dict()
+    _path = ""
 
     app = Dash(__name__)
     app.layout = dash_html_components.Div([
         dash_core_components.Graph(id="live-graph_a", animate=True),
         dash_core_components.Interval(id="graph-update", interval=1000)
     ])
+
+    @staticmethod
+    def init(data_folder_path: str, window_size: int):
+        VisualizationInterface._path = data_folder_path
+        # use semaphore, maybe?
+        # folder name is full figure name
+        # filename is axis name
+        # column name is plot name
+        VisualizationInterface._size = window_size
 
     @staticmethod
     def _get_key(figure_id: str, plot_id: str) -> str:
@@ -34,8 +45,22 @@ class VisualizationInterface:
     def _get_series(key: str) -> Tuple[List[float], List[float]]:
         series = VisualizationInterface._queues.get(key)
         if series is None:
-            series = [], []
+            mean, deviation = [], []
+            series = mean, deviation
             VisualizationInterface._add_series(key, series)
+
+        else:
+            mean, deviation = series
+
+        if key == "dummy":
+            if len(mean) < 1:
+                mean.append(0.)
+            else:
+                new_value = mean[-1] + (2. * random.random()) - 1.
+                mean.append(new_value)
+            for _ in range(len(mean) - VisualizationInterface._size):
+                mean.pop(0)
+
         return series
 
     @staticmethod
@@ -83,5 +108,6 @@ class VisualizationInterface:
 
 
 if __name__ == "__main__":
+    # VisualizationInterface.init()
     VisualizationInterface.app.run_server(debug=True)
     print("over it")
