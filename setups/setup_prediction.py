@@ -1,34 +1,55 @@
 # coding=utf-8
+import datetime
+import os
+import sys
 import time
 from math import sqrt
-from typing import Tuple
+from typing import Tuple, Generator, Any, Union, Hashable
 
 from modelling.predictors.abstract_predictor import Predictor
-from tools.logger import Logger
+from tools.logger import Logger, DataLogger
 from tools.timer import Timer
 from visualization.visualization import Visualize
 
 
+VALUES = Union[Tuple[float, ...], Hashable]
+EXAMPLE = Tuple[VALUES, VALUES]
+CONCURRENT_EXAMPLES = Tuple[EXAMPLE, ...]
+
+
 class SetupPrediction:
-    def __init__(self, predictor: Predictor, stream_train, stream_test, max_iterations: int, log_steps: int = 1):
+    def __init__(self, predictor: Predictor, stream_train: Generator[CONCURRENT_EXAMPLES, None, None], stream_test: Generator[CONCURRENT_EXAMPLES, None, None], iterations: int):
         self.predictor = predictor
         self.stream_train = stream_train
         self.stream_test = stream_test
-        self.log_steps = log_steps
 
         self.average_train_error = 0.
         self.average_test_error = 0.
         self.average_duration = 0.
 
         self.iterations = 0
-        self.max_iterations = max_iterations
+        self.max_iterations = iterations
 
-        self.last_data_keys = []
+        _time = datetime.datetime.now()
+        _file_path = sys.argv[0]
+        _base_name = os.path.basename(_file_path)
+        _first_name = os.path.splitext(_base_name)[0]
+        _time_str = _time.strftime("%Y-%m-%d_%H-%M-%S")
+        self.output_file_path = _first_name + "_" + _time_str + "_" + predictor.__class__.__name__ + "_output.log"
+        self.stats_file_path = _first_name + "_" + _time_str + "_" + predictor.__class__.__name__ + "_stats.log"
 
-    def __log_data__(self, data):
-        if self.last_data_keys != data.keys():
-            self.last_data_keys = sorted(data.keys())
-        Logger.log_to(self.predictor.__class__.__name__, *tuple(data[_x] for _x in self.last_data_keys), directory_path="data_log/", header=self.last_data_keys)
+        # update n replace 1000x output
+        self.output_data = []
+        # update every 1000th line
+        self.stats_data = []
+
+    def __log_stats__(self, data, header):
+        data_str = tuple(f"_x:06.4f" for _x in data)
+        DataLogger.log_to(self.log_file_path, header, data_str)
+
+    def __log_outputs__(self, data, header):
+        data_str = tuple(f"_x:06.4f" for _x in data)
+        DataLogger.log_to(self.log_file_path, header, data_str)
 
     def __step__(self):
         examples_train = next(self.stream_train)
@@ -53,8 +74,7 @@ class SetupPrediction:
 
         self.iterations += 1
 
-        if 0 < self.log_steps and self.iterations % self.log_steps == 0:
-            self.__log_data__(data)
+        self.__log_data__(data)
 
     def __iter__(self):
         if 0 < self.max_iterations <= self.iterations:

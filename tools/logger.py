@@ -2,7 +2,7 @@
 import datetime
 import os
 import sys
-from typing import Sequence, Optional
+from typing import Sequence, Optional, Dict, Tuple
 
 
 class Logger:
@@ -25,22 +25,15 @@ class Logger:
         with open(target, mode="a") as file:
             file.write(now_str + "\t" + content + "\n")
 
-    @staticmethod
-    def log_to(target: str, *data: str, directory_path: Optional[str] = None, header: Optional[Sequence[str]] = None):
-        if directory_path is not None:
-            if not directory_path.endswith("/"):
-                raise IOError(f"Directory path {directory_path} must wnd with '/'.")
-            if os.path.isdir(directory_path):
-                raise IOError(f"Directory {directory_path} already exists.")
-            os.makedirs(directory_path)
 
-        row = "\t".join(data)
-        file_name = Logger._main_name + "_" + target + ".log"
-        if header is not None:
-            if not len(data) == len(header):
-                raise ValueError("Data and header have different lengths.")
-            if not os.path.isfile(file_name):
-                with open(file_name, mode="a") as file:
-                    header_row = "\t".join(header)
-                    file.write(header_row + "\n")
-        Logger._log(file_name, row)
+class DataLogger:
+    @staticmethod
+    def log_to(file_path: str, header: Sequence[str], data: Sequence[str]):
+        if not len(header) == len(data):
+            raise ValueError("inconsistent sizes")
+        with open(file_path, mode="a") as file:
+            if not os.path.isfile(file_path):
+                header_line = "\t".join(header)
+                file.write(header_line + "\n")
+            line = "\t".join(data)
+            file.write(line + "\n")
