@@ -131,6 +131,6 @@ class VisualizationInterface:
 if __name__ == "__main__":
     # VisualizationInterface.init()
     # VisualizationInterface.app.run_server(debug=True)
-    NewVisualization.flask.run(debug=True)
+    # NewVisualization.flask.run(debug=True)
     NewVisualization.dash.run_server(debug=True)
     print("over it")
