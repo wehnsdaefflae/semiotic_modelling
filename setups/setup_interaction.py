@@ -1,11 +1,17 @@
 # coding=utf-8
-from typing import Tuple, Collection
+from typing import Tuple, Collection, Iterable, Any, Iterator, _T_co
 
 from data_generation.data_sources.systems.abstract_classes import Environment, Controller
 from modelling.predictors.abstract_predictor import Predictor
 from visualization.visualization import Visualize
 
 EXPERIMENT = Tuple[Environment, Controller, Predictor]
+
+
+class SetupInteraction(Iterable[Tuple[Any, ...]]):
+
+    def __iter__(self) -> Iterator[_T_co]:
+        pass
 
 
 def setup(experiments: Collection[EXPERIMENT], rational: bool, iterations: int = 500000, repetitions: int = 20):

@@ -7,7 +7,21 @@ from typing import List, Tuple
 import dash_core_components
 import dash_html_components
 from dash import Dash, dependencies
+from flask import request, Response, Flask
 from plotly import graph_objs
+
+
+class NewVisualization:
+    _size = 0
+    _plots = dict()
+    _path = ""
+    flask = Flask(__name__)
+
+    @staticmethod
+    @flask.route('/data')
+    def get_data():
+        print(request.values)
+        return Response('We received something…')
 
 
 class VisualizationInterface:
@@ -109,5 +123,6 @@ class VisualizationInterface:
 
 if __name__ == "__main__":
     # VisualizationInterface.init()
-    VisualizationInterface.app.run_server(debug=True)
+    # VisualizationInterface.app.run_server(debug=True)
+    NewVisualization.flask.run(debug=True)
     print("over it")

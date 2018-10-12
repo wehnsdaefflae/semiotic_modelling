@@ -31,9 +31,10 @@ class DataLogger:
     def log_to(file_path: str, header: Sequence[str], data: Sequence[str]):
         if not len(header) == len(data):
             raise ValueError("inconsistent sizes")
+
+        content = "\t".join(data)
+        if not os.path.isfile(file_path):
+            content = "\t".join(header) + "\n" + content
+
         with open(file_path, mode="a") as file:
-            if not os.path.isfile(file_path):
-                header_line = "\t".join(header)
-                file.write(header_line + "\n")
-            line = "\t".join(data)
-            file.write(line + "\n")
+            file.write(content + "\n")
