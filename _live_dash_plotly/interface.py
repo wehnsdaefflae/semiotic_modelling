@@ -17,6 +17,13 @@ class NewVisualization:
     _path = ""
     flask = Flask(__name__)
 
+    # https://github.com/plotly/dash/issues/214
+    dash = Dash(__name__, server=flask)
+    dash.layout = dash_html_components.Div([
+        dash_core_components.Graph(id="live-graph_a", animate=True),
+        dash_core_components.Interval(id="graph-update", interval=1000)
+    ])
+
     @staticmethod
     @flask.route('/data')
     def get_data():
@@ -125,4 +132,5 @@ if __name__ == "__main__":
     # VisualizationInterface.init()
     # VisualizationInterface.app.run_server(debug=True)
     NewVisualization.flask.run(debug=True)
+    NewVisualization.dash.run_server(debug=True)
     print("over it")
