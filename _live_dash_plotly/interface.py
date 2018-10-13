@@ -2,13 +2,67 @@
 import _thread
 import random
 import time
-from typing import List, Tuple
+from collections import deque
+from typing import List, Tuple, Sequence, Union
 
 import dash_core_components
 import dash_html_components
 from dash import Dash, dependencies
 from flask import request, Response, Flask
 from plotly import graph_objs
+
+
+class Borg:
+    _instance_state = None
+
+    def __init__(self):
+        if Borg._instance_state is None:
+            Borg._instance_state = self.__dict__
+        else:
+            self.__dict__ = Borg._instance_state
+
+
+class BorgVisualization(Borg):
+    def __init__(self, axes: Sequence[Tuple[str, int]]):
+        super().__init__()
+        self._axis_sizes = axes
+        self._series = {_name: dict() for _name, _ in axes}
+        self._is_accumulated = {_name: dict() for _name, _ in axes}
+
+    def _get_size(self, axis_name: str) -> int:
+        for _each_name, _each_size in self._axis_sizes:
+            if _each_name == axis_name:
+                return _each_size
+        raise ValueError(f"No axis with name '{axis_name:s}'.")
+
+    def _get_series(self, axis_name: str, plot_name: str) -> Union[Sequence[float], Sequence[Tuple[float, float]]]:
+        _axis_series = self._series[axis_name]
+        return _axis_series[plot_name]
+
+    def _get_accumulated(self, axis_name: str, plot_name: str) -> int:
+        _accumulated_axis = self._is_accumulated[axis_name]
+        return _accumulated_axis[plot_name]
+
+    def new_plot(self, axis_name: str, plot_name: str, accumulated: bool = False) -> Union[Sequence[float], Sequence[Tuple[float, float]]]:
+        _axis_series = self._series[axis_name]
+        _accumulated_axis = self._is_accumulated[axis_name]
+
+        _size = self._get_size(axis_name)
+        new_series = [] if _size < 1 else deque(maxlen=_size)
+        _axis_series[plot_name] = new_series
+        _accumulated_axis[plot_name] = int(accumulated) - 1
+        return new_series
+
+    def new_data(self, axis_name: str, plot_name: str, value: float):
+        _axis_series = self._get_series(axis_name, plot_name)
+        _accumulated = self._get_accumulated(axis_name, plot_name)
+
+        if _accumulated < 0:
+            _axis_series.append(value)
+        else:
+            # keep track of x to know which value to average
+            pass
+
 
 
 class NewVisualization:
