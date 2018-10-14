@@ -23,7 +23,7 @@ class Borg:
             self.__dict__ = _class_state
 
 
-class VisualizationView(Borg):
+class VisualizationView:
     flask = Flask(__name__)
 
     # https://github.com/plotly/dash/issues/214
@@ -33,13 +33,16 @@ class VisualizationView(Borg):
         dash_core_components.Interval(id="graph-update", interval=1000)
     ])
 
-    def __init__(self, axes: Sequence[Tuple[str, int]]):
-        super().__init__()
-        VisualizationView.dash.run_server(debug=True)
-        self.model = VisualizationModel(axes)
+    model = None
 
+    @staticmethod
+    def start(axes: Sequence[Tuple[str, int]]):
+        VisualizationView.dash.run_server(debug=True)
+        VisualizationView.model = VisualizationModel(axes)
+
+    @staticmethod
     @flask.route('/data')
-    def add_data(self):
+    def add_data():
         # read multidict
         # differentiate point from range_data
         # add data to model
@@ -50,8 +53,11 @@ class VisualizationView(Borg):
     @staticmethod
     @dash.callback(dependencies.Output("live-graph_a", "figure"), events=[dependencies.Event("graph-update", "interval")])
     def _update_graph():
+        if VisualizationView.model is None:
+            return
+
         # get from file
-        series = self.model.get_series_point("axis_dummy", "plot_dummy")
+        series = VisualizationView.model.get_series_point("axis_dummy", "plot_dummy")
         data = graph_objs.Scatter(x=list(range(len(series))), y=series, name="scatter", mode="lines+markers")
         layout = graph_objs.Layout(
             xaxis={"range": [0, VisualizationInterface._size]},
@@ -229,5 +235,5 @@ if __name__ == "__main__":
     # VisualizationInterface.app.run_server(debug=True)
     # NewVisualization.flask.run(debug=True)
     # NewVisualization.dash.run_server(debug=True)
-    v = VisualizationView([("dummy_axis", 100)])
+    VisualizationView.start([("dummy_axis", 100)])
     print("over it")
