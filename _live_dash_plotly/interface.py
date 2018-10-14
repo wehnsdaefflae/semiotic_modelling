@@ -13,56 +13,96 @@ from plotly import graph_objs
 
 
 class Borg:
-    _instance_state = None
+    _instance_states = dict()
 
     def __init__(self):
-        if Borg._instance_state is None:
-            Borg._instance_state = self.__dict__
+        _class_state = Borg._instance_states.get(self.__class__)
+        if _class_state is None:
+            Borg._instance_states[self.__class__] = self.__dict__
         else:
-            self.__dict__ = Borg._instance_state
+            self.__dict__ = _class_state
 
 
-class BorgVisualization(Borg):
+class VisualizationView(Borg):
+    flask = Flask(__name__)
+
+    # https://github.com/plotly/dash/issues/214
+    dash = Dash(__name__, server=flask)
+    dash.layout = dash_html_components.Div([
+        dash_core_components.Graph(id="live-graph_a", animate=True),
+        dash_core_components.Interval(id="graph-update", interval=1000)
+    ])
+
     def __init__(self, axes: Sequence[Tuple[str, int]]):
         super().__init__()
+        self.model = VisualizationModel(axes)
+
+    @flask.route('/data')
+    def add_data(self):
+        # read multidict
+        # differentiate point from range_data
+        # add data to model
+        # return response
+        print(request.values)
+        return Response('We received something…')
+
+    @dash.callback(dependencies.Output("live-graph_a", "figure"), events=[dependencies.Event("graph-update", "interval")])
+    def _update_graph(self):
+        # get from file
+        series = self.model.get_series_point("axis_dummy", "plot_dummy")
+        data = graph_objs.Scatter(x=list(range(len(series))), y=series, name="scatter", mode="lines+markers")
+        layout = graph_objs.Layout(
+            xaxis={"range": [0, VisualizationInterface._size]},
+            yaxis={"range": [0. if len(series) < 1 else min(series), 1. if len(series) < 1 else max(series)]})
+
+        return {"data": [data], "layout": layout}
+
+
+class VisualizationModel:
+    def __init__(self, axes: Sequence[Tuple[str, int]]):
         self._axis_sizes = axes
         self._series = {_name: dict() for _name, _ in axes}
-        self._is_accumulated = {_name: dict() for _name, _ in axes}
+        self._ranged = {_name: dict() for _name, _ in axes}
 
     def _get_size(self, axis_name: str) -> int:
         for _each_name, _each_size in self._axis_sizes:
             if _each_name == axis_name:
                 return _each_size
-        raise ValueError(f"No axis with name '{axis_name:s}'.")
+        raise ValueError(f"no axis called '{axis_name:s}'")
 
-    def _get_series(self, axis_name: str, plot_name: str) -> Union[Sequence[float], Sequence[Tuple[float, float]]]:
+    def get_series_point(self, axis_name: str, plot_name: str) -> List[float]:
+        if self._is_ranged(axis_name, plot_name):
+            raise ValueError(f"plot {plot_name:s} is ranged")
         _axis_series = self._series[axis_name]
         return _axis_series[plot_name]
 
-    def _get_accumulated(self, axis_name: str, plot_name: str) -> int:
-        _accumulated_axis = self._is_accumulated[axis_name]
+    def get_series_range(self, axis_name: str, plot_name: str) -> List[Tuple[float, float]]:
+        if not self._is_ranged(axis_name, plot_name):
+            raise ValueError(f"plot {plot_name:s} is not ranged")
+        _axis_series = self._series[axis_name]
+        return _axis_series[plot_name]
+
+    def _is_ranged(self, axis_name: str, plot_name: str) -> bool:
+        _accumulated_axis = self._ranged[axis_name]
         return _accumulated_axis[plot_name]
 
-    def new_plot(self, axis_name: str, plot_name: str, accumulated: bool = False) -> Union[Sequence[float], Sequence[Tuple[float, float]]]:
+    def new_plot(self, axis_name: str, plot_name: str, is_ranged: bool = False):
         _axis_series = self._series[axis_name]
-        _accumulated_axis = self._is_accumulated[axis_name]
+        _ranged_axis = self._ranged[axis_name]
 
         _size = self._get_size(axis_name)
         new_series = [] if _size < 1 else deque(maxlen=_size)
         _axis_series[plot_name] = new_series
-        _accumulated_axis[plot_name] = int(accumulated) - 1
-        return new_series
+        _ranged_axis[plot_name] = is_ranged
 
-    def new_data(self, axis_name: str, plot_name: str, value: float):
-        _axis_series = self._get_series(axis_name, plot_name)
-        _accumulated = self._get_accumulated(axis_name, plot_name)
+    def add_point(self, axis_name: str, plot_name: str, value: float):
+        _series = self.get_series_point(axis_name, plot_name)
+        _series.append(value)
 
-        if _accumulated < 0:
-            _axis_series.append(value)
-        else:
-            # keep track of x to know which value to average
-            pass
-
+    def add_range(self, axis_name: str, plot_name: str, mean: float, dev: float):
+        _series = self.get_series_range(axis_name, plot_name)
+        value = mean, dev
+        _series.append(value)
 
 
 class NewVisualization:
