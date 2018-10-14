@@ -35,6 +35,7 @@ class VisualizationView(Borg):
 
     def __init__(self, axes: Sequence[Tuple[str, int]]):
         super().__init__()
+        VisualizationView.dash.run_server(debug=True)
         self.model = VisualizationModel(axes)
 
     @flask.route('/data')
@@ -46,8 +47,9 @@ class VisualizationView(Borg):
         print(request.values)
         return Response('We received something…')
 
+    @staticmethod
     @dash.callback(dependencies.Output("live-graph_a", "figure"), events=[dependencies.Event("graph-update", "interval")])
-    def _update_graph(self):
+    def _update_graph():
         # get from file
         series = self.model.get_series_point("axis_dummy", "plot_dummy")
         data = graph_objs.Scatter(x=list(range(len(series))), y=series, name="scatter", mode="lines+markers")
@@ -226,5 +228,6 @@ if __name__ == "__main__":
     # VisualizationInterface.init()
     # VisualizationInterface.app.run_server(debug=True)
     # NewVisualization.flask.run(debug=True)
-    NewVisualization.dash.run_server(debug=True)
+    # NewVisualization.dash.run_server(debug=True)
+    v = VisualizationView([("dummy_axis", 100)])
     print("over it")
