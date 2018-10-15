@@ -1,10 +1,18 @@
 # coding=utf-8
 import random
 import time
+from typing import Sequence, Tuple
 
 import requests
 
-URL = "http://127.0.0.1:8050/data?"
+URL = "http://127.0.0.1:8050/"
+
+
+def initialize(axes: Sequence[Tuple[str, int, int]]):
+    assert len(axes) >= 1
+    params = {"axes": axes}
+    r = requests.post(URL + "init_axes?", json=params)
+    return r.status_code, r.json()
 
 
 def send_data(axis_name: str, plot_name: str, *values: float):
@@ -14,17 +22,19 @@ def send_data(axis_name: str, plot_name: str, *values: float):
         "plot_name": plot_name,
         "values": values,
     }
-    r = requests.post(URL, json=params)
+    r = requests.post(URL + "data?", json=params)
     return r.status_code, r.json()
 
 
 def main():
+    status, json_response = initialize([("axis_dummy", 100, 1)])
+    print(f"{status:d}\n{json_response:s}")
+
     value = random.random()
     for _ in range(1000):
         status, json_response = send_data("axis_dummy", "plot_dummy", value)
         value += random.random() * .2 - .1
-        print(f"{status:d}")
-        print(json_response)
+        print(f"{status:d}\n{json_response:s}")
         time.sleep(.5)
 
 
