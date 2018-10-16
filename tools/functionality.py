@@ -136,3 +136,26 @@ def generic_functionality(examples, iterations: int, rational: bool = False) -> 
     if rational:
         return functionality_rational_linear(example_sequence)
     return functionality_nominal(example_sequence)
+
+
+def get_min_max(sequence: Sequence[float]) -> Tuple[float, float]:
+    min_value = float("inf")
+    max_value = -min_value
+    for each_value in sequence:
+        if each_value < min_value:
+            min_value = each_value
+        elif max_value < each_value:
+            max_value = each_value
+
+    return min_value, max_value
+
+
+class Borg:
+    _instance_states = dict()
+
+    def __init__(self):
+        _class_state = Borg._instance_states.get(self.__class__)
+        if _class_state is None:
+            Borg._instance_states[self.__class__] = self.__dict__
+        else:
+            self.__dict__ = _class_state

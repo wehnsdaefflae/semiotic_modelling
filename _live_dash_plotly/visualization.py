@@ -1,47 +1,41 @@
 # coding=utf-8
-import _thread
 import json
-import random
-import time
-from collections import deque
-from typing import List, Tuple, Sequence, Union
+from typing import Tuple, Sequence, Dict
 
 import dash_core_components
 import dash_html_components
 from dash import Dash, dependencies
-from flask import request, Response, Flask, jsonify
+from flask import request, Flask, jsonify
 from plotly import graph_objs
 
-
-class Borg:
-    _instance_states = dict()
-
-    def __init__(self):
-        _class_state = Borg._instance_states.get(self.__class__)
-        if _class_state is None:
-            Borg._instance_states[self.__class__] = self.__dict__
-        else:
-            self.__dict__ = _class_state
+from tools.functionality import get_min_max
 
 
 class VisualizationModel:
     def __init__(self, axes: Sequence[Tuple[str, int, int]]):
-        self._axis_order = tuple(_name for _name, _, _ in axes)
-        self._series = {_name: (dict(), _length, _width) for _name, _length, _width in axes}
+        self._axes_order = tuple(_name for _name, _, _ in axes)
+        self._axes_data = {_name: (dict(), _length, _width) for _name, _length, _width in axes}
+
+    def get_axes_lengths(self) -> Tuple[Tuple[str, int], ...]:
+        return tuple((_name, self._axes_data[_name][1]) for _name in self._axes_order)
 
     def new_plot(self, axis_name: str, plot_name: str):
-        _axis_series, _length, _width = self._series[axis_name]
-
+        _axis_series, _length, _width = self._axes_data[axis_name]
         new_series = []
         _axis_series[plot_name] = new_series
 
+    def get_plot_names(self, axis_name: str) -> Tuple[str, ...]:
+        _axis_data = self._axes_data[axis_name]
+        _named_series = _axis_data[0]
+        return tuple(_named_series.keys())
+
     def get_plot(self, axis_name: str, plot_name: str) -> Tuple[Tuple[float, ...], ...]:
-        _axis_series, _, _ = self._series[axis_name]
+        _axis_series, _, _ = self._axes_data[axis_name]
         series = _axis_series[plot_name]
         return tuple(series)
 
     def add_data(self, axis_name: str, plot_name: str, *value: float):
-        _axis_series, _length, _width = self._series[axis_name]
+        _axis_series, _length, _width = self._axes_data[axis_name]
         if len(value) != _width:
             raise ValueError("inconsistent width")
 
@@ -57,24 +51,19 @@ class VisualizationView:
     # https://github.com/plotly/dash/issues/214
     dash = Dash(__name__, server=flask)
 
-    dash.layout = dash_html_components.Div(
-        children=[
-            dash_core_components.Graph(
-                id="live-graph_00",
-                animate=True
-            ),
-            dash_core_components.Interval(
-                id="graph-update_00",
+    dash.layout = dash_html_components.Div(children=[
+        dash_html_components.Div(children=[
+            dash_html_components.H2("Live Graphs", style={"float": "left"})
+        ]),
+        dash_html_components.Div(children=[
+            dash_html_components.Div(id="graphs")
+        ], className="row"),  # column!
+        dash_core_components.Interval(
+                id="graph-update",
                 interval=1000
-            ),
-        ]
+            )
+        ], className="container", style={"width": "98%", "margin-left": 10, "margin-right": 10, "max-width": 50000}
     )
-    #dash.layout = dash_html_components.Div(
-    #    children=[
-    #        dash_html_components.Div(id="title"),
-    #        dash_html_components.Div(id="graphs"),
-    #    ]
-    #)
 
     model = None
 
@@ -114,10 +103,37 @@ class VisualizationView:
         return jsonify(f"passed on {str(values):s} to plot '{plot_name:s}' in axis '{axis_name:s}'")
 
     @staticmethod
-    @dash.callback(dependencies.Output("live-graph_00", "figure"), events=[dependencies.Event("graph-update_00", "interval")])
-    def _update_axis():
+    @dash.callback(dependencies.Output("graphs", "children"), events=[dependencies.Event("graph-update", "interval")])
+    def __update_graph():
         if VisualizationView.model is None:
             return
+
+        graphs = []
+        for _axis_name, _axis_len in VisualizationView.model.get_axes_lengths():
+            axis_data = []
+            y_min = float("inf")
+            y_max = -y_min
+
+            for _plot_name in VisualizationView.model.get_plot_names(_axis_name):
+                series = VisualizationView.model.get_plot(_axis_name, _plot_name)
+                _min, _max = get_min_max(series)
+                y_min, y_max = min(y_min, _min), max(y_max, _max)
+
+                data = graph_objs.Scatter(
+                    x=list(range(_axis_len)),
+                    y=series,
+                    name=_axis_name + ", " + _plot_name
+                )
+                axis_data.append(data)
+
+            layout = graph_objs.Layout(xaxis={"range": [0, _axis_len]}, yaxis={"range": [y_min - .1 * y_min, y_max + .1 * y_max]}, title=_axis_name)
+            graphs.append(dash_html_components.Div(children=[
+                dash_core_components.Graph(
+                    id=_axis_name,
+                    animate=True,
+                    figure={"data": axis_data, "layout": graph_objs.Layout}
+                )
+            ]))
 
         axis_name = "axis_dummy"
         plot_name = "plot_dummy"
