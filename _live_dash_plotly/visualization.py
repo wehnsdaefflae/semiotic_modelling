@@ -13,13 +13,13 @@ from tools.logger import Logger
 
 
 class VisualizationModel:
-    def __init__(self, axes: Sequence[Tuple[str, int]], length: int = -1):
+    def __init__(self, axes: Sequence[Tuple[str, int]], length: int = 0):
         self.axes = tuple(_name for _name, _ in axes)
         self._axes_width = {_name: (dict(), _width) for _name, _width in axes}
         self._length = length
 
     def __len__(self) -> int:
-        return self._length
+        return abs(self._length)
 
     def new_plot(self, axis_name: str, plot_name: str) -> List[Tuple[float, ...]]:
         _axis_series, _width = self._axes_width[axis_name]
@@ -37,15 +37,18 @@ class VisualizationModel:
         return tuple(series)
 
     def add_data(self, axis_name: str, plot_name: str, *value: float):
-        _named_series,  _width = self._axes_width[axis_name]
+        _named_series, _width = self._axes_width[axis_name]
         if len(value) != _width:
             raise ValueError("inconsistent width")
 
         series = _named_series.get(plot_name)
         if series is None:
-            series = self.new_plot("axis_dummy", "plot_dummy")
+            series = self.new_plot(axis_name, plot_name)
 
         series.append(tuple(value))
+        if 0 >= self._length:
+            return
+
         for _ in range(len(series) - self._length):
             series.pop(0)
 
@@ -57,19 +60,27 @@ class VisualizationView:
     flask = Flask(__name__)
     dash = Dash(__name__, server=flask)
 
+    _trailing = False
+
     dash.layout = dash_html_components.Div(children=[
         dash_html_components.Div(children=[
-            dash_html_components.H2("Live Graphs", style={"float": "left"})
+            dash_html_components.H2("semiotic modelling", style={"float": "left"})
         ]),
         dash_html_components.Div(children=[
-            dash_html_components.Div(id="graphs")
-        ], className="row"),  # todo: column!
-        dash_core_components.Interval(
-                id="graph-update",
-                interval=1000
+            dash_html_components.Div(
+                id="graphs"
             )
-        ], className="container", style={"width": "98%", "margin-left": 10, "margin-right": 10, "max-width": 50000}
+        ]),
+        dash_core_components.Interval(
+            id="graph-update",
+            interval=1000
+        )
+    ],
+        className="container",
+        style={"width": "98%", "margin-left": 10, "margin-right": 10, "max-width": 50000}
     )
+
+    _iterations = 0
 
     @staticmethod
     @flask.route("/init_model", methods=["POST"])
@@ -79,9 +90,10 @@ class VisualizationView:
 
         d = json.loads(data)
         axes = d["axes"]
-        length = d.get("length", -1)
+        length = d.get("length", 0)
 
-        VisualizationView.model = VisualizationModel(axes, length=length)
+        VisualizationView._trailing = length < 0
+        VisualizationView.model = VisualizationModel(axes, length=abs(length))
         return jsonify(f"initialized {str(axes):s}, length {length:d}")
 
     @staticmethod
@@ -102,9 +114,21 @@ class VisualizationView:
             raise ValueError("no values passed")
 
         VisualizationView.model.add_data(axis_name, plot_name, *values)
+        return jsonify(f"added {str(values):s} to plot '{plot_name:s}' in axis '{axis_name:s}'")
 
-        return jsonify(f"passed on {str(values):s} to plot '{plot_name:s}' in axis '{axis_name:s}'")
+    @staticmethod
+    @flask.route("/tick", methods=["POST"])
+    def tick():
+        data = request.data
+        Logger.log(f"progressing {str(data):s}")
 
+        d = json.loads(data)
+        steps = d.get("steps", 1)
+
+        VisualizationView._iterations += steps
+        return jsonify(f"progressed {steps:d}")
+
+    # update on tick instead of every second and dont update when zoomed
     @staticmethod
     @dash.callback(dependencies.Output("graphs", "children"), events=[dependencies.Event("graph-update", "interval")])
     def __update_graph():
@@ -119,25 +143,41 @@ class VisualizationView:
             y_min = float("inf")
             y_max = -y_min
 
+            if _axis_len == 0:
+                x_min = 0
+                x_max = VisualizationView._iterations
+
+            elif VisualizationView._trailing:
+                x_min = max(VisualizationView._iterations - _axis_len, 0)
+                x_max = max(VisualizationView._iterations, _axis_len)
+
+            else:
+                x_min = 0
+                x_max = _axis_len
+
             for _plot_name in VisualizationView.model.get_plot_names(_axis_name):
                 series = VisualizationView.model.get_plot(_axis_name, _plot_name)
                 _min, _max = get_min_max({_x for _p in series for _x in _p})
                 y_min, y_max = min(y_min, _min), max(y_max, _max)
 
-                for each_series in zip(*series):
+                for each_series in zip(*series):  # todo: store unzipped in model to avoid unzipping
                     data = graph_objs.Scatter(
-                        x=list(range(_axis_len)),
+                        x=list(range(x_min, x_max)),
                         y=each_series,
-                        name=_axis_name + ", " + _plot_name
+                        name=_plot_name
                     )
                     axis_data.append(data)
 
             y_margin = (y_max - y_min) * .1
 
             layout = graph_objs.Layout(
-                xaxis={"range": [0, _axis_len]},
-                yaxis={"range": [y_min - y_margin, y_max + y_margin]},
-                title=_axis_name)
+                xaxis={
+                    "range": [x_min, x_max]
+                },
+                yaxis={
+                    "range": [y_min - y_margin, y_max + y_margin],
+                    "title": _axis_name}
+            )
 
             graphs.append(dash_html_components.Div(children=[
                 dash_core_components.Graph(
@@ -153,5 +193,5 @@ class VisualizationView:
 
 
 if __name__ == "__main__":
-    VisualizationView.dash.run_server(debug=True)
+    VisualizationView.dash.run_server(host="192.168.178.20", debug=True)
     print("over it")

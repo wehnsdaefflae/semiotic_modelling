@@ -151,11 +151,11 @@ def get_min_max(sequence: Collection[float]) -> Tuple[float, float]:
 
 
 class Borg:
-    _instance_states = dict()
+    _subclass_states = dict()
 
     def __init__(self):
-        _class_state = Borg._instance_states.get(self.__class__)
+        _class_state = Borg._subclass_states.get(self.__class__)
         if _class_state is None:
-            Borg._instance_states[self.__class__] = self.__dict__
+            Borg._subclass_states[self.__class__] = self.__dict__
         else:
             self.__dict__ = _class_state
