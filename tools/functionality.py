@@ -1,5 +1,5 @@
 # coding=utf-8
-from typing import Tuple, Hashable, Sequence
+from typing import Tuple, Hashable, Sequence, Collection
 
 from matplotlib import pyplot
 
@@ -138,7 +138,7 @@ def generic_functionality(examples, iterations: int, rational: bool = False) -> 
     return functionality_nominal(example_sequence)
 
 
-def get_min_max(sequence: Sequence[float]) -> Tuple[float, float]:
+def get_min_max(sequence: Collection[float]) -> Tuple[float, float]:
     min_value = float("inf")
     max_value = -min_value
     for each_value in sequence:

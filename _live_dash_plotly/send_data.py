@@ -8,10 +8,13 @@ import requests
 URL = "http://127.0.0.1:8050/"
 
 
-def initialize(axes: Sequence[Tuple[str, int, int]]):
+def initialize(axes: Sequence[Tuple[str, int]], length: int):
     assert len(axes) >= 1
-    params = {"axes": axes}
-    r = requests.post(URL + "init_axes?", json=params)
+    params = {
+        "axes": axes,
+        "length": length,
+    }
+    r = requests.post(URL + "init_model?", json=params)
     return r.status_code, r.json()
 
 
@@ -27,7 +30,7 @@ def send_data(axis_name: str, plot_name: str, *values: float):
 
 
 def main():
-    status, json_response = initialize([("axis_dummy", 100, 1)])
+    status, json_response = initialize([("axis_dummy", 1)], 100)
     print(f"{status:d}\n{json_response:s}")
 
     value = random.random()
