@@ -21,20 +21,20 @@ class VisualizationModel:
     def __len__(self) -> int:
         return abs(self._length)
 
-    def new_plot(self, axis_name: str, plot_name: str) -> List[Tuple[float, ...]]:
-        _axis_series, _width = self._axes_width[axis_name]
-        new_series = []
-        _axis_series[plot_name] = new_series
+    def new_plot(self, axis_name: str, plot_name: str) -> Tuple[List[float], ...]:
+        _named_series, _width = self._axes_width[axis_name]
+        new_series = tuple([] for _ in range(_width))
+        _named_series[plot_name] = new_series
         return new_series
 
     def get_plot_names(self, axis_name: str) -> Tuple[str, ...]:
         _named_series, _ = self._axes_width[axis_name]
         return tuple(_named_series.keys())
 
-    def get_plot(self, axis_name: str, plot_name: str) -> Tuple[Tuple[float, ...], ...]:
+    def get_plot(self, axis_name: str, plot_name: str) -> Tuple[Sequence[float], ...]:
         _named_series, _ = self._axes_width[axis_name]
         series = _named_series[plot_name]
-        return tuple(series)
+        return series
 
     def add_data(self, axis_name: str, plot_name: str, *value: float):
         _named_series, _width = self._axes_width[axis_name]
@@ -45,20 +45,25 @@ class VisualizationModel:
         if series is None:
             series = self.new_plot(axis_name, plot_name)
 
-        series.append(tuple(value))
+        for _v, _s in zip(value, series):
+            _s.append(_v)
+
         if 0 >= self._length:
             return
 
-        for _ in range(len(series) - self._length):
-            series.pop(0)
+        for _s in series:
+            del _s[:-self._length]
 
 
 class VisualizationView:
-    model = None
+    model = None    # type: VisualizationModel
 
     # https://github.com/plotly/dash/issues/214
     flask = Flask(__name__)
     dash = Dash(__name__, server=flask)
+
+    axis_styles = dict()
+    plot_styles = dict()
 
     _trailing = False
 
@@ -77,7 +82,7 @@ class VisualizationView:
         )
     ],
         className="container",
-        style={"width": "98%", "margin-left": 10, "margin-right": 10, "max-width": 50000}
+        # style={"width": "98%", "margin-left": 10, "margin-right": 10, "max-width": 50000}
     )
 
     _iterations = 0
@@ -95,6 +100,22 @@ class VisualizationView:
         VisualizationView._trailing = length < 0
         VisualizationView.model = VisualizationModel(axes, length=abs(length))
         return jsonify(f"initialized {str(axes):s}, length {length:d}")
+
+    @staticmethod
+    @flask.route("/style", methods=["POST"])
+    def style():
+        data = request.data
+        Logger.log(f"styling {str(data):s}")
+
+        d = json.loads(data)
+
+        VisualizationView.axis_styles.clear()
+        VisualizationView.axis_styles.update(d["axes"])
+
+        VisualizationView.plot_styles.clear()
+        VisualizationView.plot_styles.update(d["plots"])
+
+        return jsonify("styling done")
 
     @staticmethod
     @flask.route("/data", methods=["POST"])
@@ -128,14 +149,13 @@ class VisualizationView:
         VisualizationView._iterations += steps
         return jsonify(f"progressed {steps:d}")
 
-    # update on tick instead of every second and dont update when zoomed
     @staticmethod
     @dash.callback(dependencies.Output("graphs", "children"), events=[dependencies.Event("graph-update", "interval")])
     def __update_graph():
-        if VisualizationView.model is None:
-            return
-
         graphs = []
+        if VisualizationView.model is None:
+            return graphs
+
         _axis_len = len(VisualizationView.model)
         for _axis_name in VisualizationView.model.axes:
             axis_data = []
@@ -155,28 +175,35 @@ class VisualizationView:
                 x_min = 0
                 x_max = _axis_len
 
+            this_plot_style = VisualizationView.plot_styles.get(_axis_name, dict())
+
             for _plot_name in VisualizationView.model.get_plot_names(_axis_name):
+                plot_properties = this_plot_style.get(_plot_name, dict())
+
                 series = VisualizationView.model.get_plot(_axis_name, _plot_name)
                 _min, _max = get_min_max({_x for _p in series for _x in _p})
                 y_min, y_max = min(y_min, _min), max(y_max, _max)
 
-                for each_series in zip(*series):  # todo: store unzipped in model to avoid unzipping
+                for each_series in series:
                     data = graph_objs.Scatter(
+                        **plot_properties,
                         x=list(range(x_min, x_max)),
                         y=each_series,
                         name=_plot_name
                     )
                     axis_data.append(data)
 
+            axis_properties = VisualizationView.axis_styles.get(_axis_name, dict())
+
             y_margin = (y_max - y_min) * .1
 
             layout = graph_objs.Layout(
+                **axis_properties,
                 xaxis={
-                    "range": [x_min, x_max]
-                },
+                    "range": [x_min, x_max]},
                 yaxis={
                     "range": [y_min - y_margin, y_max + y_margin],
-                    "title": _axis_name}
+                    "title": _axis_name},
             )
 
             graphs.append(dash_html_components.Div(children=[

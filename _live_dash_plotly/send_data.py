@@ -1,7 +1,7 @@
 # coding=utf-8
 import random
 import time
-from typing import Sequence, Tuple
+from typing import Sequence, Tuple, Dict, Any
 
 import requests
 
@@ -31,11 +31,20 @@ def send_data(axis_name: str, plot_name: str, *values: float):
     return r.status_code, r.json()
 
 
-def tick(steps: int = 1):
+def update(steps: int = 1):
     params = {
         "steps": steps
     }
     r = requests.post(URL + "tick?", json=params)
+    return r.status_code, r.json()
+
+
+def style(axis_styles: Dict[str, Dict[str, Any]], plot_styles: Dict[str, Dict[str, Dict[str, Any]]]):
+    params = {
+        "axes": axis_styles,
+        "plots": plot_styles
+    }
+    r = requests.post(URL + "style?", json=params)
     return r.status_code, r.json()
 
 
@@ -45,7 +54,20 @@ class SemioticVisualization(Borg):
 
 
 def main():
-    status, json_response = initialize([("axis_dummy_01", 1), ("axis_dummy_02", 2), ("axis_dummy_03", 1)], length=100)
+    status, json_response = initialize([("axis_dummy_01", 1), ("axis_dummy_02", 2), ("axis_dummy_03", 1)], length=-10)
+    print(f"{status:d}\n{json_response:s}")
+
+    plot_range_style = {
+        "plot_dummy_01": {
+            "mode": "none",
+            "fill": "tonexty"},
+        "plot_dummy_02": {
+            "mode": "none",
+            "fill": "none"},
+        }
+
+    axis_range_style = {"axis"}
+    status, json_response = style(dict(), {"axis_dummy_01": dict()})
     print(f"{status:d}\n{json_response:s}")
 
     value_01 = random.random()
@@ -66,9 +88,9 @@ def main():
         value_01 += random.random() * .2 - .1
         value_02 += random.random() * .2 - .1
 
-        tick()
+        update()
 
-        time.sleep(.5)
+        time.sleep(1.)
 
 
 if __name__ == "__main__":
