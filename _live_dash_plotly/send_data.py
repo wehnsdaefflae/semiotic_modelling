@@ -8,6 +8,8 @@ import requests
 from tools.functionality import Borg
 
 URL = "http://192.168.178.20:8050/"
+
+
 # URL = "http://localhost:8050/"
 
 
@@ -57,17 +59,23 @@ def main():
     status, json_response = initialize([("axis_dummy_01", 1), ("axis_dummy_02", 2), ("axis_dummy_03", 1)], length=-10)
     print(f"{status:d}\n{json_response:s}")
 
-    plot_range_style = {
+    range_style = {
         "plot_dummy_01": {
-            "mode": "none",
-            "fill": "tonexty"},
+            "mode": "lines",
+            "fill": None,
+            "showlegend": False,
+            "line": {
+                "color": "rgba(255, 255, 255, 0)"},
+        },
         "plot_dummy_02": {
-            "mode": "none",
-            "fill": "none"},
-        }
-
-    axis_range_style = {"axis"}
-    status, json_response = style(dict(), {"axis_dummy_01": dict()})
+            "mode": "lines",
+            "fill": "tonexty",
+            "fillcolor": "rgba(0, 100, 80, .2)",
+            "line": {
+                "color": "rgba(255, 255, 255, 0)"},
+        },
+    }
+    status, json_response = style(dict(), {"axis_dummy_01": range_style})
     print(f"{status:d}\n{json_response:s}")
 
     value_01 = random.random()
