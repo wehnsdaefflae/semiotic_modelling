@@ -7,11 +7,13 @@ import requests
 
 from tools.functionality import Borg
 
-# URL = "http://192.168.178.20:8050/"
-URL = "http://127.0.0.1:8050/"
+# IP = "127.0.0.1"
+IP = "192.168.178.20"
+
+URL = f"http://{IP}:8050/"
 
 
-def initialize(axes: Sequence[Tuple[str, int]], length: int = 0):
+def initialize(axes: Sequence[Tuple[str, int, bool]], length: int = 0):
     assert len(axes) >= 1
     params = {
         "axes": axes,
@@ -102,8 +104,7 @@ def density_range():
     values = [random.random() for _ in range(no_points)]
 
     for _i in range(100):
-        ranges = get_ranges(values)
-        send_distribution("axis_dummy_01", ranges)
+        send_distribution("axis_dummy_01", values)
 
         for _j in range(no_points):
             values[_j] += random.random() * .2 - .1
@@ -113,45 +114,33 @@ def density_range():
 
 
 def simple_range():
-    status, json_response = initialize([("axis_dummy_01", 1), ("axis_dummy_02", 2), ("axis_dummy_03", 1)], length=-10)
+    no_values = 10
+
+    status, json_response = initialize([("axis_dummy_01", 1, False), ("axis_dummy_02", no_values, True)], length=-10)
     print(f"{status:d}\n{json_response:s}")
 
-    range_style = {
-        "plot_dummy_01": {
-            "mode": "lines",
-            "fill": None,
-            "showlegend": False,
-            "line": {
-                "color": "rgba(255, 255, 255, 0)"},
-        },
-        "plot_dummy_02": {
-            "mode": "lines",
-            "fill": "tonexty",
-            "fillcolor": "rgba(0, 100, 80, .2)",
-            "line": {
-                "color": "rgba(255, 255, 255, 0)"},
-        },
-    }
-    status, json_response = style(dict(), {"axis_dummy_01": range_style})
+    plot_styles = dict() #{
+#        "plot_dummy_01": {
+#            "mode": "lines",
+#        },
+#        "plot_dummy_02": {
+#            "mode": "lines",
+#        },
+#    }
+    status, json_response = style(dict(), {"axis_dummy_01": plot_styles})
     print(f"{status:d}\n{json_response:s}")
 
-    value_01 = random.random()
-    value_02 = random.random()
+    values = [random.random() for _ in range(no_values)]
     for _ in range(100):
-        status, json_response = send_data("axis_dummy_01", "plot_dummy_01", value_01)
+        for _i, _v in enumerate(values):
+            status, json_response = send_data("axis_dummy_01", f"plot_dummy_{_i:02d}", _v)
+            print(f"{status:d}\n{json_response:s}")
+
+        status, json_response = send_data("axis_dummy_02", "plot_dummy_dist", *values)
         print(f"{status:d}\n{json_response:s}")
 
-        status, json_response = send_data("axis_dummy_01", "plot_dummy_02", value_02)
-        print(f"{status:d}\n{json_response:s}")
-
-        status, json_response = send_data("axis_dummy_02", "plot_dummy_01", value_01, value_02)
-        print(f"{status:d}\n{json_response:s}")
-
-        status, json_response = send_data("axis_dummy_03", "plot_dummy_01", value_01 - value_02)
-        print(f"{status:d}\n{json_response:s}")
-
-        value_01 += random.random() * .2 - .1
-        value_02 += random.random() * .2 - .1
+        for _i in range(no_values):
+            values[_i] += random.random() * .2 - .1
 
         update()
 
@@ -159,5 +148,5 @@ def simple_range():
 
 
 if __name__ == "__main__":
-    # simple_range()
-    density_range()
+    simple_range()
+    # density_range()
