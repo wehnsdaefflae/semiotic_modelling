@@ -131,7 +131,8 @@ def simple_range():
     print(f"{status:d}\n{json_response:s}")
 
     values = [random.random() for _ in range(no_values)]
-    for _ in range(100):
+    # for _ in range(100):
+    while True:
         for _i, _v in enumerate(values):
             status, json_response = send_data("individual", f"reading {_i:02d}", _v)
             print(f"{status:d}\n{json_response:s}")
