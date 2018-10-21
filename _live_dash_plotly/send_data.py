@@ -114,9 +114,9 @@ def density_range():
 
 
 def simple_range():
-    no_values = 1
+    no_values = 20
 
-    status, json_response = initialize([("axis_dummy_01", 1, False), ("axis_dummy_02", no_values, True)], length=0)
+    status, json_response = initialize([("individual", 1, False), ("concentration", no_values, True)], length=-10)
     print(f"{status:d}\n{json_response:s}")
 
     plot_styles = dict() #{
@@ -127,16 +127,16 @@ def simple_range():
 #            "mode": "lines",
 #        },
 #    }
-    status, json_response = style(dict(), {"axis_dummy_01": plot_styles})
+    status, json_response = style(dict(), {"individual": plot_styles})
     print(f"{status:d}\n{json_response:s}")
 
     values = [random.random() for _ in range(no_values)]
     for _ in range(100):
         for _i, _v in enumerate(values):
-            status, json_response = send_data("axis_dummy_01", f"plot_dummy_{_i:02d}", _v)
+            status, json_response = send_data("individual", f"reading {_i:02d}", _v)
             print(f"{status:d}\n{json_response:s}")
 
-        status, json_response = send_data("axis_dummy_02", "plot_dummy", *values)
+        status, json_response = send_data("concentration", "reading", *values)
         print(f"{status:d}\n{json_response:s}")
 
         for _i in range(no_values):
