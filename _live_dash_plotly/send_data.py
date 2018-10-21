@@ -7,10 +7,8 @@ import requests
 
 from tools.functionality import Borg
 
-URL = "http://192.168.178.20:8050/"
-
-
-# URL = "http://localhost:8050/"
+# URL = "http://192.168.178.20:8050/"
+URL = "http://127.0.0.1:8050/"
 
 
 def initialize(axes: Sequence[Tuple[str, int]], length: int = 0):
@@ -55,7 +53,66 @@ class SemioticVisualization(Borg):
     pass
 
 
-def main():
+def get_range_styles(no_points: int) -> Dict[str, Any]:
+    styles = dict()
+    half_plus_one = no_points // 2 + 1
+    for each_range in range(no_points - half_plus_one):
+        styles[f"start_plot_{each_range:02d}"] = {
+            "mode": "lines",
+            "fill": None,
+            "showlegend": False,
+            "line": {"color": "rgba(255, 255, 255, 0)"},
+        }
+        styles[f"end_plot_{each_range:02d}"] = {
+            "mode": "lines",
+            "fill": "tonexty",
+            "fillcolor": "rgba(0, 100, 80, .2)",
+            "line": {"color": "rgba(255, 255, 255, 0)"},
+        }
+    return styles
+
+
+def get_ranges(points: Sequence[float]) -> Sequence[Tuple[float, float]]:
+    s = sorted(points)
+    no_points = len(points)
+    half_plus_one = no_points // 2 + 1
+    return tuple((s[_r], s[_r + half_plus_one]) for _r in range(no_points - half_plus_one))
+
+
+def send_distribution(axis_name: str, points: Sequence[float]):
+    ranges = get_ranges(points)
+    for _i, (_s, _e) in enumerate(ranges):
+        status, json_response = send_data(axis_name, f"start_plot_{_i:02d}", _s)
+        print(f"{status:d}\n{json_response:s}")
+
+        status, json_response = send_data(axis_name, f"end_plot_{_i:02d}", _e)
+        print(f"{status:d}\n{json_response:s}")
+
+
+def density_range():
+    status, json_response = initialize([("axis_dummy_01", 1)], length=-10)
+    print(f"{status:d}\n{json_response:s}")
+
+    no_points = 5
+    range_style = get_range_styles(no_points)
+
+    status, json_response = style(dict(), {"axis_dummy_01": range_style})
+    print(f"{status:d}\n{json_response:s}")
+
+    values = [random.random() for _ in range(no_points)]
+
+    for _i in range(100):
+        ranges = get_ranges(values)
+        send_distribution("axis_dummy_01", ranges)
+
+        for _j in range(no_points):
+            values[_j] += random.random() * .2 - .1
+
+        update()
+        time.sleep(1.)
+
+
+def simple_range():
     status, json_response = initialize([("axis_dummy_01", 1), ("axis_dummy_02", 2), ("axis_dummy_03", 1)], length=-10)
     print(f"{status:d}\n{json_response:s}")
 
@@ -102,4 +159,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # simple_range()
+    density_range()

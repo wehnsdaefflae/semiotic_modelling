@@ -220,5 +220,5 @@ class VisualizationView:
 
 
 if __name__ == "__main__":
-    VisualizationView.dash.run_server(host="192.168.178.20", debug=True)
+    VisualizationView.dash.run_server(host="127.0.0.1", debug=True)
     print("over it")
