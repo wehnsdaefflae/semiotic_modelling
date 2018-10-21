@@ -1,6 +1,6 @@
 # coding=utf-8
 import json
-from typing import Tuple, Sequence, Dict, List
+from typing import Tuple, Sequence, Dict, List, Hashable
 
 import dash_core_components
 import dash_html_components
@@ -70,6 +70,9 @@ class VisualizationView:
     plot_styles = dict()
     dist_axes = None
 
+    length = 0
+    means = dict()
+
     _trailing = False
 
     dash.layout = dash_html_components.Div(children=[
@@ -100,16 +103,16 @@ class VisualizationView:
 
         d = json.loads(data)
         axes = d["axes"]
-        length = d.get("length", 0)
+        VisualizationView.length = d.get("length", 0)
 
-        VisualizationView._trailing = length < 0
+        VisualizationView._trailing = VisualizationView.length < 0
 
         VisualizationView.dist_axes = {_axis_name for _axis_name, _, _is_dist in axes if _is_dist}
 
         axes_model = tuple((_axis_name, _width) for _axis_name, _width, _ in axes)
-        VisualizationView.model = VisualizationModel(axes_model, length=abs(length))
+        VisualizationView.model = VisualizationModel(axes_model, length=abs(VisualizationView.length))
 
-        return jsonify(f"initialized {str(axes):s}, length {length:d}")
+        return jsonify(f"initialized {str(axes):s}, length {VisualizationView.length:d}")
 
     @staticmethod
     @flask.route("/style", methods=["POST"])
@@ -126,6 +129,17 @@ class VisualizationView:
         VisualizationView.plot_styles.update(d["plots"])
 
         return jsonify("styling done")
+
+    @staticmethod
+    def _add_to_means(key: Hashable, value: float):
+        series = VisualizationView.means.get(key)
+        if series is None:
+            series = []
+            VisualizationView.means[key] = series
+
+        series.append(value)
+
+        del series[:-abs(VisualizationView.length)]
 
     @staticmethod
     @flask.route("/data", methods=["POST"])
@@ -145,6 +159,8 @@ class VisualizationView:
             raise ValueError("no values passed")
 
         if axis_name in VisualizationView.dist_axes:
+            mean = sum(values) / len(values)
+            VisualizationView._add_to_means((axis_name, plot_name), mean)
             values = sorted(values)
 
         VisualizationView.model.add_data(axis_name, plot_name, *values)
@@ -198,27 +214,38 @@ class VisualizationView:
                     series = VisualizationView.model.get_plot(_axis_name, _plot_name)
                     no_series = len(series)
                     half_plus_one = no_series // 2 + 1
-                    for _i in range(no_series - half_plus_one + 1):
+                    no_bands = no_series - half_plus_one + 1
+
+                    for _i in range(no_bands):
                         series_a = series[_i]
                         series_b = series[_i + half_plus_one - 1]
                         each_series = series_a + series_b[::-1]
                         range_a = list(range(max(0, VisualizationView._iterations - len(series_a)), VisualizationView._iterations))
-                        # range_a = list(range(x_min, x_max))
                         each_range = range_a + range_a[::-1]
 
                         _min, _max = get_min_max(each_series)
                         y_min, y_max = min(y_min, _min), max(y_max, _max)
 
                         data = graph_objs.Scatter(
-                            showlegend=True,
+                            showlegend=_i == 0,
                             x=each_range,
                             y=each_series,
                             name=_plot_name,
                             fill="tozerox",
-                            fillcolor="rgba(231, 107, 243, .2)",
+                            fillcolor=f"rgba(231, 107, 243, {1. / (no_bands + 1.):.2f})",
                             line={"color": "rgba(255, 255, 255, 0)"},
                         )
                         axis_data.append(data)
+
+                    mean = VisualizationView.means[(_axis_name, _plot_name)]
+                    data = graph_objs.Scatter(
+                        showlegend=True,
+                        x=list(range(max(0, VisualizationView._iterations - len(mean)), VisualizationView._iterations)),
+                        y=mean,
+                        name=_plot_name + "_mean",
+                        line={"color": "rgba(231, 107, 243, 1.)"},
+                    )
+                    axis_data.append(data)
 
             else:
                 axis_data = []
