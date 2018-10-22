@@ -4,8 +4,11 @@ import os
 import sys
 import time
 from math import sqrt
-from typing import Tuple, Generator, Any, Union, Hashable, Iterator
+from typing import Tuple, Generator, Any, Union, Hashable, Iterator, TypeVar, Generic, Dict, Collection, Sequence, Type
 
+from _live_dash_plotly.send_data import SemioticVisualization
+from _live_dash_plotly.visualization_server import VisualizationView
+from data_generation.data_sources.systems.abstract_classes import System, Controller
 from modelling.predictors.abstract_predictor import Predictor
 from tools.logger import Logger, DataLogger
 from tools.timer import Timer
@@ -15,6 +18,143 @@ from visualization.visualization import Visualize
 VALUES = Union[Tuple[float, ...], Hashable]
 EXAMPLE = Tuple[VALUES, VALUES]
 CONCURRENT_EXAMPLES = Tuple[EXAMPLE, ...]
+
+
+TYPE_A = TypeVar("TYPE_A")
+TYPE_B = TypeVar("TYPE_B")
+
+
+class Experiment(Generic[TYPE_A, TYPE_B]):
+    def __init__(self,
+                 predictor: Predictor[Tuple[TYPE_A, TYPE_B], TYPE_A],
+                 controller: Controller[TYPE_A, TYPE_B],
+                 train_system: System[TYPE_B, TYPE_A],
+                 test_system: System[TYPE_B, TYPE_A]):
+
+        self.predictor = predictor
+        self.controller = controller
+        self.train_system = train_system
+        self.test_system = test_system
+
+        self.train_error = 0.
+        self.train_reward = 0.
+        self.train_duration = 0.
+
+        self.test_error = 0.
+        self.test_reward = 0.
+        self.test_duration = 0.
+
+        self.iterations = 0
+
+    def __str__(self):
+        return ", ".join([str(_x) for _x in [self.predictor, self.controller, self.train_system, self.test_system]])
+
+    def _adapt_average(self, previous_average: float, new_value: float) -> float:
+        if self.iterations < 1:
+            return new_value
+        return (previous_average * self.iterations + new_value) / (self.iterations + 1)
+
+    def step(self, steps: int) -> Dict[str, float]:
+        for _ in range(steps):
+            train_error, test_error = 0., 0.
+            train_reward, test_reward = 0., 0.
+            train_duration, test_duration = 0., 0.
+
+            pass    # this is where the magic happens
+
+            self.train_error = self._adapt_average(self.train_error, train_error)
+            self.train_reward = self._adapt_average(self.train_reward, train_reward)
+            self.train_duration = self._adapt_average(self.train_duration, train_duration)
+
+            self.test_error = self._adapt_average(self.test_error, test_error)
+            self.test_reward = self._adapt_average(self.test_reward, test_reward)
+            self.test_duration = self._adapt_average(self.test_duration, test_duration)
+
+            self.iterations += 1
+
+        data = {
+            "train error": self.train_error,
+            "train reward": self.train_reward,
+            "train duration": self.train_duration,
+            "test error": self.test_error,
+            "test reward": self.test_reward,
+            "test duration": self.test_duration
+        }
+
+        return data
+
+
+class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
+    def __init__(self,
+                 predictor_class: Type[Predictor[Tuple[TYPE_A, TYPE_B], TYPE_A]], predictor_args: Dict[str, Any],
+                 controller_class: Type[Controller[TYPE_B, TYPE_A]], controller_args: Dict[str, Any],
+                 train_system_class: Type[System[TYPE_B, TYPE_A]], train_system_args: Dict[str, Any],
+                 test_system_class: Type[System[TYPE_B, TYPE_A]], test_system_args: Dict[str, Any]):
+
+        self.predictor_class, self.predictor_args = predictor_class, predictor_args
+        self.controller_class, self.controller_args = controller_class, controller_args
+        self.train_system_class, self.train_system_args = train_system_class, train_system_args
+        self.test_system_class, self.test_system_args = test_system_class, test_system_args
+
+    def __str__(self):
+        return ", ".join([self.predictor_class.__name__, self.controller_class.__name__, self.train_system_class.__name__, self.test_system_class.__name__])
+
+    def create(self) -> Experiment[TYPE_A, TYPE_B]:
+        predictor = self.predictor_class(**self.predictor_args)
+        controller = self.controller_class(**self.controller_args)
+        train_system = self.train_system_class(**self.train_system_args)
+        test_system = self.test_system_class(**self.test_system_args)
+        return Experiment(predictor, controller, train_system, test_system)
+
+
+class BasicResults:
+    def __init__(self, experiment_names: Sequence[str]):
+        self.result_names = "train reward", "test reward", "train error", "test error", "train duration", "test duration"
+        self.results = {_x: tuple([] for _ in experiment_names) for _x in self.result_names}
+        self.experiment_names = experiment_names
+
+    def update(self, experiment_index: int, result: Dict[str, float]):
+        for key in self.result_names:
+            result_values = self.results[key]
+            each_experiment = result_values[experiment_index]
+            each_result = result[key]
+            each_experiment.append(each_result)
+
+    def plot(self):
+        for _i, each_experiment in enumerate(self.experiment_names):
+            for key in self.result_names:
+                axis_name = key.split()[-1]     # ugly
+                plot_name = each_experiment + " " + key
+                result_values = self.results[key]
+                SemioticVisualization.plot(axis_name, plot_name, result_values[_i])
+
+
+class Setup(Generic[TYPE_A, TYPE_B]):
+    def __init__(self, factories: Collection[ExperimentFactory[TYPE_A, TYPE_B]], repetitions: int, iterations: int):
+        self.repetitions = repetitions
+        self.iterations = iterations
+        self.step_size = 1000
+
+        self.factories = factories
+        self.experiments = tuple((_f.create() for _f in self.factories) for _ in range(self.repetitions))
+
+        self.axes = "reward", "error", "duration"
+        SemioticVisualization.initialize(self.axes, repetitions, length=iterations)
+
+    def _batch(self):
+        collected = BasicResults(tuple(str(_f) for _f in self.factories))
+        for each_comparison in self.experiments:
+            for _i, each_experiment in enumerate(each_comparison):
+                result = each_experiment.step(self.step_size)
+                collected.update(_i, result)
+        collected.plot()
+
+    def run_experiment(self):
+        for _ in range(self.iterations // self.step_size):
+            self._batch()
+
+        for _ in range(self.iterations % self.step_size):
+            self._batch()
 
 
 class SetupPrediction(Iterator[Tuple[Any, ...]]):

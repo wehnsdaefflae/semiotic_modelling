@@ -1,5 +1,5 @@
 # coding=utf-8
-from typing import Tuple, Hashable, Sequence, Collection
+from typing import Tuple, Hashable, Sequence, Collection, Dict, TypeVar, Generic, List
 
 from matplotlib import pyplot
 
@@ -43,6 +43,23 @@ def functionality_rational_linear(sequence: Sequence[Tuple[float, float]]) -> fl
         dist_total += min(1., max(0., normalized_distance))
 
     return 1. - dist_total / no_examples
+
+
+TYPE_A = TypeVar("TYPE_A")
+TYPE_B = TypeVar("TYPE_B")
+
+
+class DictList(Generic[TYPE_A, TYPE_B], Dict[TYPE_A, List[TYPE_B]]):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def add(self, key: TYPE_A, value: TYPE_B):
+        try:
+            value_list = self[key]
+            value_list.append(value)
+        except KeyError:
+            value_list = [value]
+            self[key] = value_list
 
 
 def functionality_nominal(sequence: Sequence[Hashable]) -> float:
@@ -120,7 +137,7 @@ def test_trigonometry_rational_linear_functionality():
     pyplot.show()
 
 
-if __name__ == "__main__":
+def main_test():
     # test_nominal_functionality()
     # test_trigonometry_rational_linear_functionality()
     # test_debug_rational_linear_functionality()
@@ -159,3 +176,7 @@ class Borg:
             Borg._subclass_states[self.__class__] = self.__dict__
         else:
             self.__dict__ = _class_state
+
+
+if __name__ == "__main__":
+    pass

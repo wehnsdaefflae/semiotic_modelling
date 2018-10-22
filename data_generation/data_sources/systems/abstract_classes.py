@@ -7,7 +7,10 @@ MOTOR_TYPE = TypeVar("MOTOR_TYPE")
 SENSOR_TYPE = TypeVar("SENSOR_TYPE")
 
 
-class Environment(Generic[MOTOR_TYPE, SENSOR_TYPE]):
+class System(Generic[MOTOR_TYPE, SENSOR_TYPE]):
+    def __init__(self, *args, **kwargs):
+        pass
+
     def get_motor_range(self) -> Generic[MOTOR_TYPE]:
         raise NotImplementedError()
 

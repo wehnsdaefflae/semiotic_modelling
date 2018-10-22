@@ -3,13 +3,13 @@
 import string
 from typing import Tuple, List, Optional, Generic
 
-from data_generation.data_sources.systems.abstract_classes import Environment, MOTOR_TYPE
+from data_generation.data_sources.systems.abstract_classes import System, MOTOR_TYPE
 
 GRID_SENSOR = Tuple[str, ...]
 GRID_MOTOR = str
 
 
-class GridWorld(Environment[GRID_MOTOR, GRID_SENSOR]):
+class GridWorld(System[GRID_MOTOR, GRID_SENSOR]):
     def __init__(self, rotational: bool):
         self.actions = "f", "b", "l", "r" if rotational else "n", "e", "s", "w"
 

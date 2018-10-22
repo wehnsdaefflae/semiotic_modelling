@@ -1,11 +1,11 @@
 # coding=utf-8
 from typing import Tuple, Collection, Iterable, Any, Iterator, _T_co
 
-from data_generation.data_sources.systems.abstract_classes import Environment, Controller
+from data_generation.data_sources.systems.abstract_classes import System, Controller
 from modelling.predictors.abstract_predictor import Predictor
 from visualization.visualization import Visualize
 
-EXPERIMENT = Tuple[Environment, Controller, Predictor]
+EXPERIMENT = Tuple[System, Controller, Predictor]
 
 
 class SetupInteraction(Iterable[Tuple[Any, ...]]):

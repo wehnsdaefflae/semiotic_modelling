@@ -2,7 +2,7 @@
 import datetime
 import os
 import sys
-from typing import Sequence, Optional, Dict, Tuple
+from typing import Sequence
 
 
 class Logger:
@@ -11,7 +11,7 @@ class Logger:
     _base_name = os.path.basename(_file_path)
     _first_name = os.path.splitext(_base_name)[0]
     _time_str = _time.strftime("%Y-%m-%d_%H-%M-%S")
-    _main_name = _first_name + _time_str
+    _main_name = _first_name + "_" + _time_str
 
     @staticmethod
     def log(content: str):

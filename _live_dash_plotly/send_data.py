@@ -57,15 +57,16 @@ class SemioticVisualization:
 
     @staticmethod
     def initialize(axes: Sequence[str], no_experiments: int, length: int = 0):
-        status, json_response = initialize(tuple((_name, no_experiments)for _name in axes), length=length)
+        status, json_response = initialize(tuple((_name, no_experiments) for _name in axes), length=length)
         Logger.log(f"{status:d}\n{json_response:s}")
 
+        axis_styles = dict()
         plot_styles = dict()
-        status, json_response = style(dict(), {"individual": plot_styles})
+        status, json_response = style(axis_styles, plot_styles)
         Logger.log(f"{status:d}\n{json_response:s}")
 
     @staticmethod
-    def plot(axis_name: str, plot_name: str, *values: float):
+    def plot(axis_name: str, plot_name: str, values: Sequence[float]):
         now = time.time()
         if SemioticVisualization._last_plot < 0. or now - SemioticVisualization._last_plot >= SemioticVisualization._interval_seconds:
             status, json_response = send_data(axis_name, plot_name, *values)
