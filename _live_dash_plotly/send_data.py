@@ -6,17 +6,18 @@ from typing import Sequence, Tuple, Dict, Any
 import requests
 
 from tools.functionality import Borg
+from tools.logger import Logger
 
-# IP = "127.0.0.1"
-IP = "192.168.178.20"
+IP = "127.0.0.1"
+# IP = "192.168.178.20"
 
 URL = f"http://{IP}:8050/"
 
 
-def initialize(axes: Sequence[Tuple[str, int, bool]], length: int = 0):
+def initialize(axes: Sequence[Tuple[str, int]], length: int = 0):
     assert len(axes) >= 1
     params = {
-        "axes": axes,
+        "axes": tuple((_name, _width, 1 < _width) for _name, _width in axes),
         "length": length,
     }  # nest dicts for axis properties
     r = requests.post(URL + "init_model?", json=params)
@@ -50,104 +51,68 @@ def style(axis_styles: Dict[str, Dict[str, Any]], plot_styles: Dict[str, Dict[st
     return r.status_code, r.json()
 
 
-class SemioticVisualization(Borg):
-    # make plotly properties generally passable over initialize's rest and fix them here
-    pass
+class SemioticVisualization:
+    _last_plot = -1.
+    _interval_seconds = 1.
+
+    @staticmethod
+    def initialize(axes: Sequence[str], no_experiments: int, length: int = 0):
+        status, json_response = initialize(tuple((_name, no_experiments)for _name in axes), length=length)
+        Logger.log(f"{status:d}\n{json_response:s}")
+
+        plot_styles = dict()
+        status, json_response = style(dict(), {"individual": plot_styles})
+        Logger.log(f"{status:d}\n{json_response:s}")
+
+    @staticmethod
+    def plot(axis_name: str, plot_name: str, *values: float):
+        now = time.time()
+        if SemioticVisualization._last_plot < 0. or now - SemioticVisualization._last_plot >= SemioticVisualization._interval_seconds:
+            status, json_response = send_data(axis_name, plot_name, *values)
+            Logger.log(f"{status:d}\n{json_response:s}")
+
+            status, json_response = update()
+            Logger.log(f"{status:d}\n{json_response:s}")
+
+            SemioticVisualization._last_plot = now
 
 
-def get_range_styles(no_points: int) -> Dict[str, Any]:
-    styles = dict()
-    half_plus_one = no_points // 2 + 1
-    for each_range in range(no_points - half_plus_one):
-        styles[f"start_plot_{each_range:02d}"] = {
-            "mode": "lines",
-            "fill": None,
-            "showlegend": False,
-            "line": {"color": "rgba(255, 255, 255, 0)"},
-        }
-        styles[f"end_plot_{each_range:02d}"] = {
-            "mode": "lines",
-            "fill": "tonexty",
-            "fillcolor": "rgba(0, 100, 80, .2)",
-            "line": {"color": "rgba(255, 255, 255, 0)"},
-        }
-    return styles
+def main():
+    no_values = 10
 
-
-def get_ranges(points: Sequence[float]) -> Sequence[Tuple[float, float]]:
-    s = sorted(points)
-    no_points = len(points)
-    half_plus_one = no_points // 2 + 1
-    return tuple((s[_r], s[_r + half_plus_one]) for _r in range(no_points - half_plus_one))
-
-
-def send_distribution(axis_name: str, points: Sequence[float]):
-    ranges = get_ranges(points)
-    for _i, (_s, _e) in enumerate(ranges):
-        status, json_response = send_data(axis_name, f"start_plot_{_i:02d}", _s)
-        print(f"{status:d}\n{json_response:s}")
-
-        status, json_response = send_data(axis_name, f"end_plot_{_i:02d}", _e)
-        print(f"{status:d}\n{json_response:s}")
-
-
-def density_range():
-    status, json_response = initialize([("axis_dummy_01", 1)], length=-10)
+    status, json_response = initialize([("individual", 1), ("concentration", no_values)], length=-100)
     print(f"{status:d}\n{json_response:s}")
 
-    no_points = 5
-    range_style = get_range_styles(no_points)
-
-    status, json_response = style(dict(), {"axis_dummy_01": range_style})
-    print(f"{status:d}\n{json_response:s}")
-
-    values = [random.random() for _ in range(no_points)]
-
-    for _i in range(100):
-        send_distribution("axis_dummy_01", values)
-
-        for _j in range(no_points):
-            values[_j] += random.random() * .2 - .1
-
-        update()
-        time.sleep(1.)
-
-
-def simple_range():
-    no_values = 20
-
-    status, json_response = initialize([("individual", 1, False), ("concentration", no_values, True)], length=-10)
-    print(f"{status:d}\n{json_response:s}")
-
-    plot_styles = dict() #{
-#        "plot_dummy_01": {
-#            "mode": "lines",
-#        },
-#        "plot_dummy_02": {
-#            "mode": "lines",
-#        },
-#    }
+    plot_styles = dict()
     status, json_response = style(dict(), {"individual": plot_styles})
     print(f"{status:d}\n{json_response:s}")
 
-    values = [random.random() for _ in range(no_values)]
-    # for _ in range(100):
+    values_01 = [1. for _ in range(no_values)]
+    values_02 = [-1. for _ in range(no_values)]
     while True:
-        for _i, _v in enumerate(values):
-            status, json_response = send_data("individual", f"reading {_i:02d}", _v)
+        for _i, _v in enumerate(values_01):
+            status, json_response = send_data("individual", f"reading 01 {_i:02d}", _v)
             print(f"{status:d}\n{json_response:s}")
 
-        status, json_response = send_data("concentration", "reading", *values)
+        for _i, _v in enumerate(values_02):
+            status, json_response = send_data("individual", f"reading 02 {_i:02d}", _v)
+            print(f"{status:d}\n{json_response:s}")
+
+        status, json_response = send_data("concentration", "reading 01", *values_01)
+        print(f"{status:d}\n{json_response:s}")
+
+        status, json_response = send_data("concentration", "reading 02", *values_02)
         print(f"{status:d}\n{json_response:s}")
 
         for _i in range(no_values):
-            values[_i] += random.random() * .2 - .1
+            values_01[_i] += random.random() * .2 - .1
+            values_02[_i] += random.random() * .2 - .1
 
-        update()
+        status, json_response = update()
+        print(f"{status:d}\n{json_response:s}")
 
         time.sleep(1.)
 
 
 if __name__ == "__main__":
-    simple_range()
-    # density_range()
+    main()

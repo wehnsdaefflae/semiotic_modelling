@@ -1,19 +1,21 @@
 # coding=utf-8
 import json
-from typing import Tuple, Sequence, Dict, List, Hashable
+from typing import Tuple, Sequence, Dict, List, Hashable, Any
 
 import dash_core_components
 import dash_html_components
 from dash import Dash, dependencies
 from flask import request, Flask, jsonify
+from matplotlib.colors import hsv_to_rgb
 from plotly import graph_objs
+from plotly.basedatatypes import BasePlotlyType
 
 from tools.functionality import get_min_max
 from tools.logger import Logger
+from tools.math_functions import distribute_circular
 
-
-# IP = "127.0.0.1"
-IP = "192.168.178.20"
+IP = "127.0.0.1"
+# IP = "192.168.178.20"
 
 
 class VisualizationModel:
@@ -25,7 +27,7 @@ class VisualizationModel:
     def __len__(self) -> int:
         return abs(self._length)
 
-    def new_plot(self, axis_name: str, plot_name: str) -> Tuple[List[float], ...]:
+    def _new_plot(self, axis_name: str, plot_name: str) -> Tuple[List[float], ...]:
         _named_series, _width = self._axes_width[axis_name]
         new_series = tuple([] for _ in range(_width))
         _named_series[plot_name] = new_series
@@ -47,7 +49,7 @@ class VisualizationModel:
 
         series = _named_series.get(plot_name)
         if series is None:
-            series = self.new_plot(axis_name, plot_name)
+            series = self._new_plot(axis_name, plot_name)
 
         for _v, _s in zip(value, series):
             _s.append(_v)
@@ -151,16 +153,13 @@ class VisualizationView:
         Logger.log(f"adding {str(data):s}")
 
         d = json.loads(data)
-        axis_name = d["axis_name"]
-        plot_name = d["plot_name"]
         values = d["values"]
-
         if len(values) == 0:
             raise ValueError("no values passed")
 
+        axis_name = d["axis_name"]
+        plot_name = d["plot_name"]
         if axis_name in VisualizationView.dist_axes:
-            mean = sum(values) / len(values)
-            VisualizationView._add_to_means((axis_name, plot_name), mean)
             values = sorted(values)
 
         VisualizationView.model.add_data(axis_name, plot_name, *values)
@@ -191,8 +190,74 @@ class VisualizationView:
         return 0, _axis_len
 
     @staticmethod
-    def _get_ranges(axis_name: str, plot_name: str):
-        pass
+    def _get_concentration(_axis_name: str, this_plot_style: Dict[str, Any]) -> Tuple[Sequence[BasePlotlyType], Tuple[float, float]]:
+        axis_data = []
+        y_min = float("inf")
+        y_max = -y_min
+
+        for _j, _plot_name in enumerate(VisualizationView.model.get_plot_names(_axis_name)):
+            series = VisualizationView.model.get_plot(_axis_name, _plot_name)
+            no_series = len(series)
+            half_plus_one = no_series // 2 + 1
+            no_bands = no_series - half_plus_one + 1
+            alpha = 1. / no_bands
+
+            color = hsv_to_rgb((distribute_circular(_j), .7, .7))
+            color_str = ", ".join([f"{int(_x * 255.):d}" for _x in color])
+            fillcolor = f"rgba({color_str:s}, {alpha:.2f})"
+            plot_properties = this_plot_style.get(_plot_name, {"fillcolor": fillcolor})
+
+            for _i in range(no_bands):
+                series_a = series[_i]
+                series_b = series[_i + half_plus_one - 1]
+                outline = series_a + series_b[::-1]
+                range_a = list(range(max(0, VisualizationView._iterations - len(series_a)), VisualizationView._iterations))
+                each_range = range_a + range_a[::-1]
+
+                _min, _max = get_min_max(outline)
+                y_min, y_max = min(y_min, _min), max(y_max, _max)
+
+                data = graph_objs.Scatter(
+                    **plot_properties,
+                    showlegend=_i == 0,
+                    x=each_range,
+                    y=outline,
+                    name=_plot_name,
+                    fill="tozerox",
+                    line={"color": "rgba(255, 255, 255, 0)"},
+                )
+                axis_data.append(data)
+
+        return axis_data, (y_min, y_max)
+
+    @staticmethod
+    def _get_lines(_axis_name: str, this_plot_style: Dict[str, Any], x_range: Tuple[int, int]) -> Tuple[Sequence[BasePlotlyType], Tuple[float, float]]:
+        axis_data = []
+
+        y_min = float("inf")
+        y_max = -y_min
+
+        x_min, x_max = x_range
+
+        for _plot_name in VisualizationView.model.get_plot_names(_axis_name):
+            plot_properties = this_plot_style.get(_plot_name, dict())
+
+            series = VisualizationView.model.get_plot(_axis_name, _plot_name)
+
+            for each_series in series:
+                _min, _max = get_min_max(each_series)
+                y_min, y_max = min(y_min, _min), max(y_max, _max)
+
+                data = graph_objs.Scatter(
+                    **plot_properties,
+                    showlegend=True,
+                    x=list(range(x_min, x_max)),
+                    y=each_series,
+                    name=_plot_name
+                )
+                axis_data.append(data)
+
+        return axis_data, (y_min, y_max)
 
     @staticmethod
     @dash.callback(dependencies.Output("graphs", "children"), events=[dependencies.Event("graph-update", "interval")])
@@ -202,76 +267,16 @@ class VisualizationView:
         if VisualizationView.model is None:
             return graphs
 
-        x_min, x_max = VisualizationView.__x_min_max()
-
         for _axis_name in VisualizationView.model.axes:
+            this_plot_style = VisualizationView.plot_styles.get(_axis_name, dict())
+
+            x_min, x_max = VisualizationView.__x_min_max()
+
             if _axis_name in VisualizationView.dist_axes:
-                axis_data = []
-                y_min = float("inf")
-                y_max = -y_min
-
-                for _plot_name in VisualizationView.model.get_plot_names(_axis_name):
-                    series = VisualizationView.model.get_plot(_axis_name, _plot_name)
-                    no_series = len(series)
-                    half_plus_one = no_series // 2 + 1
-                    no_bands = no_series - half_plus_one + 1
-
-                    for _i in range(no_bands):
-                        series_a = series[_i]
-                        series_b = series[_i + half_plus_one - 1]
-                        each_series = series_a + series_b[::-1]
-                        range_a = list(range(max(0, VisualizationView._iterations - len(series_a)), VisualizationView._iterations))
-                        each_range = range_a + range_a[::-1]
-
-                        _min, _max = get_min_max(each_series)
-                        y_min, y_max = min(y_min, _min), max(y_max, _max)
-
-                        data = graph_objs.Scatter(
-                            showlegend=_i == 0,
-                            x=each_range,
-                            y=each_series,
-                            name=_plot_name,
-                            fill="tozerox",
-                            fillcolor=f"rgba(231, 107, 243, {1. / (no_bands + 1.):.2f})",
-                            line={"color": "rgba(255, 255, 255, 0)"},
-                        )
-                        axis_data.append(data)
-
-                    mean = VisualizationView.means[(_axis_name, _plot_name)]
-                    data = graph_objs.Scatter(
-                        showlegend=True,
-                        x=list(range(max(0, VisualizationView._iterations - len(mean)), VisualizationView._iterations)),
-                        y=mean,
-                        name=_plot_name + "_mean",
-                        line={"color": "rgba(231, 107, 243, 1.)"},
-                    )
-                    axis_data.append(data)
+                axis_data, (y_min, y_max) = VisualizationView._get_concentration(_axis_name, this_plot_style)
 
             else:
-                axis_data = []
-
-                y_min = float("inf")
-                y_max = -y_min
-
-                this_plot_style = VisualizationView.plot_styles.get(_axis_name, dict())
-
-                for _plot_name in VisualizationView.model.get_plot_names(_axis_name):
-                    plot_properties = this_plot_style.get(_plot_name, dict())
-
-                    series = VisualizationView.model.get_plot(_axis_name, _plot_name)
-
-                    for each_series in series:
-                        _min, _max = get_min_max(each_series)
-                        y_min, y_max = min(y_min, _min), max(y_max, _max)
-
-                        data = graph_objs.Scatter(
-                            **plot_properties,
-                            showlegend=True,
-                            x=list(range(x_min, x_max)),
-                            y=each_series,
-                            name=_plot_name
-                        )
-                        axis_data.append(data)
+                axis_data, (y_min, y_max) = VisualizationView._get_lines(_axis_name, this_plot_style, (x_min, x_max))
 
             axis_properties = VisualizationView.axis_styles.get(_axis_name, dict())
 
@@ -284,12 +289,18 @@ class VisualizationView:
                 yaxis={
                     "range": [y_min - y_margin, y_max + y_margin],
                     "title": _axis_name},
+                legend={
+                    "x": 1,
+                    "y": 1
+                }
             )
 
             graphs.append(dash_html_components.Div(children=[
                 dash_core_components.Graph(
                     id=_axis_name,
                     animate=True,
+                    animation_options={
+                        "mode": "immediate"},
                     figure={
                         "data": axis_data,
                         "layout": layout}
