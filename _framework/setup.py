@@ -1,30 +1,11 @@
 # coding=utf-8
 
-from typing import Tuple, Any, Union, Hashable, TypeVar, Generic, Dict, Collection, Sequence, Type, Optional
+from typing import Tuple, Any, Union, Hashable, TypeVar, Generic, Dict, Collection, Sequence, Type
 
-from _framework.abstract_systems import Predictor, Controller, System, Task
+from _framework.abstract_systems import Predictor
+from _framework.abstract_trajectories import Controller, Task, ExampleStream, InteractiveStream
 from _live_dash_plotly.send_data import SemioticVisualization
-from tools.functionality import DictList
-
-
-SENSOR_TYPE = TypeVar("SENSOR_TYPE")
-MOTOR_TYPE = TypeVar("MOTOR_TYPE")
-
-
-class Process(Generic[SENSOR_TYPE, MOTOR_TYPE]):
-    def __init__(self, controller: Controller[SENSOR_TYPE, MOTOR_TYPE], predictor: Predictor[MOTOR_TYPE, SENSOR_TYPE]):
-        self.controller = controller
-        self.predictor = predictor
-
-        self.data = dict()
-
-    def survey(self, task_train: Task[MOTOR_TYPE, SENSOR_TYPE], iterations: int, tasks_test: None = Optional[Collection[Task[MOTOR_TYPE, SENSOR_TYPE]]]):
-        survey_data = {
-            ""
-        }
-        for _ in range(iterations):
-            pass
-
+from tools.functionality import DictList, smear
 
 VALUES = Union[Tuple[float, ...], Hashable]
 EXAMPLE = Tuple[VALUES, VALUES]
@@ -39,66 +20,81 @@ class Experiment(Generic[TYPE_A, TYPE_B]):
     def __init__(self,
                  name: str,
                  predictor: Predictor[Tuple[TYPE_A, TYPE_B], TYPE_A],
-                 controller: Controller[TYPE_A, TYPE_B],
-                 train_system: System[TYPE_B, TYPE_A],
-                 test_systems: Optional[Collection[System[TYPE_B, TYPE_A]]] = None):
+                 stream_train: ExampleStream[TYPE_B, TYPE_A],
+                 stream_test: ExampleStream[TYPE_B, TYPE_A]):
 
         self.name = name
 
         self.predictor = predictor
-        self.controller = controller
-        self.train_system = train_system
-        self.test_systems = test_systems
+        self.stream_train = stream_train
+        self.stream_test = stream_test
 
-        self.data_train = dict()
-        self.data_test = tuple() if test_systems is None else tuple([] for _ in test_systems)
-
-        self.train_error = 0.
-        self.train_reward = 0.
-        self.train_duration = 0.
-
-        self.test_error = 0.
-        self.test_reward = 0.
-        self.test_duration = 0.
+        self.data = dict()
 
         self.iterations = 0
 
     def __str__(self):
         return self.name
 
-    def _adapt_average(self, previous_average: float, new_value: float) -> float:
-        if self.iterations < 1:
-            return new_value
-        return (previous_average * self.iterations + new_value) / (self.iterations + 1)
+    def _step(self):
+        examples_train = self.stream_train.next()
+        inputs_train, targets_train = zip(*examples_train)
+
+        examples_test = self.stream_test.next()
+        inputs_test, targets_test = zip(*examples_test)
+
+        # perform prediction and fit
+        this_time = time.time()
+        outputs_train = self.predictor.predict(inputs_train)
+        outputs_test = self.predictor.predict(inputs_test)
+        self.predictor.fit(examples_train)
+        duration = time.time() - this_time
+
+        errors_train = tuple(SetupPrediction.__get_error__(_output, _target) for _output, _target in zip(outputs_train, targets_train))
+        errors_test = tuple(SetupPrediction.__get_error__(_output, _target) for _output, _target in zip(outputs_test, targets_test))
+
+        return duration, errors_train, errors_test
 
     def step(self, steps: int) -> Dict[str, float]:
+        avrg_train_error, avrg_test_error = self.data.get("train_error", 0.), self.data.get("test_error", 0.)
+        avrg_train_reward, avrg_test_reward = self.data.get("train_reward", 0.), self.data.get("test_reward", 0.)
+        avrg_train_duration, avrg_test_duration = self.data.get("train_duration", 0.), self.data.get("test_duration", 0.)
+
         for _ in range(steps):
-            train_error, test_error = 0., 0.
-            train_reward, test_reward = 0., 0.
-            train_duration, test_duration = 0., 0.
+            train_error, train_reward, train_duration, test_error, test_reward, test_duration = self._step()
 
-            raise NotImplementedError()
+            avrg_train_error = smear(avrg_train_error, train_error, self.iterations)
+            avrg_train_reward = smear(avrg_train_reward, train_reward, self.iterations)
+            avrg_train_duration = smear(avrg_train_duration, train_duration, self.iterations)
 
-            self.train_error = self._adapt_average(self.train_error, train_error)
-            self.train_reward = self._adapt_average(self.train_reward, train_reward)
-            self.train_duration = self._adapt_average(self.train_duration, train_duration)
-
-            self.test_error = self._adapt_average(self.test_error, test_error)
-            self.test_reward = self._adapt_average(self.test_reward, test_reward)
-            self.test_duration = self._adapt_average(self.test_duration, test_duration)
+            avrg_test_error = smear(avrg_test_error, test_error, self.iterations)
+            avrg_test_reward = smear(avrg_test_reward, test_reward, self.iterations)
+            avrg_test_duration = smear(avrg_test_duration, test_duration, self.iterations)
 
             self.iterations += 1
 
-        data = {
-            "train error": self.train_error,
-            "train reward": self.train_reward,
-            "train duration": self.train_duration,
-            "test error": self.test_error,
-            "test reward": self.test_reward,
-            "test duration": self.test_duration
-        }
+        self.data["train_error"] = avrg_train_error
+        self.data["train_duration"] = avrg_train_duration
+        self.data["test_error"] = avrg_test_error
+        self.data["test_duration"] = avrg_test_duration
 
-        return data
+        return dict(self.data)
+
+
+SENSOR_TYPE = TypeVar("SENSOR_TYPE")
+MOTOR_TYPE = TypeVar("MOTOR_TYPE")
+
+
+class InteractiveExperiment(Experiment[SENSOR_TYPE, MOTOR_TYPE]):
+    def __init__(self,
+                 name: str,
+                 predictor: Predictor[Tuple[TYPE_A, TYPE_B], TYPE_A],
+                 controller: Controller[SENSOR_TYPE, MOTOR_TYPE],
+                 task_train: Task[MOTOR_TYPE, SENSOR_TYPE],
+                 task_test: Task[MOTOR_TYPE, SENSOR_TYPE]):
+        super().__init__(name, predictor, InteractiveStream(task_train, controller), InteractiveStream(task_test, controller))
+        self.data["train_reward"] = avrg_train_reward
+        self.data["test_reward"] = avrg_test_reward
 
 
 class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
@@ -164,6 +160,4 @@ class Setup(Generic[TYPE_A, TYPE_B]):
 
 
 if __name__ == "__main__":
-
-
     setup = Setup()

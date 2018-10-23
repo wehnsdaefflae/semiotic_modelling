@@ -171,6 +171,10 @@ def get_min_max(sequence: Collection[float]) -> Tuple[float, float]:
     return min_value, max_value
 
 
+def smear(average: float, value: float, inertia: int) -> float:
+    return (inertia * average + value) / (inertia + 1.)
+
+
 class Borg:
     _subclass_states = dict()
 
