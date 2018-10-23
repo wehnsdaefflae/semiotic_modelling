@@ -26,7 +26,6 @@ class Process(Generic[SENSOR_TYPE, MOTOR_TYPE]):
             pass
 
 
-
 VALUES = Union[Tuple[float, ...], Hashable]
 EXAMPLE = Tuple[VALUES, VALUES]
 CONCURRENT_EXAMPLES = Tuple[EXAMPLE, ...]
@@ -38,15 +37,21 @@ TYPE_B = TypeVar("TYPE_B")
 
 class Experiment(Generic[TYPE_A, TYPE_B]):
     def __init__(self,
+                 name: str,
                  predictor: Predictor[Tuple[TYPE_A, TYPE_B], TYPE_A],
                  controller: Controller[TYPE_A, TYPE_B],
                  train_system: System[TYPE_B, TYPE_A],
-                 test_system: System[TYPE_B, TYPE_A]):
+                 test_systems: Optional[Collection[System[TYPE_B, TYPE_A]]] = None):
+
+        self.name = name
 
         self.predictor = predictor
         self.controller = controller
         self.train_system = train_system
-        self.test_system = test_system
+        self.test_systems = test_systems
+
+        self.data_train = dict()
+        self.data_test = tuple() if test_systems is None else tuple([] for _ in test_systems)
 
         self.train_error = 0.
         self.train_reward = 0.
@@ -59,7 +64,7 @@ class Experiment(Generic[TYPE_A, TYPE_B]):
         self.iterations = 0
 
     def __str__(self):
-        return ", ".join([str(_x) for _x in [self.predictor, self.controller, self.train_system, self.test_system]])
+        return self.name
 
     def _adapt_average(self, previous_average: float, new_value: float) -> float:
         if self.iterations < 1:
