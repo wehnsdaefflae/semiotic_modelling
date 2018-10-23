@@ -22,6 +22,8 @@ INTERACTION_CONDITION = Tuple[SENSOR_TYPE, MOTOR_TYPE]
 INTERACTION_HISTORY = Tuple[INTERACTION_CONDITION, ...]
 
 
+# todo: predictor and controller should also be systems
+
 class Controller(Generic[SENSOR_TYPE, MOTOR_TYPE]):
     def __init__(self, motor_range: Generic[MOTOR_TYPE]):
         self.motor_range = motor_range

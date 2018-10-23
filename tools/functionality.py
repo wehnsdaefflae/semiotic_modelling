@@ -49,7 +49,7 @@ TYPE_A = TypeVar("TYPE_A")
 TYPE_B = TypeVar("TYPE_B")
 
 
-class DictList(Generic[TYPE_A, TYPE_B], Dict[TYPE_A, List[TYPE_B]]):
+class DictList(Dict[TYPE_A, List[TYPE_B]]):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -60,6 +60,10 @@ class DictList(Generic[TYPE_A, TYPE_B], Dict[TYPE_A, List[TYPE_B]]):
         except KeyError:
             value_list = [value]
             self[key] = value_list
+
+    def update_lists(self, d: Dict[TYPE_A, TYPE_B]):
+        for _k, _v in d.items():
+            self.add(_k, _v)
 
 
 def functionality_nominal(sequence: Sequence[Hashable]) -> float:

@@ -2,7 +2,6 @@
 import time
 
 import gym
-import _myenv
 
 env = gym.make("MyEnv-v10")
 
