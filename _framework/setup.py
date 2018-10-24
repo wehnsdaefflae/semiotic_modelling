@@ -2,9 +2,9 @@
 # !/usr/bin/env python3
 
 import time
-from typing import Tuple, Any, Union, Hashable, TypeVar, Generic, Dict, Collection, Sequence, Type
+from typing import Tuple, Any, TypeVar, Generic, Dict, Collection, Sequence, Type
 
-import tqdm as tqdm
+import tqdm
 
 from _framework.streams_interaction import InteractionStream
 from _framework.systems_abstract import Predictor
@@ -16,11 +16,6 @@ from _live_dash_plotly.send_data import SemioticVisualization
 from tools.functionality import DictList, smear
 from tools.logger import Logger, DataLogger
 from tools.timer import Timer
-
-VALUES = Union[Tuple[float, ...], Hashable]
-EXAMPLE = Tuple[VALUES, VALUES]
-CONCURRENT_EXAMPLES = Tuple[EXAMPLE, ...]
-
 
 TYPE_A = TypeVar("TYPE_A")
 TYPE_B = TypeVar("TYPE_B")
@@ -98,7 +93,7 @@ MOTOR_TYPE = TypeVar("MOTOR_TYPE")
 
 PREDICTOR = TypeVar("PREDICTOR", bound=Predictor)
 STREAM = TypeVar("STREAM", bound=ExampleStream)
-# todo: check covariance invariance etc
+# todo: 4. check covariance invariance etc
 
 
 class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
@@ -114,6 +109,8 @@ class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
         self.no_experiment = 0
 
     def create(self) -> Experiment[TYPE_A, TYPE_B]:
+        # todo: 3. instantiate tasks and controllers for streams here
+
         predictor = self.predictor_class(**self.predictor_args)
         train_system = self.train_stream_class(**self.train_stream_args)
         test_system = self.test_stream_class(**self.test_stream_args)
@@ -198,6 +195,8 @@ if __name__ == "__main__":
     task_test = NominalMyTask()
     controller_test = NominalRandomController(task_train.motor_space())
 
+    # todo: 2. this is ONE instance, needs an instance for each experiment
+    # todo: 1. controller needs reference to predictor!
     experiment_factories = (
         ExperimentFactory(
             NominalLastPredictor, dict(),
