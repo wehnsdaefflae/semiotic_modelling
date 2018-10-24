@@ -1,5 +1,5 @@
 # coding=utf-8
-from typing import TypeVar, Generic, Tuple, Optional, Sequence
+from typing import TypeVar, Generic, Tuple, Optional, Sequence, Collection
 
 from tools.io_tools import PersistenceMixin
 
@@ -40,6 +40,9 @@ class Task(System[MOTOR_TYPE, SENSOR_TYPE]):
 
     def _evaluate_action(self, data_in: MOTOR_TYPE) -> float:
         raise NotImplementedError()
+
+    def motor_space(self) -> Collection[MOTOR_TYPE]:
+        raise NotImplementedError
 
     def respond(self, data_in: Optional[MOTOR_TYPE]) -> Tuple[SENSOR_TYPE, float]:
         return self._react(data_in), self._evaluate_action(data_in)

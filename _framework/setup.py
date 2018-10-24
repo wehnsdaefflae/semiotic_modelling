@@ -6,8 +6,12 @@ from typing import Tuple, Any, Union, Hashable, TypeVar, Generic, Dict, Collecti
 
 import tqdm as tqdm
 
+from _framework.streams_interaction import InteractionStream
 from _framework.systems_abstract import Predictor
 from _framework.streams_abstract import ExampleStream
+from _framework.systems_control import NominalRandomController
+from _framework.systems_prediction import NominalLastPredictor
+from _framework.systems_task import NominalMyTask
 from _live_dash_plotly.send_data import SemioticVisualization
 from tools.functionality import DictList, smear
 from tools.logger import Logger, DataLogger
@@ -93,13 +97,15 @@ SENSOR_TYPE = TypeVar("SENSOR_TYPE")
 MOTOR_TYPE = TypeVar("MOTOR_TYPE")
 
 PREDICTOR = TypeVar("PREDICTOR", bound=Predictor)
+STREAM = TypeVar("STREAM", bound=ExampleStream)
+# todo: check covariance invariance etc
 
 
 class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
     def __init__(self,
                  predictor_class: Type[PREDICTOR[Tuple[TYPE_A, TYPE_B], TYPE_A]], predictor_args: Dict[str, Any],
-                 train_stream_class: Type[ExampleStream[TYPE_B, TYPE_A]], train_stream_args: Dict[str, Any],
-                 test_stream_class: Type[ExampleStream[TYPE_B, TYPE_A]], test_stream_args: Dict[str, Any]):
+                 train_stream_class: Type[STREAM[TYPE_B, TYPE_A]], train_stream_args: Dict[str, Any],
+                 test_stream_class: Type[STREAM[TYPE_B, TYPE_A]], test_stream_args: Dict[str, Any]):
 
         self.predictor_class, self.predictor_args = predictor_class, predictor_args
         self.train_stream_class, self.train_stream_args = train_stream_class, train_stream_args
@@ -187,6 +193,17 @@ class Setup(Generic[TYPE_A, TYPE_B]):
 
 
 if __name__ == "__main__":
-    experiment_factories = ExperimentFactory(),
+    task_train = NominalMyTask()
+    controller_train = NominalRandomController(task_train.motor_space())
+    task_test = NominalMyTask()
+    controller_test = NominalRandomController(task_train.motor_space())
+
+    experiment_factories = (
+        ExperimentFactory(
+            NominalLastPredictor, dict(),
+            InteractionStream, {"task": task_train, "controller": controller_train},
+            InteractionStream, {"task": task_test, "controller": controller_test}),
+    )
+
     setup = Setup(experiment_factories, 2, 1000, step_size=100)
     setup.run_experiment()
