@@ -4,8 +4,6 @@ import numbers
 from math import sqrt
 from typing import TypeVar, Generic, Tuple, Sequence
 
-from _framework.abstract_systems import Controller, Task
-
 INPUT_TYPE = TypeVar("INPUT_TYPE")
 OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
 
@@ -48,32 +46,3 @@ class ExampleStream(Generic[INPUT_TYPE, OUTPUT_TYPE]):
                 error_sum += float(_o != _t)
 
         return error_sum / d
-
-
-MOTOR_TYPE = TypeVar("MOTOR_TYPE")
-SENSOR_TYPE = TypeVar("SENSOR_TYPE")
-
-
-class InteractionStream(ExampleStream[MOTOR_TYPE, SENSOR_TYPE]):
-    def __init__(self, task: Task[MOTOR_TYPE, SENSOR_TYPE], controller: Controller[SENSOR_TYPE, MOTOR_TYPE], *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self._task = task
-        self._controller = controller
-
-        self._motor = None
-        self._last_sensor = None
-
-    def __str__(self):
-        return f"({str(self._task):s}, {str(self._controller):s})"
-
-    def next(self) -> Tuple[Tuple[MOTOR_TYPE, SENSOR_TYPE], ...]:
-        sensor, reward = self._task.respond(self._motor)
-        self._motor = self._controller.decide(sensor, reward)
-
-        examples = ((self._last_sensor, self._motor), sensor),
-
-        self._last_reward = reward
-        self._last_sensor = sensor
-
-        return examples

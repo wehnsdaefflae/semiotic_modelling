@@ -1,5 +1,17 @@
 # coding=utf-8
+import pickle
 from typing import Sequence, Union, List, Generator, TypeVar, Any, Tuple
+
+
+class PersistenceMixin:
+    def save_as(self, file_path: str):
+        with open(file_path, mode="wb") as file:
+            pickle.dump(self, file, 3)
+
+    @staticmethod
+    def load_from(file_path: str):
+        with open(file_path, mode="rb") as file:
+            return pickle.load(file)
 
 
 def generate_values(file_path: str, columns: Union[Sequence[str], Sequence[int]]) -> Generator[Tuple[float, ...], None, None]:

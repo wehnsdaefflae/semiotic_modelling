@@ -1,27 +1,25 @@
 # coding=utf-8
-
 from typing import TypeVar, Generic, Tuple, Optional, Sequence
+
+from tools.io_tools import PersistenceMixin
 
 INPUT_TYPE = TypeVar("INPUT_TYPE")
 OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
 EXAMPLE = Tuple[INPUT_TYPE, OUTPUT_TYPE]
 
 
-class System(Generic[INPUT_TYPE, OUTPUT_TYPE]):
+class System(Generic[INPUT_TYPE, OUTPUT_TYPE], PersistenceMixin):
+    def __str__(self):
+        return self.__class__.__name__
+
     def _react(self, data_in: Sequence[INPUT_TYPE]) -> Sequence[OUTPUT_TYPE]:
         raise NotImplementedError()
 
     def react(self, data_in: Sequence[INPUT_TYPE]) -> Sequence[OUTPUT_TYPE]:
         return self._react(data_in)
 
-    def __str__(self):
-        return self.__class__.__name__
-
 
 class Predictor(System[INPUT_TYPE, OUTPUT_TYPE]):
-    def __init__(self, *args, **kwargs):
-        raise NotImplementedError()
-
     def _react(self, data_in: Sequence[INPUT_TYPE]) -> Sequence[OUTPUT_TYPE]:
         raise NotImplementedError()
 
@@ -37,9 +35,6 @@ MOTOR_TYPE = TypeVar("MOTOR_TYPE")
 
 
 class Task(System[MOTOR_TYPE, SENSOR_TYPE]):
-    def __init__(self, *args, **kwargs):
-        raise NotImplementedError()
-
     def _react(self, data_in: MOTOR_TYPE) -> SENSOR_TYPE:
         raise NotImplementedError()
 
@@ -51,9 +46,6 @@ class Task(System[MOTOR_TYPE, SENSOR_TYPE]):
 
 
 class Controller(System[SENSOR_TYPE, MOTOR_TYPE]):
-    def __init__(self, *args, **kwargs):
-        raise NotImplementedError()
-
     def _react(self, data_in: SENSOR_TYPE) -> MOTOR_TYPE:
         raise NotImplementedError()
 

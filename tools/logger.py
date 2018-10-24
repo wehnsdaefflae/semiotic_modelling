@@ -49,8 +49,13 @@ class DataLogger:
 
         if dir_path is None:
             file_path = file_name
+
         else:
             assert dir_path.endswith("/")
+            if not os.path.isdir(dir_path):
+                os.makedirs(dir_path)
+                Logger.log(f"{DataLogger.__class__.__name__:s} directory '{dir_path:s}' created.")
+
             file_path = dir_path + file_name
 
         content = "\t".join(data)

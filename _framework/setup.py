@@ -1,11 +1,13 @@
 # coding=utf-8
+# !/usr/bin/env python3
+
 import time
 from typing import Tuple, Any, Union, Hashable, TypeVar, Generic, Dict, Collection, Sequence, Type
 
 import tqdm as tqdm
 
-from _framework.abstract_systems import Predictor
-from _framework.abstract_streams import Controller, Task, ExampleStream
+from _framework.systems_abstract import Predictor
+from _framework.streams_abstract import ExampleStream
 from _live_dash_plotly.send_data import SemioticVisualization
 from tools.functionality import DictList, smear
 from tools.logger import Logger, DataLogger
@@ -137,7 +139,7 @@ class Setup(Generic[TYPE_A, TYPE_B]):
             for _i, _v in enumerate(_value_list):
                 header.append(column_prefix + f"{_i:03d}")
                 values_str.append(f"{_v:.5f}")
-        DataLogger.log_to(header, values_str)
+        DataLogger.log_to(header, values_str, dir_path="results/")
 
     def _plot(self, name: str, each_result: DictList[str, Sequence[float]]):
         for _plot_name, _values in each_result.items():
