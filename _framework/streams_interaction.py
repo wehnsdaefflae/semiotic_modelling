@@ -7,10 +7,13 @@ from _framework.systems_abstract import Task, Controller
 MOTOR_TYPE = TypeVar("MOTOR_TYPE")
 SENSOR_TYPE = TypeVar("SENSOR_TYPE")
 
+TASK = TypeVar("TASK", bound=Task)
+CONTROLLER = TypeVar("CONTROLLER", bound=Controller)
+
 
 class InteractionStream(ExampleStream[MOTOR_TYPE, SENSOR_TYPE]):
-    def __init__(self, task: Task[MOTOR_TYPE, SENSOR_TYPE], controller: Controller[SENSOR_TYPE, MOTOR_TYPE], *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, task: TASK[MOTOR_TYPE, SENSOR_TYPE], controller: CONTROLLER[SENSOR_TYPE, MOTOR_TYPE]):
+        super().__init__()
 
         self._task = task
         self._controller = controller

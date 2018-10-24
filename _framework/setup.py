@@ -92,10 +92,12 @@ class Experiment(Generic[TYPE_A, TYPE_B]):
 SENSOR_TYPE = TypeVar("SENSOR_TYPE")
 MOTOR_TYPE = TypeVar("MOTOR_TYPE")
 
+PREDICTOR = TypeVar("PREDICTOR", bound=Predictor)
+
 
 class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
     def __init__(self,
-                 predictor_class: Type[Predictor[Tuple[TYPE_A, TYPE_B], TYPE_A]], predictor_args: Dict[str, Any],
+                 predictor_class: Type[PREDICTOR[Tuple[TYPE_A, TYPE_B], TYPE_A]], predictor_args: Dict[str, Any],
                  train_stream_class: Type[ExampleStream[TYPE_B, TYPE_A]], train_stream_args: Dict[str, Any],
                  test_stream_class: Type[ExampleStream[TYPE_B, TYPE_A]], test_stream_args: Dict[str, Any]):
 

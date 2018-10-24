@@ -9,7 +9,7 @@ OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
 
 
 class ExampleStream(Generic[INPUT_TYPE, OUTPUT_TYPE]):
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         self._last_reward = 0.
 
     def __str__(self):
