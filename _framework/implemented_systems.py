@@ -1,7 +1,7 @@
 # coding=utf-8
 from typing import Any, Type
 
-from _framework.abstract_trajectories import Controller
+from _framework.abstract_streams import Controller
 
 
 class NoneController(Controller[Any, Type[None]]):

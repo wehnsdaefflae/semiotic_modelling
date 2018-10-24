@@ -2,20 +2,30 @@
 import datetime
 import os
 import sys
-from typing import Sequence
+from typing import Sequence, Optional
+
+
+def get_time_string():
+    _time = datetime.datetime.now()
+    return _time.strftime("%Y-%m-%d_%H-%M-%S")
+
+
+def get_main_script_name():
+    _file_path = sys.argv[0]
+    _base_name = os.path.basename(_file_path)
+    return os.path.splitext(_base_name)[0]
 
 
 class Logger:
-    _time = datetime.datetime.now()
-    _file_path = sys.argv[0]
-    _base_name = os.path.basename(_file_path)
-    _first_name = os.path.splitext(_base_name)[0]
-    _time_str = _time.strftime("%Y-%m-%d_%H-%M-%S")
-    _main_name = _first_name + "_" + _time_str
+    _file_name = get_main_script_name() + "_" + get_time_string() + ".log"
 
     @staticmethod
-    def log(content: str):
-        Logger._log(Logger._main_name + ".log", content)
+    def log(content: str, dir_path: Optional[str] = None):
+        if dir_path is not None:
+            assert dir_path.endswith("/")
+            Logger._log(dir_path + Logger._file_name, content)
+        else:
+            Logger._log(Logger._file_name, content)
 
     @staticmethod
     def _log(target: str, content: str):
@@ -27,10 +37,21 @@ class Logger:
 
 
 class DataLogger:
+    _main_name = get_main_script_name() + "_" + get_time_string() + ".log"
+
     @staticmethod
-    def log_to(file_path: str, header: Sequence[str], data: Sequence[str]):
+    def log_to(header: Sequence[str], data: Sequence[str], file_name: Optional[str] = None, dir_path: Optional[str] = None):
         if not len(header) == len(data):
             raise ValueError("inconsistent sizes")
+
+        if file_name is None:
+            file_name = DataLogger._main_name
+
+        if dir_path is None:
+            file_path = file_name
+        else:
+            assert dir_path.endswith("/")
+            file_path = dir_path + file_name
 
         content = "\t".join(data)
         if not os.path.isfile(file_path):

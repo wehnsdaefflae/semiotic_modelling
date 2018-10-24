@@ -1,57 +1,65 @@
 # coding=utf-8
-from typing import TypeVar, Generic, Tuple, Optional
+
+from typing import TypeVar, Generic, Tuple, Optional, Sequence
 
 INPUT_TYPE = TypeVar("INPUT_TYPE")
 OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
+EXAMPLE = Tuple[INPUT_TYPE, OUTPUT_TYPE]
 
 
 class System(Generic[INPUT_TYPE, OUTPUT_TYPE]):
-    def _react(self, data_in: INPUT_TYPE) -> OUTPUT_TYPE:
+    def _react(self, data_in: Sequence[INPUT_TYPE]) -> Sequence[OUTPUT_TYPE]:
         raise NotImplementedError()
 
-    def react(self, data_in: INPUT_TYPE) -> OUTPUT_TYPE:
+    def react(self, data_in: Sequence[INPUT_TYPE]) -> Sequence[OUTPUT_TYPE]:
         return self._react(data_in)
 
-    @staticmethod
-    def error(data_a: OUTPUT_TYPE, data_b: OUTPUT_TYPE) -> float:
-        return float(data_a != data_b)
+    def __str__(self):
+        return self.__class__.__name__
 
 
 class Predictor(System[INPUT_TYPE, OUTPUT_TYPE]):
     def __init__(self, *args, **kwargs):
         raise NotImplementedError()
 
-    def _react(self, data_in: INPUT_TYPE) -> OUTPUT_TYPE:
+    def _react(self, data_in: Sequence[INPUT_TYPE]) -> Sequence[OUTPUT_TYPE]:
         raise NotImplementedError()
 
-    def predict(self, data_in: INPUT_TYPE) -> OUTPUT_TYPE:
+    def fit(self, data_in: Sequence[INPUT_TYPE], data_out: Sequence[OUTPUT_TYPE]):
+        raise NotImplementedError()
+
+    def predict(self, data_in: Sequence[INPUT_TYPE]) -> Sequence[OUTPUT_TYPE]:
         return self._react(data_in)
 
 
-class Task(System[INPUT_TYPE, OUTPUT_TYPE]):
+SENSOR_TYPE = TypeVar("SENSOR_TYPE")
+MOTOR_TYPE = TypeVar("MOTOR_TYPE")
+
+
+class Task(System[MOTOR_TYPE, SENSOR_TYPE]):
     def __init__(self, *args, **kwargs):
         raise NotImplementedError()
 
-    def _react(self, data_in: INPUT_TYPE) -> OUTPUT_TYPE:
+    def _react(self, data_in: MOTOR_TYPE) -> SENSOR_TYPE:
         raise NotImplementedError()
 
-    def _evaluate(self, data_in: INPUT_TYPE) -> float:
+    def _evaluate_action(self, data_in: MOTOR_TYPE) -> float:
         raise NotImplementedError()
 
-    def respond(self, data_in: Optional[INPUT_TYPE]) -> Tuple[OUTPUT_TYPE, float]:
-        return self._react(data_in), self._evaluate(data_in)
+    def respond(self, data_in: Optional[MOTOR_TYPE]) -> Tuple[SENSOR_TYPE, float]:
+        return self._react(data_in), self._evaluate_action(data_in)
 
 
-class Controller(System[INPUT_TYPE, OUTPUT_TYPE]):
+class Controller(System[SENSOR_TYPE, MOTOR_TYPE]):
     def __init__(self, *args, **kwargs):
         raise NotImplementedError()
 
-    def _react(self, data_in: INPUT_TYPE) -> OUTPUT_TYPE:
+    def _react(self, data_in: SENSOR_TYPE) -> MOTOR_TYPE:
         raise NotImplementedError()
 
     def _integrate(self, evaluation: float):
         raise NotImplementedError()
 
-    def decide(self, data_in: Optional[INPUT_TYPE], eval_in: float) -> OUTPUT_TYPE:
-        self._integrate(eval_in)
+    def decide(self, data_in: Optional[SENSOR_TYPE], evaluation: float) -> MOTOR_TYPE:
+        self._integrate(evaluation)
         return self._react(data_in)
