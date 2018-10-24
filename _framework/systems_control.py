@@ -35,6 +35,5 @@ class NominalRandomController(Controller[NOMINAL_SENSOR, NOMINAL_MOTOR]):
 
 
 class NominalSarsaController(Controller[NOMINAL_SENSOR, NOMINAL_MOTOR]):
-    def __init__(self, predictor: Predictor[NOMINAL_MOTOR, NOMINAL_SENSOR] = None):
-        self.predictor = predictor      # if predictor present attach state to sensor data
+    def __init__(self):
         raise NotImplementedError()

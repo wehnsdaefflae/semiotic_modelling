@@ -12,6 +12,7 @@ CONTROLLER = TypeVar("CONTROLLER", bound=Controller)
 
 
 class InteractionStream(ExampleStream[MOTOR_TYPE, SENSOR_TYPE]):
+    # todo: pass class and arguments instead of instances, also pass reference to predictor instance to augment sensor
     def __init__(self, task: TASK[MOTOR_TYPE, SENSOR_TYPE], controller: CONTROLLER[SENSOR_TYPE, MOTOR_TYPE]):
         super().__init__()
 

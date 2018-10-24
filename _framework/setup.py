@@ -109,7 +109,7 @@ class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
         self.no_experiment = 0
 
     def create(self) -> Experiment[TYPE_A, TYPE_B]:
-        # todo: 3. instantiate tasks and controllers for streams here
+        # todo: 3. instantiate tasks and controllers for streams here?
 
         predictor = self.predictor_class(**self.predictor_args)
         train_system = self.train_stream_class(**self.train_stream_args)
@@ -196,7 +196,6 @@ if __name__ == "__main__":
     controller_test = NominalRandomController(task_train.motor_space())
 
     # todo: 2. this is ONE instance, needs an instance for each experiment
-    # todo: 1. controller needs reference to predictor!
     experiment_factories = (
         ExperimentFactory(
             NominalLastPredictor, dict(),
