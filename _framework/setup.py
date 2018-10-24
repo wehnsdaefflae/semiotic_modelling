@@ -139,7 +139,7 @@ class Setup(Generic[TYPE_A, TYPE_B]):
     def _log(self, name: str, result: DictList[str, Sequence[float]]):
         header = []
         values_str = []
-        for _plot_name, _value_list in sorted(result, key=lambda _x: _x[0]):
+        for _plot_name, _value_list in sorted(result.items(), key=lambda _x: _x[0]):
             column_prefix = name + " " + _plot_name
             for _i, _v in enumerate(_value_list):
                 header.append(column_prefix + f"{_i:03d}")
