@@ -42,10 +42,12 @@ class Experiment(Generic[TYPE_A, TYPE_B]):
         return self.name
 
     def _single_step(self):
-        examples_train = self.stream_train.next()
+        situation = self.predictor.get_state()
+
+        examples_train = self.stream_train.next(perception=situation)  # not nice...
         inputs_train, targets_train = zip(*examples_train)
 
-        examples_test = self.stream_test.next()
+        examples_test = self.stream_test.next(perception=situation)
         inputs_test, targets_test = zip(*examples_test)
 
         reward_train = self.stream_test.get_last_reward()
@@ -109,7 +111,7 @@ class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
         self.no_experiment = 0
 
     def create(self) -> Experiment[TYPE_A, TYPE_B]:
-        # todo: 3. instantiate tasks and controllers for streams here?
+        # todo: give predictor to stream
 
         predictor = self.predictor_class(**self.predictor_args)
         train_system = self.train_stream_class(**self.train_stream_args)

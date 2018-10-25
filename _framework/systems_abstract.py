@@ -18,6 +18,9 @@ class System(Generic[INPUT_TYPE, OUTPUT_TYPE], PersistenceMixin):
     def react(self, data_in: Sequence[INPUT_TYPE]) -> Sequence[OUTPUT_TYPE]:
         return self._react(data_in)
 
+    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
+        raise NotImplementedError()
+
 
 class Predictor(System[INPUT_TYPE, OUTPUT_TYPE]):
     def _react(self, data_in: Sequence[INPUT_TYPE]) -> Sequence[OUTPUT_TYPE]:
