@@ -1,5 +1,5 @@
 # coding=utf-8
-from typing import TypeVar, Tuple, Optional, Any
+from typing import TypeVar, Tuple, Optional, Any, Type, Dict
 
 from _framework.streams_abstract import ExampleStream
 from _framework.systems_abstract import Task, Controller, Predictor
@@ -13,10 +13,17 @@ PREDICTOR = TypeVar("PREDICTOR", bound=Predictor)
 
 
 class InteractionStream(ExampleStream[MOTOR_TYPE, SENSOR_TYPE]):
-    def __init__(self, task: TASK[MOTOR_TYPE, SENSOR_TYPE], controller: CONTROLLER[SENSOR_TYPE, MOTOR_TYPE]):
-        super().__init__()
+    def __init__(self,
+                 predictor: PREDICTOR[MOTOR_TYPE, SENSOR_TYPE],
+                 task_class: Type[TASK[MOTOR_TYPE, SENSOR_TYPE]],
+                 task_args: Dict[str, Any],
+                 controller: CONTROLLER[SENSOR_TYPE, MOTOR_TYPE],
+                 learn_control: bool):
+        super().__init__(learn_control)
 
-        self._task = task
+        self._predictor = predictor
+
+        self._task = task_class(**task_args)
         self._controller = controller
 
         self._motor = None
@@ -25,12 +32,14 @@ class InteractionStream(ExampleStream[MOTOR_TYPE, SENSOR_TYPE]):
     def __str__(self):
         return f"({str(self._task):s}, {str(self._controller):s})"
 
-    def next(self, additional_sensor: Any = None) -> Tuple[Tuple[MOTOR_TYPE, SENSOR_TYPE], ...]:
+    def next(self) -> Tuple[Tuple[MOTOR_TYPE, SENSOR_TYPE], ...]:
         sensor, reward = self._task.respond(self._motor)
+        perception = sensor + self._predictor.get_state()
 
-        perception = sensor if additional_sensor is None else sensor + additional_sensor
+        if self._learn_control:
+            self._controller.integrate(reward)
 
-        self._motor = self._controller.decide(perception, reward)
+        self._motor = self._controller.decide(perception)
 
         examples = ((self._last_sensor, self._motor), sensor),
 

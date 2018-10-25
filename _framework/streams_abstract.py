@@ -9,13 +9,14 @@ OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
 
 
 class ExampleStream(Generic[INPUT_TYPE, OUTPUT_TYPE]):
-    def __init__(self):
+    def __init__(self, learn_control: bool):
+        self._learn_control = learn_control
         self._last_reward = 0.
 
     def __str__(self):
         raise NotImplementedError()
 
-    def next(self, perception: Any = None) -> Tuple[Tuple[INPUT_TYPE, OUTPUT_TYPE], ...]:
+    def next(self) -> Tuple[Tuple[INPUT_TYPE, OUTPUT_TYPE], ...]:
         raise NotImplementedError()
 
     def get_last_reward(self) -> float:

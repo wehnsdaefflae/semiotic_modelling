@@ -21,6 +21,9 @@ class NominalNoneController(Controller[NOMINAL_SENSOR, Type[None]]):
     def _react(self, data_in: Any) -> Type[None]:
         return None
 
+    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
+        return tuple()
+
 
 class NominalRandomController(Controller[NOMINAL_SENSOR, NOMINAL_MOTOR]):
     def __init__(self, motor_space: Collection[NOMINAL_MOTOR]):
@@ -33,7 +36,13 @@ class NominalRandomController(Controller[NOMINAL_SENSOR, NOMINAL_MOTOR]):
         action, = random.sample(self.motor_space, 1)
         return action
 
+    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
+        return tuple()
+
 
 class NominalSarsaController(Controller[NOMINAL_SENSOR, NOMINAL_MOTOR]):
     def __init__(self):
         raise NotImplementedError()
+
+    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
+        return tuple()

@@ -24,70 +24,68 @@ TYPE_B = TypeVar("TYPE_B")
 class Experiment(Generic[TYPE_A, TYPE_B]):
     def __init__(self,
                  name: str,
-                 predictor: Predictor[Tuple[TYPE_A, TYPE_B], TYPE_A],
+                 predictor: Predictor[TYPE_B, TYPE_A],
                  stream_train: ExampleStream[TYPE_B, TYPE_A],
                  stream_test: ExampleStream[TYPE_B, TYPE_A]):
 
-        self.name = name
+        self._name = name
 
-        self.predictor = predictor
-        self.stream_train = stream_train
-        self.stream_test = stream_test
+        self._predictor = predictor
+        self._stream_train = stream_train
+        self._stream_test = stream_test
 
-        self.data = dict()
+        self._data = dict()
 
-        self.iterations = 0
+        self._iterations = 0
 
     def __str__(self):
-        return self.name
+        return self._name
 
     def _single_step(self):
-        situation = self.predictor.get_state()
-
-        examples_train = self.stream_train.next(perception=situation)  # not nice...
+        examples_train = self._stream_train.next()
         inputs_train, targets_train = zip(*examples_train)
 
-        examples_test = self.stream_test.next(perception=situation)
+        examples_test = self._stream_test.next()
         inputs_test, targets_test = zip(*examples_test)
 
-        reward_train = self.stream_test.get_last_reward()
-        reward_test = self.stream_train.get_last_reward()
+        reward_train = self._stream_test.get_last_reward()
+        reward_test = self._stream_train.get_last_reward()
 
         this_time = time.time()
 
-        outputs_train = self.predictor.predict(inputs_train)
-        outputs_test = self.predictor.predict(inputs_test)
-        self.predictor.fit(inputs_train, targets_train)
+        outputs_train = self._predictor.predict(inputs_train)
+        outputs_test = self._predictor.predict(inputs_test)
+        self._predictor.fit(inputs_train, targets_train)
 
         duration = time.time() - this_time
-        errors_train = self.stream_train.error(outputs_train, targets_train)
-        errors_test = self.stream_train.error(outputs_test, targets_test)
+        errors_train = self._stream_train.error(outputs_train, targets_train)
+        errors_test = self._stream_train.error(outputs_test, targets_test)
 
         return duration, errors_train, errors_test, reward_train, reward_test
 
     def step(self, steps: int) -> Dict[str, float]:
-        avrg_train_error, avrg_test_error = self.data.get("error train", 0.), self.data.get("error test", 0.)
-        avrg_train_reward, avrg_test_reward = self.data.get("reward train", 0.), self.data.get("reward test", 0.)
-        avrg_duration = self.data.get("duration", 0.)
+        avrg_train_error, avrg_test_error = self._data.get("error train", 0.), self._data.get("error test", 0.)
+        avrg_train_reward, avrg_test_reward = self._data.get("reward train", 0.), self._data.get("reward test", 0.)
+        avrg_duration = self._data.get("duration", 0.)
 
         for _ in range(steps):
             duration, train_error, test_error, train_reward, test_reward = self._single_step()
 
-            avrg_train_error = smear(avrg_train_error, train_error, self.iterations)
-            avrg_train_reward = smear(avrg_train_reward, train_reward, self.iterations)
+            avrg_train_error = smear(avrg_train_error, train_error, self._iterations)
+            avrg_train_reward = smear(avrg_train_reward, train_reward, self._iterations)
 
-            avrg_test_error = smear(avrg_test_error, test_error, self.iterations)
-            avrg_test_reward = smear(avrg_test_reward, test_reward, self.iterations)
+            avrg_test_error = smear(avrg_test_error, test_error, self._iterations)
+            avrg_test_reward = smear(avrg_test_reward, test_reward, self._iterations)
 
-            avrg_duration = smear(avrg_duration, duration, self.iterations)
+            avrg_duration = smear(avrg_duration, duration, self._iterations)
 
-            self.iterations += 1
+            self._iterations += 1
 
-        self.data["error train"], self.data["error test"] = avrg_train_error, avrg_test_error
-        self.data["reward train"], self.data["reward test"] = avrg_train_reward, avrg_test_reward
-        self.data["duration"] = avrg_duration
+        self._data["error train"], self._data["error test"] = avrg_train_error, avrg_test_error
+        self._data["reward train"], self._data["reward test"] = avrg_train_reward, avrg_test_reward
+        self._data["duration"] = avrg_duration
 
-        return dict(self.data)
+        return dict(self._data)
 
 
 SENSOR_TYPE = TypeVar("SENSOR_TYPE")
@@ -100,43 +98,46 @@ STREAM = TypeVar("STREAM", bound=ExampleStream)
 
 class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
     def __init__(self,
-                 predictor_class: Type[PREDICTOR[Tuple[TYPE_A, TYPE_B], TYPE_A]], predictor_args: Dict[str, Any],
-                 train_stream_class: Type[STREAM[TYPE_B, TYPE_A]], train_stream_args: Dict[str, Any],
-                 test_stream_class: Type[STREAM[TYPE_B, TYPE_A]], test_stream_args: Dict[str, Any]):
+                 predictor_class: Type[PREDICTOR[Tuple[TYPE_A, TYPE_B], TYPE_A]],
+                 predictor_args: Dict[str, Any],
+                 stream_class: Type[STREAM[TYPE_B, TYPE_A]],
+                 train_stream_args: Dict[str, Any], test_stream_args: Dict[str, Any]):
 
-        self.predictor_class, self.predictor_args = predictor_class, predictor_args
-        self.train_stream_class, self.train_stream_args = train_stream_class, train_stream_args
-        self.test_stream_class, self.test_stream_args = test_stream_class, test_stream_args
+        self._predictor_class, self._predictor_args = predictor_class, predictor_args
+        self._stream_class = stream_class
+        self._train_stream_args, self._test_stream_args = train_stream_args, test_stream_args
 
-        self.no_experiment = 0
+        self._train_stream_args["learn_control"] = True
+        self._test_stream_args["learn_control"] = False
+
+        self._no_experiment = 0
 
     def create(self) -> Experiment[TYPE_A, TYPE_B]:
-        # todo: give predictor to stream
+        predictor = self._predictor_class(**self._predictor_args)
 
-        predictor = self.predictor_class(**self.predictor_args)
-        train_system = self.train_stream_class(**self.train_stream_args)
-        test_system = self.test_stream_class(**self.test_stream_args)
+        train_system = self._stream_class(**self._train_stream_args)
+        test_system = self._stream_class(**self._test_stream_args)
 
-        name = f"({str(predictor):s}, {str(train_system):s}, {str(test_system):s}) #{self.no_experiment:03d}"
+        name = f"({str(predictor):s}, {str(train_system):s}, {str(test_system):s}) #{self._no_experiment:03d}"
         experiment = Experiment(name, predictor, train_system, test_system)
 
-        self.no_experiment += 1
+        self._no_experiment += 1
         return experiment
 
 
 class Setup(Generic[TYPE_A, TYPE_B]):
     def __init__(self, factories: Collection[ExperimentFactory[TYPE_A, TYPE_B]], no_instances: int, iterations: int, step_size: int = 1000):
-        self.no_instances = no_instances
-        self.iterations = iterations
-        self.step_size = step_size
+        self._no_instances = no_instances
+        self._iterations = iterations
+        self._step_size = step_size
 
-        self.factories = factories
-        self.experiments = tuple((_f.create() for _ in range(self.no_instances)) for _f in self.factories)
+        self._factories = factories
+        self._experiments = tuple((_f.create() for _ in range(self._no_instances)) for _f in self._factories)
 
-        self.finished_batches = 0
+        self._finished_batches = 0
 
-        self.axes = "reward", "error", "duration"
-        SemioticVisualization.initialize(self.axes, no_instances, length=iterations)
+        self._axes = "reward", "error", "duration"
+        SemioticVisualization.initialize(self._axes, no_instances, length=iterations)
 
     def _log(self, name: str, result: DictList[str, Sequence[float]]):
         header = []
@@ -150,7 +151,7 @@ class Setup(Generic[TYPE_A, TYPE_B]):
 
     def _plot(self, name: str, each_result: DictList[str, Sequence[float]]):
         for _plot_name, _values in each_result.items():
-            for _axis_name in self.axes:
+            for _axis_name in self._axes:
                 if _axis_name in _plot_name:
                     label = name + " " + _plot_name
                     SemioticVisualization.plot(_axis_name, label, _values)
@@ -158,7 +159,7 @@ class Setup(Generic[TYPE_A, TYPE_B]):
     def _batch(self, no_steps: int):
         result_array = DictList()
 
-        for _i, each_array in enumerate(self.experiments):
+        for _i, each_array in enumerate(self._experiments):
             full_name = ""
             for each_experiment in each_array:
                 if 0 >= len(full_name):
@@ -172,37 +173,42 @@ class Setup(Generic[TYPE_A, TYPE_B]):
             self._plot(name, result_array)
             result_array.clear()
 
-        self.finished_batches += 1
+        self._finished_batches += 1
 
     def run_experiment(self):
-        if self.iterations < 0:
+        if self._iterations < 0:
             while True:
-                self._batch(self.step_size)
+                self._batch(self._step_size)
                 if Timer.time_passed(2000):
-                    Logger.log(f"finished iteration #{self.finished_batches * self.step_size:d}")
+                    Logger.log(f"finished iteration #{self._finished_batches * self._step_size:d}")
 
-        with tqdm.tqdm(total=self.iterations) as progress_bar:
-            for _ in range(self.iterations // self.step_size):
-                self._batch(self.step_size)
-                progress_bar.update(self.step_size)
+        with tqdm.tqdm(total=self._iterations) as progress_bar:
+            for _ in range(self._iterations // self._step_size):
+                self._batch(self._step_size)
+                progress_bar.update(self._step_size)
 
-            remainder = self.iterations % self.step_size
+            remainder = self._iterations % self._step_size
             self._batch(remainder)
             progress_bar.update(remainder)
 
 
 if __name__ == "__main__":
-    task_train = NominalMyTask()
-    controller_train = NominalRandomController(task_train.motor_space())
-    task_test = NominalMyTask()
-    controller_test = NominalRandomController(task_train.motor_space())
+    controller = NominalRandomController({True, False})
 
-    # todo: 2. this is ONE instance, needs an instance for each experiment
     experiment_factories = (
         ExperimentFactory(
             NominalLastPredictor, dict(),
-            InteractionStream, {"task": task_train, "controller": controller_train},
-            InteractionStream, {"task": task_test, "controller": controller_test}),
+            InteractionStream,
+            {
+                "task_class": NominalMyTask,
+                "task_args": dict(),
+                "controller": controller
+            }, {
+                "task_class": NominalMyTask,
+                "task_args": dict(),
+                "controller": controller
+            },
+        ),
     )
 
     setup = Setup(experiment_factories, 2, 1000, step_size=100)

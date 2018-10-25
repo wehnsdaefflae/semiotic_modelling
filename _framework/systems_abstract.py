@@ -32,6 +32,9 @@ class Predictor(System[INPUT_TYPE, OUTPUT_TYPE]):
     def predict(self, data_in: Sequence[INPUT_TYPE]) -> Sequence[OUTPUT_TYPE]:
         return self._react(data_in)
 
+    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
+        raise NotImplementedError()
+
 
 SENSOR_TYPE = TypeVar("SENSOR_TYPE")
 MOTOR_TYPE = TypeVar("MOTOR_TYPE")
@@ -50,14 +53,23 @@ class Task(System[MOTOR_TYPE, SENSOR_TYPE]):
     def respond(self, data_in: Optional[MOTOR_TYPE]) -> Tuple[SENSOR_TYPE, float]:
         return self._react(data_in), self._evaluate_action(data_in)
 
+    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
+        raise NotImplementedError()
 
+
+PREDICTOR = TypeVar("PREDICTOR", bound=Predictor)
+
+
+# controller and predictor must be identical in training and test
 class Controller(System[SENSOR_TYPE, MOTOR_TYPE]):
     def _react(self, data_in: SENSOR_TYPE) -> MOTOR_TYPE:
         raise NotImplementedError()
 
-    def _integrate(self, evaluation: float):
+    def integrate(self, evaluation: float):
         raise NotImplementedError()
 
-    def decide(self, data_in: Optional[SENSOR_TYPE], evaluation: float) -> MOTOR_TYPE:
-        self._integrate(evaluation)
+    def decide(self, data_in: Optional[SENSOR_TYPE]) -> MOTOR_TYPE:
         return self._react(data_in)
+
+    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
+        raise NotImplementedError()

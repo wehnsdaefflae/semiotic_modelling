@@ -21,6 +21,9 @@ class NominalConstantPredictor(Predictor[NOMINAL_INPUT, NOMINAL_OUTPUT]):
         if len(self.last_output) < 1:
             self.last_output.extend(data_out)
 
+    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
+        return tuple()
+
 
 class NominalLastPredictor(Predictor[NOMINAL_INPUT, NOMINAL_OUTPUT]):
     def __init__(self):
@@ -32,3 +35,6 @@ class NominalLastPredictor(Predictor[NOMINAL_INPUT, NOMINAL_OUTPUT]):
     def fit(self, data_in: Sequence[NOMINAL_INPUT], data_out: Sequence[NOMINAL_OUTPUT]):
         self.last_output.clear()
         self.last_output.extend(data_out)
+
+    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
+        return tuple()
