@@ -193,18 +193,19 @@ class Setup(Generic[TYPE_A, TYPE_B]):
 
 
 if __name__ == "__main__":
-    controller = NominalRandomController({True, False})
+    task_class = NominalMyTask
+    controller = NominalRandomController(task_class.motor_space())
 
     experiment_factories = (
         ExperimentFactory(
             NominalLastPredictor, dict(),
             InteractionStream,
             {
-                "task_class": NominalMyTask,
+                "task_class": task_class,
                 "task_args": dict(),
                 "controller": controller
             }, {
-                "task_class": NominalMyTask,
+                "task_class": task_class,
                 "task_args": dict(),
                 "controller": controller
             },

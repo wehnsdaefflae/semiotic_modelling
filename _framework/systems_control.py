@@ -2,7 +2,7 @@
 import random
 from typing import Any, Type, Collection, Hashable, Tuple, Optional
 
-from _framework.systems_abstract import Controller, Predictor, SENSOR_TYPE
+from _framework.systems_abstract import Controller
 
 NOMINAL_MOTOR = Hashable
 NOMINAL_SENSOR = Hashable
@@ -15,7 +15,7 @@ class NominalNoneController(Controller[NOMINAL_SENSOR, Type[None]]):
     def __init__(self):
         super().__init__()
 
-    def integrate(self, data_in: Optional[SENSOR_TYPE], evaluation: float):
+    def integrate(self, data_in: Optional[NOMINAL_SENSOR], evaluation: float):
         pass
 
     def _react(self, data_in: Any) -> Type[None]:
@@ -29,7 +29,7 @@ class NominalRandomController(Controller[NOMINAL_SENSOR, NOMINAL_MOTOR]):
     def __init__(self, motor_space: Collection[NOMINAL_MOTOR]):
         self.motor_space = motor_space
 
-    def integrate(self, data_in: Optional[SENSOR_TYPE], evaluation: float):
+    def integrate(self, data_in: Optional[NOMINAL_SENSOR], evaluation: float):
         pass
 
     def _react(self, data_in: NOMINAL_SENSOR) -> NOMINAL_MOTOR:
