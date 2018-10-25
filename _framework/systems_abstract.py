@@ -5,7 +5,6 @@ from tools.io_tools import PersistenceMixin
 
 INPUT_TYPE = TypeVar("INPUT_TYPE")
 OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
-EXAMPLE = Tuple[INPUT_TYPE, OUTPUT_TYPE]
 
 
 class System(Generic[INPUT_TYPE, OUTPUT_TYPE], PersistenceMixin):
@@ -47,7 +46,8 @@ class Task(System[MOTOR_TYPE, SENSOR_TYPE]):
     def _evaluate_action(self, data_in: MOTOR_TYPE) -> float:
         raise NotImplementedError()
 
-    def motor_space(self) -> Collection[MOTOR_TYPE]:
+    @staticmethod
+    def motor_space() -> Collection[MOTOR_TYPE]:
         raise NotImplementedError
 
     def respond(self, data_in: Optional[MOTOR_TYPE]) -> Tuple[SENSOR_TYPE, float]:
@@ -57,15 +57,11 @@ class Task(System[MOTOR_TYPE, SENSOR_TYPE]):
         raise NotImplementedError()
 
 
-PREDICTOR = TypeVar("PREDICTOR", bound=Predictor)
-
-
-# controller and predictor must be identical in training and test
 class Controller(System[SENSOR_TYPE, MOTOR_TYPE]):
     def _react(self, data_in: SENSOR_TYPE) -> MOTOR_TYPE:
         raise NotImplementedError()
 
-    def integrate(self, evaluation: float):
+    def integrate(self, data_in: Optional[SENSOR_TYPE], evaluation: float):
         raise NotImplementedError()
 
     def decide(self, data_in: Optional[SENSOR_TYPE]) -> MOTOR_TYPE:

@@ -1,5 +1,5 @@
 # coding=utf-8
-from typing import TypeVar, Tuple, Optional, Any, Type, Dict
+from typing import TypeVar, Tuple, Any, Type, Dict
 
 from _framework.streams_abstract import ExampleStream
 from _framework.systems_abstract import Task, Controller, Predictor
@@ -9,12 +9,11 @@ SENSOR_TYPE = TypeVar("SENSOR_TYPE")
 
 TASK = TypeVar("TASK", bound=Task)
 CONTROLLER = TypeVar("CONTROLLER", bound=Controller)
-PREDICTOR = TypeVar("PREDICTOR", bound=Predictor)
 
 
 class InteractionStream(ExampleStream[MOTOR_TYPE, SENSOR_TYPE]):
     def __init__(self,
-                 predictor: PREDICTOR[MOTOR_TYPE, SENSOR_TYPE],
+                 predictor: Predictor[MOTOR_TYPE, SENSOR_TYPE],
                  task_class: Type[TASK[MOTOR_TYPE, SENSOR_TYPE]],
                  task_args: Dict[str, Any],
                  controller: CONTROLLER[SENSOR_TYPE, MOTOR_TYPE],
@@ -28,6 +27,7 @@ class InteractionStream(ExampleStream[MOTOR_TYPE, SENSOR_TYPE]):
 
         self._motor = None
         self._last_sensor = None
+        self._last_perception = None
 
     def __str__(self):
         return f"({str(self._task):s}, {str(self._controller):s})"
@@ -37,7 +37,7 @@ class InteractionStream(ExampleStream[MOTOR_TYPE, SENSOR_TYPE]):
         perception = sensor + self._predictor.get_state()
 
         if self._learn_control:
-            self._controller.integrate(reward)
+            self._controller.integrate(self._last_perception, reward)
 
         self._motor = self._controller.decide(perception)
 
@@ -45,5 +45,6 @@ class InteractionStream(ExampleStream[MOTOR_TYPE, SENSOR_TYPE]):
 
         self._last_reward = reward
         self._last_sensor = sensor
+        self._last_perception = perception
 
         return examples

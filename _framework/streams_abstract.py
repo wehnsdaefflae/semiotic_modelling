@@ -2,7 +2,7 @@
 import collections
 import numbers
 from math import sqrt
-from typing import TypeVar, Generic, Tuple, Sequence, Any, Optional
+from typing import TypeVar, Generic, Tuple, Sequence
 
 INPUT_TYPE = TypeVar("INPUT_TYPE")
 OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
