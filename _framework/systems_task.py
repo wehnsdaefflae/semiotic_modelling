@@ -10,18 +10,19 @@ RATIONAL_MOTOR = Tuple[float, ...]
 RATIONAL_SENSOR = Tuple[float, ...]
 
 
-class NominalMyTask(Task[NOMINAL_MOTOR, NOMINAL_SENSOR]):
+class NominalGridWorld(Task[NOMINAL_MOTOR, NOMINAL_SENSOR]):
     def __init__(self):
-        pass
+        super().__init__()
+        raise NotImplementedError()
 
     def _react(self, data_in: NOMINAL_MOTOR) -> NOMINAL_SENSOR:
-        pass
+        raise NotImplementedError()
 
     def _evaluate_action(self, data_in: NOMINAL_MOTOR) -> float:
-        pass
+        raise NotImplementedError()
 
     def get_state(self) -> Tuple[Tuple[int, ...], ...]:
-        pass
+        raise NotImplementedError()
 
     @staticmethod
     def motor_space() -> Collection[NOMINAL_MOTOR]:

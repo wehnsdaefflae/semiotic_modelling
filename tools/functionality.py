@@ -187,4 +187,4 @@ class Borg:
 
 
 if __name__ == "__main__":
-    pass
+    assert False

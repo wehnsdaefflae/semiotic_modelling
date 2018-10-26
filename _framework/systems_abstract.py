@@ -22,13 +22,16 @@ class System(Generic[INPUT_TYPE, OUTPUT_TYPE], PersistenceMixin):
 
 
 class Predictor(System[INPUT_TYPE, OUTPUT_TYPE]):
-    def _react(self, data_in: Tuple[INPUT_TYPE]) -> Tuple[OUTPUT_TYPE]:
+    def __init__(self, no_states: int, *args, **kwargs):
+        self.no_states = no_states
+
+    def _react(self, data_in: Tuple[INPUT_TYPE, ...]) -> Tuple[OUTPUT_TYPE, ...]:
         raise NotImplementedError()
 
-    def fit(self, data_in: Tuple[INPUT_TYPE], data_out: Tuple[OUTPUT_TYPE]):
+    def fit(self, data_in: Tuple[INPUT_TYPE, ...], data_out: Tuple[OUTPUT_TYPE, ...]):
         raise NotImplementedError()
 
-    def predict(self, data_in: Tuple[INPUT_TYPE]) -> Tuple[OUTPUT_TYPE]:
+    def predict(self, data_in: Tuple[INPUT_TYPE, ...]) -> Tuple[OUTPUT_TYPE, ...]:
         return self._react(data_in)
 
     def get_state(self) -> Tuple[Tuple[int, ...], ...]:
@@ -40,6 +43,9 @@ MOTOR_TYPE = TypeVar("MOTOR_TYPE")
 
 
 class Task(System[MOTOR_TYPE, SENSOR_TYPE]):
+    def __init__(self, *args, **kwargs):
+        pass
+
     def _react(self, data_in: MOTOR_TYPE) -> SENSOR_TYPE:
         raise NotImplementedError()
 
@@ -58,6 +64,9 @@ class Task(System[MOTOR_TYPE, SENSOR_TYPE]):
 
 
 class Controller(System[SENSOR_TYPE, MOTOR_TYPE]):
+    def __init__(self, *args, **kwargs):
+        pass
+
     def _react(self, data_in: SENSOR_TYPE) -> MOTOR_TYPE:
         raise NotImplementedError()
 

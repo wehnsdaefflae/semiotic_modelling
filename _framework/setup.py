@@ -7,11 +7,12 @@ from typing import Tuple, Any, TypeVar, Generic, Dict, Collection, Sequence, Typ
 import tqdm
 
 from _framework.streams_interaction import InteractionStream
+from _framework.streams_linear import NominalAscendingDescending
 from _framework.systems_abstract import Predictor, Controller, Task
 from _framework.streams_abstract import ExampleStream
 from _framework.systems_control import NominalRandomController
 from _framework.systems_prediction import NominalLastPredictor
-from _framework.systems_task import NominalMyTask
+from _framework.systems_task import NominalGridWorld
 from _live_dash_plotly.send_data import SemioticVisualization
 from tools.functionality import DictList, smear
 from tools.logger import Logger, DataLogger
@@ -91,17 +92,12 @@ class Experiment(Generic[TYPE_A, TYPE_B]):
 SENSOR_TYPE = TypeVar("SENSOR_TYPE")
 MOTOR_TYPE = TypeVar("MOTOR_TYPE")
 
-PREDICTOR = TypeVar("PREDICTOR", bound=Predictor)
-CONTROLLER = TypeVar("CONTROLLER", bound=Controller)
-STREAM = TypeVar("STREAM", bound=ExampleStream)
-# todo: check covariance invariance etc
-
 
 class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
     def __init__(self,
-                 predictor_def: Tuple[Type[PREDICTOR[Tuple[TYPE_A, TYPE_B], TYPE_A]], Dict[str, Any]],
-                 streams_def: Tuple[Type[STREAM[TYPE_B, TYPE_A]], Dict[str, Any], Dict[str, Any]],
-                 controller_def: Optional[Tuple[Type[CONTROLLER], Dict[str, Any]]] = None):
+                 predictor_def: Tuple[Type[Predictor[Tuple[TYPE_A, TYPE_B], TYPE_A]], Dict[str, Any]],
+                 streams_def: Tuple[Type[ExampleStream[TYPE_B, TYPE_A]], Dict[str, Any], Dict[str, Any]],
+                 controller_def: Optional[Tuple[Type[Controller], Dict[str, Any]]] = None):
 
         self._predictor_class, self._predictor_args = predictor_def
         self._stream_class, self._train_stream_args, self._test_stream_args = streams_def
@@ -142,7 +138,7 @@ class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
 
 
 class Setup(Generic[TYPE_A, TYPE_B]):
-    def __init__(self, factories: Collection[ExperimentFactory[TYPE_A, TYPE_B]], no_instances: int, iterations: int, step_size: int = 1000):
+    def __init__(self, factories: Collection[ExperimentFactory[TYPE_A, TYPE_B]], no_instances: int, iterations: int, step_size: int = 1000, visualization: bool = True):
         self._no_instances = no_instances
         self._iterations = iterations
         self._step_size = step_size
@@ -153,7 +149,9 @@ class Setup(Generic[TYPE_A, TYPE_B]):
         self._finished_batches = 0
 
         self._axes = "reward", "error", "duration"
-        SemioticVisualization.initialize(self._axes, no_instances, length=iterations)
+        self._visualization = visualization
+        if self._visualization:
+            SemioticVisualization.initialize(self._axes, no_instances, length=iterations)
 
     @staticmethod
     def _log(name: str, result: DictList[str, Sequence[float]]):
@@ -188,7 +186,8 @@ class Setup(Generic[TYPE_A, TYPE_B]):
             name = full_name.split(" #")[0]
 
             Setup._log(name, result_array)
-            Setup._plot(name, self._axes, result_array)
+            if self._visualization:
+                Setup._plot(name, self._axes, result_array)
 
             result_array.clear()
 
@@ -211,7 +210,7 @@ class Setup(Generic[TYPE_A, TYPE_B]):
             progress_bar.update(remainder)
 
 
-if __name__ == "__main__":
+def interactive():
     experiment_factories = (
         ExperimentFactory(
             (
@@ -220,11 +219,11 @@ if __name__ == "__main__":
             ), (
                 InteractionStream,
                 {
-                    "task_class": NominalMyTask,
+                    "task_class": NominalGridWorld,
                     "task_args": dict(),
                     "history_length": 1
                 }, {
-                    "task_class": NominalMyTask,
+                    "task_class": NominalGridWorld,
                     "task_args": dict(),
                     "history_length": 1
                 }
@@ -237,3 +236,25 @@ if __name__ == "__main__":
 
     setup = Setup(experiment_factories, 2, 1000, step_size=100)
     setup.run_experiment()
+
+
+def simple():
+    experiment_factories = (
+        ExperimentFactory(
+            (
+                NominalLastPredictor,
+                {"no_states": 1}
+            ), (
+                NominalAscendingDescending,
+                dict(),
+                dict()
+            )
+        ),
+    )
+
+    setup = Setup(experiment_factories, 2, 1000, step_size=100, visualization=False)
+    setup.run_experiment()
+
+
+if __name__ == "__main__":
+    simple()

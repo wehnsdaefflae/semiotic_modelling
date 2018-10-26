@@ -27,6 +27,7 @@ class NominalNoneController(Controller[NOMINAL_SENSOR, Type[None]]):
 
 class NominalRandomController(Controller[NOMINAL_SENSOR, NOMINAL_MOTOR]):
     def __init__(self, motor_space: Collection[NOMINAL_MOTOR]):
+        super().__init__()
         self.motor_space = motor_space
 
     def integrate(self, data_in: Optional[NOMINAL_SENSOR], evaluation: float):
@@ -42,6 +43,7 @@ class NominalRandomController(Controller[NOMINAL_SENSOR, NOMINAL_MOTOR]):
 
 class NominalSarsaController(Controller[NOMINAL_SENSOR, NOMINAL_MOTOR]):
     def __init__(self):
+        super().__init__()
         raise NotImplementedError()
 
     def get_state(self) -> Tuple[Tuple[int, ...], ...]:

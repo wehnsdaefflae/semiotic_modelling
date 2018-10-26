@@ -5,7 +5,6 @@ from typing import Sequence, Tuple, Dict, Any
 
 import requests
 
-from tools.functionality import Borg
 from tools.logger import Logger
 
 IP = "127.0.0.1"
