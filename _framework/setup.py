@@ -15,7 +15,7 @@ from _framework.systems_prediction import NominalLastPredictor
 from _framework.systems_task import NominalGridWorld
 from _live_dash_plotly.send_data import SemioticVisualization
 from tools.functionality import DictList, smear
-from tools.logger import Logger, DataLogger
+from tools.logger import Logger, DataLogger, get_time_string
 from tools.timer import Timer
 
 TYPE_A = TypeVar("TYPE_A")
@@ -144,7 +144,7 @@ class Setup(Generic[TYPE_A, TYPE_B]):
         self._step_size = step_size
 
         self._factories = factories
-        self._experiments = tuple((_f.create() for _ in range(self._no_instances)) for _f in self._factories)
+        self._experiments = tuple(tuple(_f.create() for _ in range(self._no_instances)) for _f in self._factories)
 
         self._finished_batches = 0
 
@@ -154,15 +154,14 @@ class Setup(Generic[TYPE_A, TYPE_B]):
             SemioticVisualization.initialize(self._axes, no_instances, length=iterations)
 
     @staticmethod
-    def _log(name: str, result: DictList[str, Sequence[float]]):
-        header = []
-        values_str = []
+    def _log(file_name: str, iteration: int, result: DictList[str, Sequence[float]]):
+        header = ["iteration"]
+        values_str = [f"{iteration:d}"]
         for _plot_name, _value_list in sorted(result.items(), key=lambda _x: _x[0]):
-            column_prefix = name + " " + _plot_name
             for _i, _v in enumerate(_value_list):
-                header.append(column_prefix + f"{_i:03d}")
+                header.append(_plot_name + f"_{_i:03d}")
                 values_str.append(f"{_v:.5f}")
-        DataLogger.log_to(header, values_str, dir_path="results/")
+        DataLogger.log_to(header, values_str, dir_path=f"results/{get_time_string():s}/", file_name=file_name)
 
     @staticmethod
     def _plot(name: str, axes: Sequence[str], each_result: DictList[str, Sequence[float]]):
@@ -185,7 +184,7 @@ class Setup(Generic[TYPE_A, TYPE_B]):
 
             name = full_name.split(" #")[0]
 
-            Setup._log(name, result_array)
+            Setup._log(f"experiment_{_i:03d}.log", self._finished_batches * self._step_size, result_array)
             if self._visualization:
                 Setup._plot(name, self._axes, result_array)
 
@@ -257,4 +256,5 @@ def simple():
 
 
 if __name__ == "__main__":
+    Logger.dir_path = "logs/"
     simple()

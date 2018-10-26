@@ -54,12 +54,13 @@ class DictList(Dict[TYPE_A, List[TYPE_B]]):
         super().__init__(*args, **kwargs)
 
     def add(self, key: TYPE_A, value: TYPE_B):
-        try:
-            value_list = self[key]
-            value_list.append(value)
-        except KeyError:
+        value_list = self.get(key)
+        if value_list is None:
             value_list = [value]
             self[key] = value_list
+
+        else:
+            value_list.append(value)
 
     def update_lists(self, d: Dict[TYPE_A, TYPE_B]):
         for _k, _v in d.items():

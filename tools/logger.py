@@ -18,21 +18,21 @@ def get_main_script_name():
 
 class Logger:
     _file_name = get_main_script_name() + "_" + get_time_string() + ".log"
+    dir_path = "./"
 
     @staticmethod
-    def log(content: str, dir_path: Optional[str] = None):
-        if dir_path is not None:
-            assert dir_path.endswith("/")
-            Logger._log(dir_path + Logger._file_name, content)
-        else:
-            Logger._log(Logger._file_name, content)
+    def log(content: str):
+        assert Logger.dir_path.endswith("/")
+        if not os.path.isdir(Logger.dir_path):
+            os.makedirs(Logger.dir_path)
+        Logger._log(Logger.dir_path + Logger._file_name, content)
 
     @staticmethod
-    def _log(target: str, content: str):
+    def _log(file_path: str, content: str):
         print(content)
         now = datetime.datetime.now()
         now_str = now.strftime("%Y-%m-%d_%H-%M-%S")
-        with open(target, mode="a") as file:
+        with open(file_path, mode="a") as file:
             file.write(now_str + "\t" + content + "\n")
 
 
