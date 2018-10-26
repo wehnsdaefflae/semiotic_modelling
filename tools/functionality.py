@@ -1,5 +1,5 @@
 # coding=utf-8
-from typing import Tuple, Hashable, Sequence, Collection, Dict, TypeVar, Generic, List
+from typing import Tuple, Hashable, Sequence, Collection, Dict, TypeVar, Generic, List, Type, Any, Optional
 
 from matplotlib import pyplot
 
@@ -174,6 +174,20 @@ def get_min_max(sequence: Collection[float]) -> Tuple[float, float]:
 
 def smear(average: float, value: float, inertia: int) -> float:
     return (inertia * average + value) / (inertia + 1.)
+
+
+OBJECT_CLASS = TypeVar("OBJECT_CLASS")
+
+
+class Factory(Generic[OBJECT_CLASS]):
+    def __init__(self, template_class: Type[OBJECT_CLASS], template_args: Dict[str, Any]):
+        self._class = template_class
+        self._args = template_args
+
+    def create(self, **additional_args: Dict[str, Any]) -> OBJECT_CLASS:
+        args = dict(self._args)
+        args.update(additional_args)
+        return self._class(**args)
 
 
 class Borg:

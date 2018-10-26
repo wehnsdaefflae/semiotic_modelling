@@ -18,8 +18,7 @@ CONTROLLER_PERCEPTION = Tuple[SENSORIMOTOR_HISTORY, PREDICTOR_STATE]
 
 class InteractionStream(ExampleStream[SENSORIMOTOR_HISTORY, SENSOR_TYPE]):
     def __init__(self,
-                 task_class: Type[Task[MOTOR_TYPE, SENSOR_TYPE]],
-                 task_args: Dict[str, Any],
+                 task_def: Tuple[Type[Task[MOTOR_TYPE, SENSOR_TYPE]], Dict[str, Any]],
                  predictor: Predictor[MOTOR_TYPE, SENSOR_TYPE],
                  controller: Controller[CONTROLLER_PERCEPTION, MOTOR_TYPE],
                  learn_control: bool,
@@ -28,6 +27,7 @@ class InteractionStream(ExampleStream[SENSORIMOTOR_HISTORY, SENSOR_TYPE]):
 
         self._predictor = predictor
 
+        task_class, task_args = task_def
         self._task = task_class(**task_args)
         self._controller = controller
 

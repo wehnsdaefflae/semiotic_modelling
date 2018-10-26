@@ -218,12 +218,16 @@ def interactive():
             ), (
                 InteractionStream,
                 {
-                    "task_class": NominalGridWorld,
-                    "task_args": dict(),
+                    "task_def": (
+                        NominalGridWorld,
+                        dict()
+                    ),
                     "history_length": 1
                 }, {
-                    "task_class": NominalGridWorld,
-                    "task_args": dict(),
+                    "task_def": (
+                        NominalGridWorld,
+                        dict()
+                    ),
                     "history_length": 1
                 }
             ), controller_def=(
@@ -251,7 +255,7 @@ def simple():
         ),
     )
 
-    setup = Setup(experiment_factories, 2, 1000, step_size=100, visualization=False)
+    setup = Setup(experiment_factories, 2, 1000, step_size=100, visualization=True)
     setup.run_experiment()
 
 
