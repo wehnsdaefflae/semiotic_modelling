@@ -11,9 +11,6 @@ RATIONAL_SENSOR = Tuple[float, ...]
 
 
 class NominalMyTask(Task[NOMINAL_MOTOR, NOMINAL_SENSOR]):
-    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
-        pass
-
     def __init__(self):
         pass
 
@@ -21,6 +18,9 @@ class NominalMyTask(Task[NOMINAL_MOTOR, NOMINAL_SENSOR]):
         pass
 
     def _evaluate_action(self, data_in: NOMINAL_MOTOR) -> float:
+        pass
+
+    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
         pass
 
     @staticmethod

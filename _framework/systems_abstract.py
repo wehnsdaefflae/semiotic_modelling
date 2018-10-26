@@ -1,5 +1,5 @@
 # coding=utf-8
-from typing import TypeVar, Generic, Tuple, Optional, Sequence, Collection
+from typing import TypeVar, Generic, Tuple, Optional, Collection
 
 from tools.io_tools import PersistenceMixin
 
@@ -11,10 +11,10 @@ class System(Generic[INPUT_TYPE, OUTPUT_TYPE], PersistenceMixin):
     def __str__(self):
         return self.__class__.__name__
 
-    def _react(self, data_in: Sequence[INPUT_TYPE]) -> Sequence[OUTPUT_TYPE]:
+    def _react(self, data_in: Tuple[INPUT_TYPE]) -> Tuple[OUTPUT_TYPE]:
         raise NotImplementedError()
 
-    def react(self, data_in: Sequence[INPUT_TYPE]) -> Sequence[OUTPUT_TYPE]:
+    def react(self, data_in: Tuple[INPUT_TYPE]) -> Tuple[OUTPUT_TYPE]:
         return self._react(data_in)
 
     def get_state(self) -> Tuple[Tuple[int, ...], ...]:
@@ -22,13 +22,13 @@ class System(Generic[INPUT_TYPE, OUTPUT_TYPE], PersistenceMixin):
 
 
 class Predictor(System[INPUT_TYPE, OUTPUT_TYPE]):
-    def _react(self, data_in: Sequence[INPUT_TYPE]) -> Sequence[OUTPUT_TYPE]:
+    def _react(self, data_in: Tuple[INPUT_TYPE]) -> Tuple[OUTPUT_TYPE]:
         raise NotImplementedError()
 
-    def fit(self, data_in: Sequence[INPUT_TYPE], data_out: Sequence[OUTPUT_TYPE]):
+    def fit(self, data_in: Tuple[INPUT_TYPE], data_out: Tuple[OUTPUT_TYPE]):
         raise NotImplementedError()
 
-    def predict(self, data_in: Sequence[INPUT_TYPE]) -> Sequence[OUTPUT_TYPE]:
+    def predict(self, data_in: Tuple[INPUT_TYPE]) -> Tuple[OUTPUT_TYPE]:
         return self._react(data_in)
 
     def get_state(self) -> Tuple[Tuple[int, ...], ...]:

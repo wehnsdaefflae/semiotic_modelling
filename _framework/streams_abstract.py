@@ -2,10 +2,12 @@
 import collections
 import numbers
 from math import sqrt
-from typing import TypeVar, Generic, Tuple, Sequence
+from typing import TypeVar, Generic, Tuple
 
 INPUT_TYPE = TypeVar("INPUT_TYPE")
 OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
+
+EXAMPLE = Tuple[INPUT_TYPE, OUTPUT_TYPE]
 
 
 class ExampleStream(Generic[INPUT_TYPE, OUTPUT_TYPE]):
@@ -16,14 +18,14 @@ class ExampleStream(Generic[INPUT_TYPE, OUTPUT_TYPE]):
     def __str__(self):
         raise NotImplementedError()
 
-    def next(self) -> Tuple[Tuple[INPUT_TYPE, OUTPUT_TYPE], ...]:
+    def next(self) -> Tuple[EXAMPLE, ...]:
         raise NotImplementedError()
 
     def get_last_reward(self) -> float:
         return self._last_reward
 
     @staticmethod
-    def error(data_output: Sequence[OUTPUT_TYPE], data_target: Sequence[OUTPUT_TYPE]) -> float:
+    def error(data_output: Tuple[OUTPUT_TYPE, ...], data_target: Tuple[OUTPUT_TYPE, ...]) -> float:
         d = len(data_output)
         assert d == len(data_target)
 

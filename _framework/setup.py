@@ -2,12 +2,12 @@
 # !/usr/bin/env python3
 
 import time
-from typing import Tuple, Any, TypeVar, Generic, Dict, Collection, Sequence, Type
+from typing import Tuple, Any, TypeVar, Generic, Dict, Collection, Sequence, Type, Optional
 
 import tqdm
 
 from _framework.streams_interaction import InteractionStream
-from _framework.systems_abstract import Predictor
+from _framework.systems_abstract import Predictor, Controller, Task
 from _framework.streams_abstract import ExampleStream
 from _framework.systems_control import NominalRandomController
 from _framework.systems_prediction import NominalLastPredictor
@@ -92,28 +92,44 @@ SENSOR_TYPE = TypeVar("SENSOR_TYPE")
 MOTOR_TYPE = TypeVar("MOTOR_TYPE")
 
 PREDICTOR = TypeVar("PREDICTOR", bound=Predictor)
+CONTROLLER = TypeVar("CONTROLLER", bound=Controller)
 STREAM = TypeVar("STREAM", bound=ExampleStream)
-# todo: 4. check covariance invariance etc
+# todo: check covariance invariance etc
 
 
 class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
     def __init__(self,
-                 predictor_class: Type[PREDICTOR[Tuple[TYPE_A, TYPE_B], TYPE_A]],
-                 predictor_args: Dict[str, Any],
-                 stream_class: Type[STREAM[TYPE_B, TYPE_A]],
-                 train_stream_args: Dict[str, Any], test_stream_args: Dict[str, Any]):
+                 predictor_def: Tuple[Type[PREDICTOR[Tuple[TYPE_A, TYPE_B], TYPE_A]], Dict[str, Any]],
+                 streams_def: Tuple[Type[STREAM[TYPE_B, TYPE_A]], Dict[str, Any], Dict[str, Any]],
+                 controller_def: Optional[Tuple[Type[CONTROLLER], Dict[str, Any]]] = None):
 
-        self._predictor_class, self._predictor_args = predictor_class, predictor_args
-        self._stream_class = stream_class
-        self._train_stream_args, self._test_stream_args = train_stream_args, test_stream_args
+        self._predictor_class, self._predictor_args = predictor_def
+        self._stream_class, self._train_stream_args, self._test_stream_args = streams_def
 
-        self._train_stream_args["learn_control"] = True
-        self._test_stream_args["learn_control"] = False
+        if controller_def is None:
+            self._controller_class, self._controller_args = None, None
+            self.is_interactive = False
+
+        else:
+            task_train_class = self._train_stream_args["task_class"]
+            assert isinstance(task_train_class, Task)
+            self._controller_args["motor_space"] = task_train_class.motor_space()
+
+            self._train_stream_args["learn_control"] = True
+            self._test_stream_args["learn_control"] = False
+
+            self._controller_class, self._controller_args = controller_def
+            self.is_interactive = True
 
         self._no_experiment = 0
 
     def create(self) -> Experiment[TYPE_A, TYPE_B]:
         predictor = self._predictor_class(**self._predictor_args)
+
+        if self.is_interactive:
+            controller = self._controller_class(**self._controller_args)
+            self._train_stream_args["controller"] = controller
+            self._test_stream_args["controller"] = controller
 
         train_system = self._stream_class(**self._train_stream_args)
         test_system = self._stream_class(**self._test_stream_args)
@@ -139,7 +155,8 @@ class Setup(Generic[TYPE_A, TYPE_B]):
         self._axes = "reward", "error", "duration"
         SemioticVisualization.initialize(self._axes, no_instances, length=iterations)
 
-    def _log(self, name: str, result: DictList[str, Sequence[float]]):
+    @staticmethod
+    def _log(name: str, result: DictList[str, Sequence[float]]):
         header = []
         values_str = []
         for _plot_name, _value_list in sorted(result.items(), key=lambda _x: _x[0]):
@@ -149,9 +166,10 @@ class Setup(Generic[TYPE_A, TYPE_B]):
                 values_str.append(f"{_v:.5f}")
         DataLogger.log_to(header, values_str, dir_path="results/")
 
-    def _plot(self, name: str, each_result: DictList[str, Sequence[float]]):
+    @staticmethod
+    def _plot(name: str, axes: Sequence[str], each_result: DictList[str, Sequence[float]]):
         for _plot_name, _values in each_result.items():
-            for _axis_name in self._axes:
+            for _axis_name in axes:
                 if _axis_name in _plot_name:
                     label = name + " " + _plot_name
                     SemioticVisualization.plot(_axis_name, label, _values)
@@ -169,8 +187,9 @@ class Setup(Generic[TYPE_A, TYPE_B]):
 
             name = full_name.split(" #")[0]
 
-            self._log(name, result_array)
-            self._plot(name, result_array)
+            Setup._log(name, result_array)
+            Setup._plot(name, self._axes, result_array)
+
             result_array.clear()
 
         self._finished_batches += 1
@@ -193,22 +212,26 @@ class Setup(Generic[TYPE_A, TYPE_B]):
 
 
 if __name__ == "__main__":
-    task_class = NominalMyTask
-    controller = NominalRandomController(task_class.motor_space())
-
     experiment_factories = (
         ExperimentFactory(
-            NominalLastPredictor, dict(),
-            InteractionStream,
-            {
-                "task_class": task_class,
-                "task_args": dict(),
-                "controller": controller
-            }, {
-                "task_class": task_class,
-                "task_args": dict(),
-                "controller": controller
-            },
+            (
+                NominalLastPredictor,
+                dict()
+            ), (
+                InteractionStream,
+                {
+                    "task_class": NominalMyTask,
+                    "task_args": dict(),
+                    "history_length": 1
+                }, {
+                    "task_class": NominalMyTask,
+                    "task_args": dict(),
+                    "history_length": 1
+                }
+            ), controller_def=(
+                NominalRandomController,
+                dict()
+            )
         ),
     )
 
