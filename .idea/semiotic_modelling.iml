@@ -3,6 +3,7 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.mypy_cache" />
+      <excludeFolder url="file://$MODULE_DIR$/_framework/experiments/results" />
       <excludeFolder url="file://$MODULE_DIR$/_framework/logs" />
       <excludeFolder url="file://$MODULE_DIR$/_framework/mains/logs" />
       <excludeFolder url="file://$MODULE_DIR$/_framework/mains/results" />

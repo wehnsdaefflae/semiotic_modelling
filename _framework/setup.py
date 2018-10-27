@@ -6,13 +6,14 @@ from typing import Tuple, Any, TypeVar, Generic, Dict, Collection, Sequence, Typ
 
 import tqdm
 
-from _framework.systems.tasks.abstract import Task
 from _framework.systems.controllers.abstract import Controller
 from _framework.systems.predictors.abstract import Predictor
 from _framework.streams.abstract import ExampleStream
+from _framework.systems.tasks.nominal.abstract import NominalTask
+from _framework.systems.tasks.rational.abstract import RationalTask
 from _live_dash_plotly.send_data import SemioticVisualization
 from tools.functionality import DictList, smear
-from tools.logger import Logger, DataLogger, get_time_string
+from tools.logger import Logger, DataLogger, get_time_string, get_main_script_name
 from tools.timer import Timer
 
 TYPE_A = TypeVar("TYPE_A")
@@ -105,15 +106,21 @@ class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
             self.is_interactive = False
 
         else:
+            self._controller_class, self._controller_args = controller_def
+            self.is_interactive = True
+
             task_train_class = self._train_stream_args["task_class"]
-            assert isinstance(task_train_class, Task)
-            self._controller_args["motor_space"] = task_train_class.motor_space()
+            if issubclass(task_train_class, NominalTask):
+                self._controller_args["motor_space"] = task_train_class.motor_space()
+
+            elif issubclass(task_train_class, RationalTask):
+                self._controller_args["motor_range"] = task_train_class.motor_range()
+
+            else:
+                raise ValueError(f"unknown task class '{task_train_class.__name__:s}'")
 
             self._train_stream_args["learn_control"] = True
             self._test_stream_args["learn_control"] = False
-
-            self._controller_class, self._controller_args = controller_def
-            self.is_interactive = True
 
         self._no_experiment = 0
 
@@ -136,8 +143,8 @@ class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
 
 
 class Setup(Generic[TYPE_A, TYPE_B]):
-    Logger.dir_path = "logs/"
-    time_string = get_time_string()
+    Logger.file_name = get_main_script_name() + ".log"
+    Logger.dir_path = f"results/{get_time_string():s}/"
 
     def __init__(self, factories: Collection[ExperimentFactory[TYPE_A, TYPE_B]], no_instances: int, iterations: int, step_size: int = 1000, visualization: bool = True):
         self._no_instances = no_instances
@@ -152,44 +159,57 @@ class Setup(Generic[TYPE_A, TYPE_B]):
         self._axes = "reward", "error", "duration"
         self._visualization = visualization
         if self._visualization:
-            SemioticVisualization.initialize(self._axes, no_instances, length=iterations)
+            # SemioticVisualization.initialize(self._axes, no_instances, length=iterations)
+            SemioticVisualization.initialize(self._axes, no_instances, length=-500)
 
     @staticmethod
-    def _results(file_name: str, iteration: int, result: DictList[str, Sequence[float]]):
-        header = ["iteration"]
-        values_str = [f"{iteration:d}"]
-        for _plot_name, _value_list in sorted(result.items(), key=lambda _x: _x[0]):
-            for _i, _v in enumerate(_value_list):
-                header.append(_plot_name + f"_{_i:03d}")
-                values_str.append(f"{_v:.5f}")
-        DataLogger.log_to(header, values_str, dir_path=f"results/{Setup.time_string:s}/", file_name=file_name)
+    def _save_results_batch(iteration: int, result: Dict[str, DictList[str, Sequence[float]]]):
+        for each_experiment_name, each_experiment_result in result.items():
+            header = ["iteration"]
+            values_str = [f"{iteration:d}"]
+            for _plot_name, _value_list in sorted(each_experiment_result.items(), key=lambda _x: _x[0]):
+                for _i, _v in enumerate(_value_list):
+                    header.append(_plot_name + f"_{_i:03d}")
+                    values_str.append(f"{_v:.5f}")
+            DataLogger.log_to(header, values_str, dir_path=Logger.dir_path, file_name=each_experiment_name + ".tsv")
 
     @staticmethod
-    def _plot(name: str, axes: Sequence[str], each_result: DictList[str, Sequence[float]]):
-        for _plot_name, _values in each_result.items():
-            for _axis_name in axes:
-                if _axis_name in _plot_name:
-                    label = name + " " + _plot_name
-                    SemioticVisualization.plot(_axis_name, label, _values)
+    def _plot_batch(result: Dict[str, DictList[str, Sequence[float]]]):
+        plot_data = tuple((_a, _p, _v) for _a, _sd in result.items() for _p, _v in _sd.items())
+        SemioticVisualization.plot_batch(plot_data)
 
     def _batch(self, no_steps: int):
-        result_array = DictList()
+        plot_data = {"error": DictList(), "reward": DictList(), "duration": DictList()}
+        file_data = dict()
 
         for _i, each_array in enumerate(self._experiments):
-            full_name = ""
-            for each_experiment in each_array:
-                if 0 >= len(full_name):
-                    full_name = str(each_experiment)
-                result_single = each_experiment.step(no_steps)
-                result_array.update_lists(result_single)
+            name = f"experiment_{_i:02d}"
 
-            name = full_name.split(" #")[0]
+            file_data_dict = DictList()
+            file_data[name] = file_data_dict
 
-            Setup._results(f"experiment_{_i:03d}.csv", self._finished_batches * self._step_size, result_array)
-            if self._visualization:
-                Setup._plot(name, self._axes, result_array)
+            for each_instance in each_array:
+                result_single = each_instance.step(no_steps)
+                file_data_dict.update_lists(result_single)
 
-            result_array.clear()
+                for _name, _value in result_single.items():
+                    if "error" in _name:
+                        plot_data_dict = plot_data["error"]
+                    elif "reward" in _name:
+                        plot_data_dict = plot_data["reward"]
+                    elif "duration" in _name:
+                        plot_data_dict = plot_data["duration"]
+                    else:
+                        Logger.log(f"unknown value name {_name:s}")
+                        continue
+
+                    plot_data_dict.add(name + " " + _name, _value)
+
+        Setup._save_results_batch(self._finished_batches * self._step_size, file_data)
+        if self._visualization:
+            Setup._plot_batch(plot_data)
+            SemioticVisualization.update()
+            # SemioticVisualization.update(steps=self._step_size)
 
         self._finished_batches += 1
 

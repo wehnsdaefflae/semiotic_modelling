@@ -6,8 +6,9 @@ from _framework.data_types import RATIONAL_SENSOR, RATIONAL_MOTOR
 
 
 class NominalController(Controller[RATIONAL_SENSOR, RATIONAL_MOTOR]):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, motor_range: Tuple[Tuple[float, float], ...], *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._motor_range = motor_range
 
     def _react(self, data_in: RATIONAL_SENSOR) -> RATIONAL_MOTOR:
         raise NotImplementedError()

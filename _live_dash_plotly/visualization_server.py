@@ -144,6 +144,25 @@ class VisualizationView:
         del series[:-abs(VisualizationView.length)]
 
     @staticmethod
+    @flask.route("/data_batch", methods=["POST"])
+    def add_data_batch():
+        if VisualizationView.model is None:
+            raise ValueError("visualization model not initialized")
+
+        data = request.data
+        Logger.log(f"adding batch")
+
+        d = json.loads(data)
+        batch = d["batch"]
+
+        for axis_name, plot_name, values in batch:
+            if axis_name in VisualizationView.dist_axes:
+                values = sorted(values)
+            VisualizationView.model.add_data(axis_name, plot_name, *values)
+
+        return jsonify(f"added batch of size {len(batch):d}")
+
+    @staticmethod
     @flask.route("/data", methods=["POST"])
     def add_data():
         if VisualizationView.model is None:
@@ -173,6 +192,8 @@ class VisualizationView:
 
         d = json.loads(data)
         steps = d.get("steps", 1)
+
+        assert steps == 1
 
         VisualizationView._iterations += steps
         return jsonify(f"progressed {steps:d}")
@@ -300,7 +321,15 @@ class VisualizationView:
                     id=_axis_name,
                     animate=True,
                     animation_options={
-                        "mode": "immediate"},
+                        "mode": "immediate",
+                        #"frame": {
+                        #    "duration": 200,
+                        #    "redraw": False,
+                        #},
+                        "transition": {
+                            "duration": 0,
+                        }
+                    },
                     figure={
                         "data": axis_data,
                         "layout": layout}

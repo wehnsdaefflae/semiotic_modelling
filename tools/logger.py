@@ -17,7 +17,7 @@ def get_main_script_name():
 
 
 class Logger:
-    _file_name = get_main_script_name() + "_" + get_time_string() + ".log"
+    file_name = get_main_script_name() + "_" + get_time_string() + ".log"
     dir_path = "logs/"
 
     @staticmethod
@@ -25,7 +25,7 @@ class Logger:
         assert Logger.dir_path.endswith("/")
         if not os.path.isdir(Logger.dir_path):
             os.makedirs(Logger.dir_path)
-        Logger._log(Logger.dir_path + Logger._file_name, content)
+        Logger._log(Logger.dir_path + Logger.file_name, content)
 
     @staticmethod
     def _log(file_path: str, content: str):

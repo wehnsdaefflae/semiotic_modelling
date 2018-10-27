@@ -33,6 +33,14 @@ def send_data(axis_name: str, plot_name: str, *values: float):
     return r.status_code, r.json()
 
 
+def send_batch(batch: Sequence[Tuple[str, str, Sequence[float]]]):
+    params = {
+        "batch": batch
+    }
+    r = requests.post(URL + "data_batch?", json=params)
+    return r.status_code, r.json()
+
+
 def update(steps: int = 1):
     params = {
         "steps": steps
@@ -51,9 +59,6 @@ def style(axis_styles: Dict[str, Dict[str, Any]], plot_styles: Dict[str, Dict[st
 
 
 class SemioticVisualization:
-    _last_plot = -1.
-    _interval_seconds = 1.
-
     @staticmethod
     def initialize(axes: Sequence[str], no_experiments: int, length: int = 0):
         status, json_response = initialize(tuple((_name, no_experiments) for _name in axes), length=length)
@@ -66,15 +71,18 @@ class SemioticVisualization:
 
     @staticmethod
     def plot(axis_name: str, plot_name: str, values: Sequence[float]):
-        now = time.time()
-        if SemioticVisualization._last_plot < 0. or now - SemioticVisualization._last_plot >= SemioticVisualization._interval_seconds:
-            status, json_response = send_data(axis_name, plot_name, *values)
-            Logger.log(f"{status:d}\n{json_response:s}")
+        status, json_response = send_data(axis_name, plot_name, *values)
+        Logger.log(f"{status:d}\n{json_response:s}")
 
-            status, json_response = update()
-            Logger.log(f"{status:d}\n{json_response:s}")
+    @staticmethod
+    def plot_batch(batch: Sequence[Tuple[str, str, Sequence[float]]]):
+        status, json_response = send_batch(batch)
+        Logger.log(f"{status:d}\n{json_response:s}")
 
-            SemioticVisualization._last_plot = now
+    @staticmethod
+    def update(steps: int = 1):
+        status, json_response = update(steps=steps)
+        Logger.log(f"{status:d}\n{json_response:s}")
 
 
 def main():
