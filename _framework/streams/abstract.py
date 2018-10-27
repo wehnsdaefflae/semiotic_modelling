@@ -1,14 +1,12 @@
 # coding=utf-8
-import collections
 import numbers
-from math import sqrt
-from typing import TypeVar, Generic, Tuple, Any, Sequence
+from typing import TypeVar, Generic, Tuple, Sequence
+
 
 INPUT_TYPE = TypeVar("INPUT_TYPE")
 OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
-ANY_TYPE = TypeVar("ANY_TYPE")
 
-EXAMPLE = Tuple[INPUT_TYPE, OUTPUT_TYPE]
+ANY_TYPE = TypeVar("ANY_TYPE")
 
 
 class ExampleStream(Generic[INPUT_TYPE, OUTPUT_TYPE]):
@@ -19,7 +17,7 @@ class ExampleStream(Generic[INPUT_TYPE, OUTPUT_TYPE]):
     def __str__(self):
         raise NotImplementedError()
 
-    def next(self) -> Tuple[EXAMPLE, ...]:
+    def next(self) -> Tuple[Tuple[INPUT_TYPE, OUTPUT_TYPE], ...]:
         raise NotImplementedError()
 
     def get_last_reward(self) -> float:

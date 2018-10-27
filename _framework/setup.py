@@ -6,13 +6,10 @@ from typing import Tuple, Any, TypeVar, Generic, Dict, Collection, Sequence, Typ
 
 import tqdm
 
-from _framework.streams_interaction import InteractionStream
-from _framework.streams_linear import NominalAscendingDescending
-from _framework.systems_abstract import Predictor, Controller, Task
-from _framework.streams_abstract import ExampleStream
-from _framework.systems_control import NominalRandomController
-from _framework.systems_prediction import NominalLastPredictor
-from _framework.systems_task import NominalGridWorld
+from _framework.systems.tasks.abstract import Task
+from _framework.systems.controllers.abstract import Controller
+from _framework.systems.predictors.abstract import Predictor
+from _framework.streams.abstract import ExampleStream
 from _live_dash_plotly.send_data import SemioticVisualization
 from tools.functionality import DictList, smear
 from tools.logger import Logger, DataLogger, get_time_string
@@ -52,17 +49,18 @@ class Experiment(Generic[TYPE_A, TYPE_B]):
         reward_train = self._stream_test.get_last_reward()
         reward_test = self._stream_train.get_last_reward()
 
+        outputs_test = self._predictor.predict(inputs_test)
+
         this_time = time.time()
 
         outputs_train = self._predictor.predict(inputs_train)
-        outputs_test = self._predictor.predict(inputs_test)
         self._predictor.fit(inputs_train, targets_train)
 
         duration = time.time() - this_time
         errors_train = self._stream_train.error(outputs_train, targets_train)
         errors_test = self._stream_train.error(outputs_test, targets_test)
 
-        return duration, errors_train, errors_test, reward_train, reward_test
+        return duration * 1000., errors_train, errors_test, reward_train, reward_test
 
     def step(self, steps: int) -> Dict[str, float]:
         avrg_train_error, avrg_test_error = self._data.get("error train", 0.), self._data.get("error test", 0.)
@@ -138,6 +136,9 @@ class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
 
 
 class Setup(Generic[TYPE_A, TYPE_B]):
+    Logger.dir_path = "logs/"
+    time_string = get_time_string()
+
     def __init__(self, factories: Collection[ExperimentFactory[TYPE_A, TYPE_B]], no_instances: int, iterations: int, step_size: int = 1000, visualization: bool = True):
         self._no_instances = no_instances
         self._iterations = iterations
@@ -154,14 +155,14 @@ class Setup(Generic[TYPE_A, TYPE_B]):
             SemioticVisualization.initialize(self._axes, no_instances, length=iterations)
 
     @staticmethod
-    def _log(file_name: str, iteration: int, result: DictList[str, Sequence[float]]):
+    def _results(file_name: str, iteration: int, result: DictList[str, Sequence[float]]):
         header = ["iteration"]
         values_str = [f"{iteration:d}"]
         for _plot_name, _value_list in sorted(result.items(), key=lambda _x: _x[0]):
             for _i, _v in enumerate(_value_list):
                 header.append(_plot_name + f"_{_i:03d}")
                 values_str.append(f"{_v:.5f}")
-        DataLogger.log_to(header, values_str, dir_path=f"results/{get_time_string():s}/", file_name=file_name)
+        DataLogger.log_to(header, values_str, dir_path=f"results/{Setup.time_string:s}/", file_name=file_name)
 
     @staticmethod
     def _plot(name: str, axes: Sequence[str], each_result: DictList[str, Sequence[float]]):
@@ -184,7 +185,7 @@ class Setup(Generic[TYPE_A, TYPE_B]):
 
             name = full_name.split(" #")[0]
 
-            Setup._log(f"experiment_{_i:03d}.log", self._finished_batches * self._step_size, result_array)
+            Setup._results(f"experiment_{_i:03d}.csv", self._finished_batches * self._step_size, result_array)
             if self._visualization:
                 Setup._plot(name, self._axes, result_array)
 
@@ -193,7 +194,7 @@ class Setup(Generic[TYPE_A, TYPE_B]):
         self._finished_batches += 1
 
     def run_experiment(self):
-        if self._iterations < 0:
+        if 0 >= self._iterations:
             while True:
                 self._batch(self._step_size)
                 if Timer.time_passed(2000):
@@ -207,58 +208,3 @@ class Setup(Generic[TYPE_A, TYPE_B]):
             remainder = self._iterations % self._step_size
             self._batch(remainder)
             progress_bar.update(remainder)
-
-
-def interactive():
-    experiment_factories = (
-        ExperimentFactory(
-            (
-                NominalLastPredictor,
-                dict()
-            ), (
-                InteractionStream,
-                {
-                    "task_def": (
-                        NominalGridWorld,
-                        dict()
-                    ),
-                    "history_length": 1
-                }, {
-                    "task_def": (
-                        NominalGridWorld,
-                        dict()
-                    ),
-                    "history_length": 1
-                }
-            ), controller_def=(
-                NominalRandomController,
-                dict()
-            )
-        ),
-    )
-
-    setup = Setup(experiment_factories, 2, 1000, step_size=100)
-    setup.run_experiment()
-
-
-def simple():
-    experiment_factories = (
-        ExperimentFactory(
-            (
-                NominalLastPredictor,
-                {"no_states": 1}
-            ), (
-                NominalAscendingDescending,
-                dict(),
-                dict()
-            )
-        ),
-    )
-
-    setup = Setup(experiment_factories, 2, 1000, step_size=100, visualization=True)
-    setup.run_experiment()
-
-
-if __name__ == "__main__":
-    Logger.dir_path = "logs/"
-    simple()

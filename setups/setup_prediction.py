@@ -92,7 +92,7 @@ class SetupPrediction(Iterator[Tuple[Any, ...]]):
         examples_test = next(self.stream_test)
         inputs_test, targets_test = zip(*examples_test)
 
-        # perform prediction and fit
+        # perform predictors and fit
         this_time = time.time()
         outputs_train = self.predictor.predict(inputs_train)
         outputs_test = self.predictor.predict(inputs_test)
@@ -132,7 +132,7 @@ def setup(predictor: Predictor, train_generator, test_generator, visualization_s
         examples_test = next(test_generator)
         inputs_test, targets_test = zip(*examples_test)
 
-        # perform prediction and fit
+        # perform predictors and fit
         this_time = time.time()
         outputs_train = predictor.predict(inputs_train)
         outputs_test = predictor.predict(inputs_test)

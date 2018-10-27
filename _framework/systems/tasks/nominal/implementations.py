@@ -1,16 +1,11 @@
 # coding=utf-8
-from typing import Hashable, Tuple, Collection
+from typing import Tuple, Collection
 
-from _framework.systems_abstract import Task
-
-NOMINAL_SENSOR = Hashable
-NOMINAL_MOTOR = Hashable
-
-RATIONAL_MOTOR = Tuple[float, ...]
-RATIONAL_SENSOR = Tuple[float, ...]
+from _framework.data_types import NOMINAL_MOTOR, NOMINAL_SENSOR
+from _framework.systems.tasks.nominal.abstract import NominalTask
 
 
-class NominalGridWorld(Task[NOMINAL_MOTOR, NOMINAL_SENSOR]):
+class NominalGridWorld(NominalTask):
     def __init__(self):
         super().__init__()
         raise NotImplementedError()

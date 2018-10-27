@@ -1,12 +1,16 @@
 # coding=utf-8
-import string
 import random
+import string
 from typing import Tuple
 
-from _framework.streams_abstract import ExampleStream, EXAMPLE
+from _framework.data_types import NOMINAL_INPUT, NOMINAL_OUTPUT
+from _framework.streams.abstract import ExampleStream
+
+NOMINAL_HISTORY = Tuple[NOMINAL_INPUT, ...]
+NOMINAL_EXAMPLE = Tuple[NOMINAL_HISTORY, NOMINAL_OUTPUT]
 
 
-class NominalAscendingDescending(ExampleStream[str, str]):
+class NominalAscendingDescending(ExampleStream[NOMINAL_INPUT, NOMINAL_OUTPUT]):
     def __init__(self):
         super().__init__(False)
         self._index = 0
@@ -18,7 +22,7 @@ class NominalAscendingDescending(ExampleStream[str, str]):
     def __str__(self):
         return self.__class__.__name__
 
-    def next(self) -> Tuple[EXAMPLE, ...]:
+    def next(self) -> Tuple[NOMINAL_EXAMPLE, ...]:
         input_data = self._sequence[self._index]
         self._index = int((self._index + float(self._state) * 2. - 1.) % self._len)
         output_data = self._sequence[self._index]

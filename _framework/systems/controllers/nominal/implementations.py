@@ -1,17 +1,12 @@
 # coding=utf-8
 import random
-from typing import Any, Type, Collection, Hashable, Tuple, Optional
+from typing import Any, Type, Collection, Tuple, Optional
 
-from _framework.systems_abstract import Controller
-
-NOMINAL_MOTOR = Hashable
-NOMINAL_SENSOR = Hashable
-
-RATIONAL_MOTOR = Tuple[float, ...]
-RATIONAL_SENSOR = Tuple[float, ...]
+from _framework.systems.controllers.nominal.abstract import NominalController
+from _framework.data_types import NOMINAL_SENSOR, NOMINAL_MOTOR
 
 
-class NominalNoneController(Controller[NOMINAL_SENSOR, Type[None]]):
+class NominalNoneController(NominalController):
     def __init__(self):
         super().__init__()
 
@@ -25,7 +20,7 @@ class NominalNoneController(Controller[NOMINAL_SENSOR, Type[None]]):
         return tuple()
 
 
-class NominalRandomController(Controller[NOMINAL_SENSOR, NOMINAL_MOTOR]):
+class NominalRandomController(NominalController):
     def __init__(self, motor_space: Collection[NOMINAL_MOTOR]):
         super().__init__()
         self.motor_space = motor_space
@@ -41,7 +36,7 @@ class NominalRandomController(Controller[NOMINAL_SENSOR, NOMINAL_MOTOR]):
         return tuple()
 
 
-class NominalSarsaController(Controller[NOMINAL_SENSOR, NOMINAL_MOTOR]):
+class NominalSarsaController(NominalController):
     def __init__(self):
         super().__init__()
         raise NotImplementedError()

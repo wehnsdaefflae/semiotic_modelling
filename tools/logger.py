@@ -18,7 +18,7 @@ def get_main_script_name():
 
 class Logger:
     _file_name = get_main_script_name() + "_" + get_time_string() + ".log"
-    dir_path = "./"
+    dir_path = "logs/"
 
     @staticmethod
     def log(content: str):

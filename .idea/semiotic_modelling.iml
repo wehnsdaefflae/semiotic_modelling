@@ -4,6 +4,8 @@
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.mypy_cache" />
       <excludeFolder url="file://$MODULE_DIR$/_framework/logs" />
+      <excludeFolder url="file://$MODULE_DIR$/_framework/mains/logs" />
+      <excludeFolder url="file://$MODULE_DIR$/_framework/mains/results" />
       <excludeFolder url="file://$MODULE_DIR$/_framework/results" />
       <excludeFolder url="file://$MODULE_DIR$/configs" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />

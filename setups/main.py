@@ -1,10 +1,10 @@
 # coding=utf-8
 
-# from setups.experiments.experiments_gifs import experiment
+# from mains.experiments.experiments_gifs import experiment
 from modelling.predictors.rational.semiotic import RationalSemioticModel
 from setups.experiments.experiments_exchange_rates import experiment, exchange_rate_sequence
-# from setups.experiments.experiments_interactive import experiment
-# from setups.experiments.experiments_gifs import experiment
+# from mains.experiments.experiments_interactive import experiment
+# from mains.experiments.experiments_gifs import experiment
 from setups.experiments.experiments_toy import experiment_nominal, experiment_rational
 from setups.setup_prediction import SetupPrediction
 from tools.timer import Timer

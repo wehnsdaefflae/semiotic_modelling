@@ -1,22 +1,24 @@
 # coding=utf-8
 from collections import deque
-from typing import TypeVar, Tuple, Any, Type, Dict
+from typing import TypeVar, Tuple, Any, Type, Dict, Generic
 
-from _framework.streams_abstract import ExampleStream
-from _framework.systems_abstract import Task, Controller, Predictor
-
+from _framework.data_types import PREDICTOR_STATE
+from _framework.streams.abstract import ExampleStream
+from _framework.systems.tasks.abstract import Task
+from _framework.systems.controllers.abstract import Controller
+from _framework.systems.predictors.abstract import Predictor
 
 MOTOR_TYPE = TypeVar("MOTOR_TYPE")
 SENSOR_TYPE = TypeVar("SENSOR_TYPE")
 
-SENSORIMOTOR_HISTORY = Tuple[Tuple[SENSOR_TYPE, MOTOR_TYPE], ...]
-SENSORIMOTOR_EXAMPLES = Tuple[Tuple[SENSORIMOTOR_HISTORY, SENSOR_TYPE], ...]
 
-PREDICTOR_STATE = Tuple[Tuple[int, ...], ...]
+SENSORIMOTOR_INPUT = Tuple[SENSOR_TYPE, MOTOR_TYPE]
+SENSORIMOTOR_HISTORY = Tuple[SENSORIMOTOR_INPUT, ...]
+SENSORIMOTOR_EXAMPLE = Tuple[SENSORIMOTOR_HISTORY, SENSOR_TYPE]
 CONTROLLER_PERCEPTION = Tuple[SENSORIMOTOR_HISTORY, PREDICTOR_STATE]
 
 
-class InteractionStream(ExampleStream[SENSORIMOTOR_HISTORY, SENSOR_TYPE]):
+class InteractionStream(ExampleStream[SENSORIMOTOR_HISTORY[SENSOR_TYPE, MOTOR_TYPE], SENSOR_TYPE], Generic[SENSOR_TYPE, MOTOR_TYPE]):
     def __init__(self,
                  task_def: Tuple[Type[Task[MOTOR_TYPE, SENSOR_TYPE]], Dict[str, Any]],
                  predictor: Predictor[MOTOR_TYPE, SENSOR_TYPE],
@@ -38,9 +40,9 @@ class InteractionStream(ExampleStream[SENSORIMOTOR_HISTORY, SENSOR_TYPE]):
     def __str__(self):
         return f"({str(self._task):s}, {str(self._controller):s})"
 
-    def next(self) -> SENSORIMOTOR_EXAMPLES:
+    def next(self) -> Tuple[SENSORIMOTOR_EXAMPLE[SENSOR_TYPE, MOTOR_TYPE], ...]:
         state = self._predictor.get_state()
-        perception = tuple(self._sensorimotor_condition), state
+        perception = self._sensorimotor_condition, state
 
         motor = self._controller.decide(perception)
 
