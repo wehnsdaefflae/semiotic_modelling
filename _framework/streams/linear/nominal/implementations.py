@@ -11,8 +11,8 @@ NOMINAL_EXAMPLE = Tuple[NOMINAL_HISTORY, NOMINAL_OUTPUT]
 
 
 class NominalAscendingDescending(ExampleStream[NOMINAL_INPUT, NOMINAL_OUTPUT]):
-    def __init__(self):
-        super().__init__(False)
+    def __init__(self, history_length: int = 1):
+        super().__init__(False, history_length=history_length)
         self._index = 0
         self._state = False
 
@@ -24,8 +24,10 @@ class NominalAscendingDescending(ExampleStream[NOMINAL_INPUT, NOMINAL_OUTPUT]):
 
     def next(self) -> Tuple[NOMINAL_EXAMPLE, ...]:
         input_data = self._sequence[self._index]
+        self._history.append(input_data)
+
         self._index = int((self._index + float(self._state) * 2. - 1.) % self._len)
         output_data = self._sequence[self._index]
         if random.random() < .2:
             self._state = not self._state
-        return (input_data, output_data),
+        return (tuple(self._history), output_data),

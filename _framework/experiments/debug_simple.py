@@ -11,8 +11,18 @@ if __name__ == "__main__":
                 {"no_states": 1}
             ), (
                 NominalAscendingDescending,
-                dict(),
-                dict()
+                {"history_length": 1},
+                {"history_length": 1}
+            )
+        ),
+        ExperimentFactory(
+            (
+                NominalMarkov,
+                {"no_states": 1}
+            ), (
+                NominalAscendingDescending,
+                {"history_length": 2},
+                {"history_length": 2}
             )
         ),
     )

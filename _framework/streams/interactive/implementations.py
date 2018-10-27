@@ -25,7 +25,7 @@ class InteractionStream(ExampleStream[SENSORIMOTOR_HISTORY[SENSOR_TYPE, MOTOR_TY
                  controller: Controller[CONTROLLER_PERCEPTION, MOTOR_TYPE],
                  learn_control: bool,
                  history_length: int = 1):
-        super().__init__(learn_control)
+        super().__init__(learn_control, history_length=history_length)
 
         self._predictor = predictor
 
@@ -34,7 +34,6 @@ class InteractionStream(ExampleStream[SENSORIMOTOR_HISTORY[SENSOR_TYPE, MOTOR_TY
         self._controller = controller
 
         self._last_sensor = None
-        self._history = deque(maxlen=history_length)
         self._sensorimotor_condition = tuple(self._history)
 
     def __str__(self):

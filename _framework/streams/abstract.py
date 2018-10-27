@@ -1,5 +1,6 @@
 # coding=utf-8
 import numbers
+from collections import deque
 from typing import TypeVar, Generic, Tuple, Sequence
 
 
@@ -10,9 +11,11 @@ ANY_TYPE = TypeVar("ANY_TYPE")
 
 
 class ExampleStream(Generic[INPUT_TYPE, OUTPUT_TYPE]):
-    def __init__(self, learn_control: bool):
+    def __init__(self, learn_control: bool, history_length: int = 1):
         self._learn_control = learn_control
         self._last_reward = 0.
+
+        self._history = deque(maxlen=history_length)
 
     def __str__(self):
         raise NotImplementedError()
