@@ -159,8 +159,8 @@ class Setup(Generic[TYPE_A, TYPE_B]):
         self._axes = "reward", "error", "duration"
         self._visualization = visualization
         if self._visualization:
-            # SemioticVisualization.initialize(self._axes, no_instances, length=iterations)
-            SemioticVisualization.initialize(self._axes, no_instances, length=-500)
+            SemioticVisualization.initialize(self._axes, no_instances, length=iterations)
+            # SemioticVisualization.initialize(self._axes, no_instances, length=-500)
 
     @staticmethod
     def _save_results_batch(iteration: int, result: Dict[str, DictList[str, Sequence[float]]]):
