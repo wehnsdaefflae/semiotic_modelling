@@ -18,7 +18,7 @@ SENSORIMOTOR_EXAMPLE = Tuple[SENSORIMOTOR_HISTORY, SENSOR_TYPE]
 CONTROLLER_PERCEPTION = Tuple[SENSORIMOTOR_HISTORY, PREDICTOR_STATE]
 
 
-class InteractionStream(ExampleStream[SENSORIMOTOR_HISTORY[SENSOR_TYPE, MOTOR_TYPE], SENSOR_TYPE], Generic[SENSOR_TYPE, MOTOR_TYPE]):
+class InteractionStream(ExampleStream[SENSORIMOTOR_INPUT[SENSOR_TYPE, MOTOR_TYPE], SENSOR_TYPE], Generic[SENSOR_TYPE, MOTOR_TYPE]):
     def __init__(self,
                  task_def: Tuple[Type[Task[MOTOR_TYPE, SENSOR_TYPE]], Dict[str, Any]],
                  predictor: Predictor[MOTOR_TYPE, SENSOR_TYPE],
@@ -45,14 +45,14 @@ class InteractionStream(ExampleStream[SENSORIMOTOR_HISTORY[SENSOR_TYPE, MOTOR_TY
 
         motor = self._controller.decide(perception)
 
-        sensor, reward = self._task.respond(motor)
+        sensor, self._reward = self._task.respond(motor)
 
         condition = self._last_sensor, motor
         self._history.append(condition)
         self._sensorimotor_condition = tuple(self._history)
 
         if self._learn_control:
-            self._controller.integrate((self._sensorimotor_condition, state), reward)
+            self._controller.integrate((self._sensorimotor_condition, state), self._reward)
 
         self._last_sensor = sensor
 

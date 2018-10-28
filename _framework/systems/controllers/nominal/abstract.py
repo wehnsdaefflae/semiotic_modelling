@@ -13,8 +13,5 @@ class NominalController(Controller[NOMINAL_SENSOR, NOMINAL_MOTOR]):
     def _react(self, data_in: NOMINAL_SENSOR) -> NOMINAL_MOTOR:
         raise NotImplementedError()
 
-    def integrate(self, data_in: Optional[NOMINAL_SENSOR], evaluation: float):
-        raise NotImplementedError()
-
-    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
+    def integrate(self, data_in: Optional[NOMINAL_SENSOR], reward: float):
         raise NotImplementedError()

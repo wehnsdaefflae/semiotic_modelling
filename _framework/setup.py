@@ -47,8 +47,8 @@ class Experiment(Generic[TYPE_A, TYPE_B]):
         examples_test = self._stream_test.next()
         inputs_test, targets_test = zip(*examples_test)
 
-        reward_train = self._stream_test.get_last_reward()
-        reward_test = self._stream_train.get_last_reward()
+        reward_train = self._stream_test.get_reward()
+        reward_test = self._stream_train.get_reward()
 
         outputs_test = self._predictor.predict(inputs_test)
 
@@ -109,7 +109,7 @@ class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
             self._controller_class, self._controller_args = controller_def
             self.is_interactive = True
 
-            task_train_class = self._train_stream_args["task_class"]
+            task_train_class, task_train_args = self._train_stream_args["task_def"]
             if issubclass(task_train_class, NominalTask):
                 self._controller_args["motor_space"] = task_train_class.motor_space()
 
@@ -131,6 +131,8 @@ class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
             controller = self._controller_class(**self._controller_args)
             self._train_stream_args["controller"] = controller
             self._test_stream_args["controller"] = controller
+            self._train_stream_args["predictor"] = predictor
+            self._test_stream_args["predictor"] = predictor
 
         train_system = self._stream_class(**self._train_stream_args)
         test_system = self._stream_class(**self._test_stream_args)
@@ -159,8 +161,7 @@ class Setup(Generic[TYPE_A, TYPE_B]):
         self._axes = "reward", "error", "duration"
         self._visualization = visualization
         if self._visualization:
-            # SemioticVisualization.initialize(self._axes, no_instances, length=iterations)
-            SemioticVisualization.initialize(self._axes, no_instances, length=-500)
+            SemioticVisualization.initialize(self._axes, no_instances, length=iterations)
 
     @staticmethod
     def _save_results_batch(iteration: int, result: Dict[str, DictList[str, Sequence[float]]]):

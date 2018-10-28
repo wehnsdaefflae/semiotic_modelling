@@ -20,6 +20,3 @@ class Controller(System[SENSOR_TYPE, MOTOR_TYPE], Generic[SENSOR_TYPE, MOTOR_TYP
 
     def decide(self, data_in: Optional[SENSOR_TYPE]) -> MOTOR_TYPE:
         return self._react(data_in)
-
-    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
-        raise NotImplementedError()

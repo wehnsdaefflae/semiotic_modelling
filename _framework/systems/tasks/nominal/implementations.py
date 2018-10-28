@@ -1,24 +1,45 @@
 # coding=utf-8
-from typing import Tuple, Collection
+from typing import Collection
 
-from _framework.data_types import NOMINAL_MOTOR, NOMINAL_SENSOR
+from _framework.miscellaneous.grid_world import GridWorldGlobal, GridWorldLocal
 from _framework.systems.tasks.nominal.abstract import NominalTask
+from tools.load_configs import Config
 
 
-class NominalGridWorld(NominalTask):
-    def __init__(self):
-        super().__init__()
-        raise NotImplementedError()
+class GridWorld:
+    def __init__(self, rotational: bool, local: bool):
+        self._local = local
+        config = Config("../../configs/config.json")
 
-    def _react(self, data_in: NOMINAL_MOTOR) -> NOMINAL_SENSOR:
-        raise NotImplementedError()
+        file_path = config["data_dir"] + "grid_worlds/square.txt"
+        self._grid_wold = GridWorldLocal(file_path, rotational=rotational) if local else GridWorldGlobal(file_path, rotational=rotational)
+        self._reward = 0.
 
-    def _evaluate_action(self, data_in: NOMINAL_MOTOR) -> float:
-        raise NotImplementedError()
+    def _react(self, data_in: str) -> str:
+        output, self._reward = self._grid_wold.react_to(data_in)
+        return str(output)
 
-    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
-        raise NotImplementedError()
+    def _evaluate_action(self, data_in: str) -> float:
+        return self._reward
 
+
+class RotationalMixin:
     @staticmethod
-    def motor_space() -> Collection[NOMINAL_MOTOR]:
-        return {True, False}
+    def motor_space() -> Collection[str]:
+        return "f", "b", "l", "r"
+
+
+class RotationalGridWorld(GridWorld, RotationalMixin, NominalTask):
+    def __init__(self, local: bool):
+        super().__init__(True, local)
+
+
+class TransitionalMixin:
+    @staticmethod
+    def motor_space() -> Collection[str]:
+        return "n", "e", "s", "w"
+
+
+class TransitionalGridWorld(GridWorld, TransitionalMixin, NominalTask):
+    def __init__(self, local: bool):
+        super().__init__(False, local)

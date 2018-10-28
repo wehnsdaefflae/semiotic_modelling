@@ -18,6 +18,3 @@ class NominalTask(Task[NOMINAL_MOTOR, NOMINAL_SENSOR]):
     @staticmethod
     def motor_space() -> Collection[NOMINAL_MOTOR]:
         raise NotImplementedError()
-
-    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
-        raise NotImplementedError()

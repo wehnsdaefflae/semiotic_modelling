@@ -18,6 +18,3 @@ class RationalTask(Task[RATIONAL_MOTOR, RATIONAL_SENSOR]):
     @staticmethod
     def motor_range() -> Tuple[Tuple[float, float], ...]:
         raise NotImplementedError()
-
-    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
-        raise NotImplementedError()

@@ -5,7 +5,9 @@ from typing import TypeVar, Generic, Tuple, Sequence
 
 
 INPUT_TYPE = TypeVar("INPUT_TYPE")
+INPUT_HISTORY = Tuple[INPUT_TYPE, ...]
 OUTPUT_TYPE = TypeVar("OUTPUT_TYPE")
+EXAMPLE_TYPE = Tuple[INPUT_HISTORY, OUTPUT_TYPE]
 
 ANY_TYPE = TypeVar("ANY_TYPE")
 
@@ -13,18 +15,18 @@ ANY_TYPE = TypeVar("ANY_TYPE")
 class ExampleStream(Generic[INPUT_TYPE, OUTPUT_TYPE]):
     def __init__(self, learn_control: bool, history_length: int = 1):
         self._learn_control = learn_control
-        self._last_reward = 0.
+        self._reward = 0.
 
         self._history = deque(maxlen=history_length)
 
     def __str__(self):
         raise NotImplementedError()
 
-    def next(self) -> Tuple[Tuple[INPUT_TYPE, OUTPUT_TYPE], ...]:
+    def next(self) -> Tuple[EXAMPLE_TYPE, ...]:
         raise NotImplementedError()
 
-    def get_last_reward(self) -> float:
-        return self._last_reward
+    def get_reward(self) -> float:
+        return self._reward
 
     @staticmethod
     def _error(value_output: ANY_TYPE, value_target: ANY_TYPE) -> float:

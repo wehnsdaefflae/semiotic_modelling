@@ -19,6 +19,3 @@ class Task(System[MOTOR_TYPE, SENSOR_TYPE], Generic[MOTOR_TYPE, SENSOR_TYPE]):
 
     def respond(self, data_in: Optional[MOTOR_TYPE]) -> Tuple[SENSOR_TYPE, float]:
         return self._react(data_in), self._evaluate_action(data_in)
-
-    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
-        raise NotImplementedError()

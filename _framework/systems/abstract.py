@@ -16,8 +16,3 @@ class System(PersistenceMixin, Generic[INPUT_TYPE, OUTPUT_TYPE]):
 
     def react(self, data_in: Tuple[INPUT_TYPE]) -> Tuple[OUTPUT_TYPE]:
         return self._react(data_in)
-
-    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
-        raise NotImplementedError()
-
-

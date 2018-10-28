@@ -15,6 +15,3 @@ class NominalController(Controller[RATIONAL_SENSOR, RATIONAL_MOTOR]):
 
     def integrate(self, data_in: Optional[RATIONAL_SENSOR], evaluation: float):
         raise NotImplementedError()
-
-    def get_state(self) -> Tuple[Tuple[int, ...], ...]:
-        raise NotImplementedError()
