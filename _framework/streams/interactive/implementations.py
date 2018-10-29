@@ -15,7 +15,7 @@ SENSOR_TYPE = TypeVar("SENSOR_TYPE")
 SENSORIMOTOR_INPUT = Tuple[SENSOR_TYPE, MOTOR_TYPE]
 SENSORIMOTOR_HISTORY = Tuple[SENSORIMOTOR_INPUT, ...]
 SENSORIMOTOR_EXAMPLE = Tuple[SENSORIMOTOR_HISTORY, SENSOR_TYPE]
-CONTROLLER_PERCEPTION = Tuple[SENSORIMOTOR_HISTORY, PREDICTOR_STATE]
+CONTROLLER_PERCEPTION = Tuple[SENSORIMOTOR_HISTORY, SENSOR_TYPE, PREDICTOR_STATE]
 
 
 class InteractionStream(ExampleStream[SENSORIMOTOR_INPUT[SENSOR_TYPE, MOTOR_TYPE], SENSOR_TYPE], Generic[SENSOR_TYPE, MOTOR_TYPE]):
@@ -24,8 +24,8 @@ class InteractionStream(ExampleStream[SENSORIMOTOR_INPUT[SENSOR_TYPE, MOTOR_TYPE
                  predictor: Predictor[MOTOR_TYPE, SENSOR_TYPE],
                  controller: Controller[CONTROLLER_PERCEPTION, MOTOR_TYPE],
                  learn_control: bool,
-                 history_length: int = 1):
-        super().__init__(learn_control, history_length=history_length)
+                 history_length: int = 0):
+        super().__init__(learn_control, history_length=history_length, no_examples=1)
 
         self._predictor = predictor
 
@@ -33,27 +33,31 @@ class InteractionStream(ExampleStream[SENSORIMOTOR_INPUT[SENSOR_TYPE, MOTOR_TYPE
         self._task = task_class(**task_args)
         self._controller = controller
 
-        self._last_sensor = None
-        self._sensorimotor_condition = tuple(self._history)
+        self._history = self._histories[0]
+        self._sensor = None
+        self._last_perception = None
+        self._last_action = None
 
     def __str__(self):
         return f"({str(self._task):s}, {str(self._controller):s})"
 
     def next(self) -> Tuple[SENSORIMOTOR_EXAMPLE[SENSOR_TYPE, MOTOR_TYPE], ...]:
-        state = self._predictor.get_state()
-        perception = self._sensorimotor_condition, state
+        perception = tuple(self._history), self._sensor, self._predictor.get_state()
 
-        motor = self._controller.decide(perception)
+        action = self._controller.decide(perception)      # (sensor, motor)*, sensor, state
 
-        sensor, self._reward = self._task.respond(motor)
-
-        condition = self._last_sensor, motor
-        self._history.append(condition)
-        self._sensorimotor_condition = tuple(self._history)
+        next_sensor, self._reward = self._task.respond(action)
 
         if self._learn_control:
-            self._controller.integrate((self._sensorimotor_condition, state), self._reward)
+            self._controller.integrate(self._last_perception, self._last_action, perception, action, self._reward)    # ((sensor, motor)*, sensor, state), motor
 
-        self._last_sensor = sensor
+        sensorimotor_input = self._sensor, action
+        examples = (tuple(self._history) + sensorimotor_input, next_sensor),
 
-        return (self._sensorimotor_condition, sensor),
+        self._history.append(sensorimotor_input)
+        self._sensor = next_sensor
+
+        self._last_perception = perception
+        self._last_action = action
+
+        return examples

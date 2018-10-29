@@ -1,25 +1,21 @@
 # coding=utf-8
-from typing import Collection
+from typing import Collection, Optional
 
 from _framework.miscellaneous.grid_world import GridWorldGlobal, GridWorldLocal
 from _framework.systems.tasks.nominal.abstract import NominalTask
-from tools.load_configs import Config
 
 
 class GridWorld:
-    def __init__(self, rotational: bool, local: bool):
+    def __init__(self, rotational: bool, local: bool, file_path: str):
         self._local = local
-        config = Config("../../configs/config.json")
-
-        file_path = config["data_dir"] + "grid_worlds/square.txt"
         self._grid_wold = GridWorldLocal(file_path, rotational=rotational) if local else GridWorldGlobal(file_path, rotational=rotational)
         self._reward = 0.
 
-    def _react(self, data_in: str) -> str:
+    def react(self, data_in: Optional[str]) -> str:
         output, self._reward = self._grid_wold.react_to(data_in)
         return str(output)
 
-    def _evaluate_action(self, data_in: str) -> float:
+    def _evaluate_action(self, data_in: Optional[str]) -> float:
         return self._reward
 
 
@@ -30,8 +26,8 @@ class RotationalMixin:
 
 
 class RotationalGridWorld(GridWorld, RotationalMixin, NominalTask):
-    def __init__(self, local: bool):
-        super().__init__(True, local)
+    def __init__(self, local: bool, file_path: str):
+        super().__init__(True, local, file_path)
 
 
 class TransitionalMixin:
@@ -41,5 +37,5 @@ class TransitionalMixin:
 
 
 class TransitionalGridWorld(GridWorld, TransitionalMixin, NominalTask):
-    def __init__(self, local: bool):
-        super().__init__(False, local)
+    def __init__(self, local: bool, file_path: str):
+        super().__init__(False, local, file_path)

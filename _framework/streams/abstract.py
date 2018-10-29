@@ -13,12 +13,14 @@ ANY_TYPE = TypeVar("ANY_TYPE")
 
 
 class ExampleStream(Generic[INPUT_TYPE, OUTPUT_TYPE]):
-    def __init__(self, learn_control: bool, history_length: int = 1):
+    def __init__(self, learn_control: bool, no_examples: int = 1, history_length: int = 1):
         self._learn_control = learn_control
+        self._no_examples = no_examples
         self._reward = 0.
 
-        self._history = deque(maxlen=history_length)
-
+        self._history_length = history_length
+        self._histories = tuple(deque(maxlen=history_length) for _ in range(no_examples))
+        
     def __str__(self):
         raise NotImplementedError()
 

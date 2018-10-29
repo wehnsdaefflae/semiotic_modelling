@@ -1,33 +1,50 @@
 # coding=utf-8
+import json
 import random
-from typing import Any, Type, Collection, Tuple, Optional
+from typing import Any, Type, Collection, Optional
 
 from _framework.systems.controllers.nominal.abstract import NominalController
 from _framework.data_types import NOMINAL_SENSOR, NOMINAL_MOTOR
+from tools.logger import Logger
 
 
 class NominalNoneController(NominalController):
     def __init__(self, motor_space: Collection[NOMINAL_MOTOR]):
         super().__init__(motor_space)
 
-    def integrate(self, data_in: Optional[NOMINAL_SENSOR], reward: float):
+    def integrate(self, last_perception: Optional[Any], last_action: Type[None], perception: Optional[Any], action: Type[None], reward: float):
         pass
 
-    def _react(self, data_in: Any) -> Type[None]:
+    def react(self, perception: Optional[Any]) -> Type[None]:
         return None
 
 
 class NominalRandomController(NominalController):
     def __init__(self, motor_space: Collection[NOMINAL_MOTOR]):
         super().__init__(motor_space)
-        self.motor_space = motor_space
 
-    def integrate(self, data_in: Optional[NOMINAL_SENSOR], reward: float):
+    def integrate(self, last_perception: Optional[NOMINAL_SENSOR], last_action: NOMINAL_MOTOR, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
         pass
 
-    def _react(self, data_in: NOMINAL_SENSOR) -> NOMINAL_MOTOR:
-        action, = random.sample(self.motor_space, 1)
+    def react(self, perception: Optional[NOMINAL_SENSOR]) -> NOMINAL_MOTOR:
+        action, = random.sample(self._motor_space, 1)
         return action
+
+
+class NominalManualController(NominalController):
+    def __init__(self, motor_space: Collection[NOMINAL_MOTOR], *args, **kwargs):
+        super().__init__(motor_space, *args, **kwargs)
+        self._space_string = str(list(sorted(self._motor_space)))
+
+    def react(self, perception: Optional[NOMINAL_SENSOR]) -> NOMINAL_MOTOR:
+        Logger.log(f"\nController {id(self):d} perceives:\n{str(perception):s}")
+        action = input(f"Target action {self._space_string:s}: ")
+        while action not in self._motor_space:
+            action = input(f"Action {action:s} is not among {self._space_string}. Try again: ")
+        return action
+
+    def integrate(self, last_perception: Optional[NOMINAL_SENSOR], last_action: NOMINAL_MOTOR, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
+        Logger.log(f"Reward received: {reward:f}.")
 
 
 class NominalSarsaController(NominalController):
@@ -39,46 +56,50 @@ class NominalSarsaController(NominalController):
         self._default_evaluation = default_evaluation
 
         self._evaluation_function = dict()
-        self._last_perception = None
-        self._last_action = None
-        self._evaluation = default_evaluation
 
-    def __evaluate(self, data_in: NOMINAL_SENSOR, data_out: NOMINAL_MOTOR) -> float:
-        sub_dict = self._evaluation_function.get(data_in)
-        if sub_dict is None:
-            return self._default_evaluation
-        return sub_dict.get(data_out, self._default_evaluation)
+        self._save_steps = 10000
+        self._iterations = 0
 
-    def _react(self, perception: NOMINAL_SENSOR) -> NOMINAL_MOTOR:
+    def store_evaluation_function(self, file_path: str):
+        with open(file_path, mode="w") as file:
+            json.dump(tuple((str(_x), _y) for _x, _y in self._evaluation_function.items()), file, sort_keys=True, indent=2)
+
+    def react(self, perception: Optional[NOMINAL_SENSOR]) -> NOMINAL_MOTOR:
         # exploration
         if random.random() < self._epsilon:
-            action = random.choice(self._motor_space)
-            self._evaluation = self.__evaluate(perception, action)
+            action = self._random_action()
 
         else:
             # new perception
             sub_dict = self._evaluation_function.get(perception)
             if sub_dict is None:
-                action = random.choice(self._motor_space)
-                self._evaluation = self.__evaluate(perception, action)
+                action = self._random_action()
 
             else:
                 # best action
-                action, self._evaluation = max(sub_dict.items(), key=lambda _x: _x[1])
+                action, _ = max(sub_dict.items(), key=lambda _x: _x[1])
 
-        self._last_action = action
-        self._last_perception = perception
         return action
 
-    def integrate(self, data_in: Optional[NOMINAL_SENSOR], reward: float):
-        new_value = reward + self._gamma * self._evaluation
-        sub_dict = self._evaluation_function.get(self._last_perception)
+    def integrate(self, last_perception: Optional[NOMINAL_SENSOR], last_action: NOMINAL_MOTOR, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
+        last_sub_dict = self._evaluation_function.get(last_perception)
+        if last_sub_dict is None:
+            last_evaluation = self._default_evaluation
+            last_sub_dict = dict()
+            self._evaluation_function[last_perception] = last_sub_dict
 
-        # new perception
-        if sub_dict is None:
-            self._evaluation_function[self._last_perception] = {self._last_action: new_value}
-
-        # known perception
         else:
-            _evaluation = self._evaluation + self._alpha * (new_value - self._evaluation)
-            sub_dict[self._last_action] = _evaluation
+            last_evaluation = last_sub_dict.get(last_action, self._default_evaluation)
+
+        sub_dict = self._evaluation_function.get(perception)
+        if sub_dict is None:
+            evaluation = self._default_evaluation
+        else:
+            evaluation = sub_dict.get(action, self._default_evaluation)
+
+        last_sub_dict[last_action] = last_evaluation + self._alpha * (reward + self._gamma * evaluation - last_evaluation)
+
+        if self._iterations >= self._save_steps:
+            self._iterations = 0
+            self.store_evaluation_function(self.__class__.__name__ + f"_{id(self):d}.json")
+        self._iterations += 1

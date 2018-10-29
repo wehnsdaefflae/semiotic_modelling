@@ -37,15 +37,12 @@ if __name__ == "__main__":
                     "history_length": 0
                 }
             ), controller_def=(
-                NominalSarsaController,
-                {
-                    "alpha": 1.,
-                    "gamma": .75,
-                    "epsilon": .1
-                }
+                NominalManualController,
+                dict()
             )
         ),
     )
 
-    setup = Setup(experiment_factories, 10, 0, step_size=5000)
+    setup = Setup(experiment_factories, 1, 0, step_size=5000)
+    # setup = Setup(experiment_factories, 10, 0, step_size=5000)
     setup.run_experiment()

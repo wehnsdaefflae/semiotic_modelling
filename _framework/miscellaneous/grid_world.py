@@ -63,7 +63,7 @@ class GridWorldGlobal:
         grid_str = [["a" if [_x, _y] == self.position else _c for _x, _c in enumerate(each_row)] for _y, each_row in enumerate(self.grid)]
         return "\n".join([" ".join(each_row) for each_row in grid_str])
 
-    def change_state(self, motor: str):
+    def _change_state(self, motor: str):
         if motor == "r":
             self.orientation = (self.orientation + 1) % 4       # type: int
 
@@ -111,15 +111,15 @@ class GridWorldGlobal:
 
     def react_to(self, motor: Optional[str]) -> Tuple[Tuple[Tuple[int, ...], int, int], float]:
         if motor is not None:
-            self.change_state(motor)
-
-        sensor = tuple(self.position), self.orientation, self.current_goal_index
+            self._change_state(motor)
 
         if tuple(self.position) == self.goal_positions[self.current_goal_index]:
             self.current_goal_index = (self.current_goal_index + 1) % len(self.goal_positions)
             reward = 10.
         else:
             reward = -1.
+
+        sensor = tuple(self.position), self.orientation, self.current_goal_index
 
         return sensor, reward
 
@@ -146,7 +146,7 @@ class GridWorldLocal(GridWorldGlobal):
 
     def react_to(self, motor: Optional[str]) -> Tuple[Tuple[str, ...], float]:
         if motor is not None:
-            self.change_state(motor)
+            self._change_state(motor)
 
         sensor = self._local_perception()
 
