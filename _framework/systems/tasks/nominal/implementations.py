@@ -33,7 +33,8 @@ class RotationalGridWorld(GridWorld, RotationalMixin, NominalTask):
 class TransitionalMixin:
     @staticmethod
     def motor_space() -> Collection[str]:
-        return "n", "e", "s", "w"
+        return "e", "w"
+        # return "n", "e", "s", "w"
 
 
 class TransitionalGridWorld(GridWorld, TransitionalMixin, NominalTask):
