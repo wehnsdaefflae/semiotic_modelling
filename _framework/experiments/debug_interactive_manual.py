@@ -1,9 +1,9 @@
 # coding=utf-8
 from _framework.setup import ExperimentFactory, Setup
 from _framework.streams.interactive.implementations import InteractionStream
-from _framework.systems.controllers.nominal.implementations import NominalSarsaController, NominalManualController
+from _framework.systems.controllers.nominal.implementations import NominalManualController
 from _framework.systems.predictors.nominal.implementations import NominalMarkov
-from _framework.systems.tasks.nominal.implementations import RotationalGridWorld, TransitionalGridWorld
+from _framework.systems.tasks.nominal.implementations import TransitionalGridWorld
 from tools.load_configs import Config
 
 if __name__ == "__main__":
@@ -43,6 +43,5 @@ if __name__ == "__main__":
         ),
     )
 
-    setup = Setup(experiment_factories, 1, 0, step_size=5000)
-    # setup = Setup(experiment_factories, 10, 0, step_size=5000)
+    setup = Setup(experiment_factories, 1, 0, step_size=10, visualization=False)
     setup.run_experiment()

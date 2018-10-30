@@ -44,7 +44,7 @@ class NominalManualController(NominalController):
         return action
 
     def integrate(self, last_perception: Optional[NOMINAL_SENSOR], last_action: NOMINAL_MOTOR, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
-        Logger.log(f"Reward received: {reward:f}.")
+        Logger.log(f"### Controller {id(self):d} received reward: {reward:f}.")
 
 
 class NominalSarsaController(NominalController):
@@ -103,3 +103,15 @@ class NominalSarsaController(NominalController):
             self._iterations = 0
             self.store_evaluation_function(self.__class__.__name__ + f"_{id(self):d}.json")
         self._iterations += 1
+
+
+class NominalSemioticSarsaController(NominalController):
+    def __init__(self, motor_space: Collection[NOMINAL_MOTOR], *args, **kwargs):
+        super().__init__(motor_space, *args, **kwargs)
+        raise NotImplementedError()
+
+    def react(self, perception: Optional[NOMINAL_SENSOR]) -> NOMINAL_MOTOR:
+        raise NotImplementedError()
+
+    def integrate(self, last_perception: Optional[NOMINAL_SENSOR], last_action: NOMINAL_MOTOR, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
+        raise NotImplementedError()
