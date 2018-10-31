@@ -57,9 +57,6 @@ class NominalSarsaController(NominalController):
 
         self._evaluation_function = dict()
 
-        self._save_steps = 10000
-        self._iterations = 0
-
         self._last_condition = None
         self._last_reward = 0.
 
@@ -103,13 +100,8 @@ class NominalSarsaController(NominalController):
                 last_evaluation = last_sub_dict.get(last_action, self._default_evaluation)
                 last_sub_dict[last_action] = last_evaluation + self._alpha * (new_value - last_evaluation)
 
-        if self._iterations >= self._save_steps:
-            self._iterations = 0
-            self.store_evaluation_function(self.__class__.__name__ + f"_{id(self):d}.json")
-
         self._last_condition = perception, action
         self._last_reward = reward
-        self._iterations += 1
 
 
 class NominalSemioticSarsaController(NominalController):

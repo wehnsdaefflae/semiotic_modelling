@@ -59,3 +59,17 @@ class NominalMarkov(NominalPredictor):
 
     def get_state(self) -> PREDICTOR_STATE:
         return tuple()
+
+
+class NominalSemiotic(NominalPredictor):
+    def __init__(self, no_states: int, *args, **kwargs):
+        super().__init__(no_states, *args, **kwargs)
+
+    def react(self, data_in: Optional[Tuple[NOMINAL_INPUT, ...]]) -> Tuple[NOMINAL_OUTPUT, ...]:
+        pass
+
+    def _fit(self, data_in: Optional[Tuple[NOMINAL_INPUT, ...]], data_out: Tuple[NOMINAL_OUTPUT, ...]):
+        pass
+
+    def get_state(self) -> PREDICTOR_STATE:
+        pass

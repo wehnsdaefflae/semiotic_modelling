@@ -326,9 +326,9 @@ class VisualizationView:
                         #    "duration": 200,
                         #    "redraw": False,
                         #},
-                        "transition": {
-                            "duration": 0,
-                        }
+                        #"transition": {
+                        #    "duration": 0,
+                        #}
                     },
                     figure={
                         "data": axis_data,
