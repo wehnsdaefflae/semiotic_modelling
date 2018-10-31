@@ -17,10 +17,8 @@ class ExampleStream(Generic[INPUT_TYPE, OUTPUT_TYPE]):
         self._learn_control = learn_control
         self._no_examples = no_examples
         self._reward = 0.
+        self._history_length = history_length  # todo: implement input memory in abstract class
 
-        self._history_length = history_length
-        self._histories = tuple(deque(maxlen=history_length) for _ in range(no_examples))
-        
     def __str__(self):
         raise NotImplementedError()
 

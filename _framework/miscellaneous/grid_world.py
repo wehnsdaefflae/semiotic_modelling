@@ -4,6 +4,9 @@ import string
 import time
 from typing import Tuple, Optional
 
+from _framework.systems.controllers.nominal.implementations import NominalSarsaController
+from tools.load_configs import Config
+
 
 class GridWorldGlobal:
     def __init__(self, file_path: str, rotational: bool = True):
@@ -176,7 +179,7 @@ class DebugSarsa:
             return 0.
         return sub_dict.get(action, 0.)
 
-    def react(self, perception, reward):
+    def decide(self, perception, reward):
         # action selection
         if random.random() < self._epsilon:
             action, = random.sample(self._actions, 1)
@@ -203,25 +206,60 @@ class DebugSarsa:
         return action
 
 
-if __name__ == "__main__":
+def new():
+    config = Config("../../configs/config.json")
+    c = NominalSarsaController(("n", "e", "s", "w"), .1, .5, .1)
+    w = GridWorldGlobal(config["data_dir"] + "grid_worlds/square.txt", rotational=False)
+
+    avrg_reward = 0
+    s = None
+    for _i in range(1000000):
+        m = str(c.decide(s))
+        new_s, r = w.react_to(m)
+
+        c.integrate(s, m, r)
+        s = new_s
+
+        avrg_reward = (avrg_reward * _i + r) / (_i + 1)
+
+        if _i % 10000 == 0:
+            with open("new.csv", mode="a") as file:
+                file.write(f"{avrg_reward:f}\n")
+
+        if _i >= 1000000 // 2:
+            c._epsilon = 0.
+
+            print(str(w) + f"\n{avrg_reward:f}\t{r:f}\n")
+            time.sleep(.5)
+
+    pass
+
+
+def old():
+    config = Config("../../configs/config.json")
     c = DebugSarsa(("n", "e", "s", "w"), .1, .5, .1)
-    w = GridWorldGlobal("D:/Data/grid_worlds/simple.txt", rotational=False)
+    w = GridWorldGlobal(config["data_dir"] + "grid_worlds/square.txt", rotational=False)
 
     avrg_reward = 0
     m = None
     for _i in range(1000000):
         s, r = w.react_to(m)
-        m = c.react(s, r)
+        m = c.decide(s, r)
 
         avrg_reward = (avrg_reward * _i + r) / (_i + 1)
 
-        if _i % 100000 == 0:
-            print(f"{_i:d}: {avrg_reward:f}")
+        if _i % 10000 == 0:
+            with open("old.csv", mode="a") as file:
+                file.write(f"{avrg_reward:f}\n")
 
         if _i >= 1000000 // 2:
             c._epsilon = 0.
 
-            print(str(w))
+            print(str(w) + f"\n{avrg_reward:f}\t{r:f}\n")
             time.sleep(.5)
 
     pass
+
+
+if __name__ == "__main__":
+    new()

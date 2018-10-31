@@ -85,8 +85,6 @@ class NominalSarsaController(NominalController):
         return action
 
     def integrate(self, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
-        # update last_condition evaluation with last reward and this evaluation
-
         sub_dict = self._evaluation_function.get(perception)
         if sub_dict is None:
             this_evaluation = self._default_evaluation
@@ -95,24 +93,21 @@ class NominalSarsaController(NominalController):
 
         if self._last_condition is not None:
             last_perception, last_action = self._last_condition
+
             new_value = self._last_reward + self._gamma * this_evaluation
             last_sub_dict = self._evaluation_function.get(last_perception)
+
             if last_sub_dict is None:
-                last_sub_dict = dict()
-                self._evaluation_function[last_perception] = last_sub_dict
-                old_value = self._default_evaluation
+                self._evaluation_function[last_perception] = {last_action: reward + self._gamma * this_evaluation}
             else:
-                old_value = last_sub_dict.get(action, self._default_evaluation)
-
-            last_sub_dict[last_action] = old_value + self._alpha * (new_value - old_value)
-
-        self._last_reward = reward
-        self._last_condition = perception, action
+                last_evaluation = last_sub_dict.get(last_action, self._default_evaluation)
+                last_sub_dict[last_action] = last_evaluation + self._alpha * (self._last_reward + self._gamma * this_evaluation - last_evaluation)
 
         if self._iterations >= self._save_steps:
             self._iterations = 0
             self.store_evaluation_function(self.__class__.__name__ + f"_{id(self):d}.json")
 
+        self._last_condition = perception, action
         self._last_reward = reward
         self._iterations += 1
 
