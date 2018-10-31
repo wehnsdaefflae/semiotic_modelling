@@ -40,7 +40,9 @@ class InteractionStream(ExampleStream[SENSORIMOTOR_INPUT[SENSOR_TYPE, MOTOR_TYPE
         return f"({str(self._task):s}, {str(self._controller):s})"
 
     def next(self) -> Tuple[SENSORIMOTOR_EXAMPLE[SENSOR_TYPE, MOTOR_TYPE], ...]:
-        perception = tuple(self._history), self._sensor, self._predictor.get_state()
+        history_tuple = tuple(self._history)
+
+        perception = history_tuple, self._sensor, self._predictor.get_state()
         action = self._controller.decide(perception)            # (sensor, motor)*, sensor, state
         next_sensor, self._reward = self._task.respond(action)  # ((sensor, motor)*, sensor, state), motor
 
@@ -48,10 +50,11 @@ class InteractionStream(ExampleStream[SENSORIMOTOR_INPUT[SENSOR_TYPE, MOTOR_TYPE
             self._controller.integrate(perception, action, self._reward)
 
         sensorimotor_input = self._sensor, action
-        examples = (tuple(self._history) + sensorimotor_input, next_sensor),
+        examples = (history_tuple + sensorimotor_input, next_sensor),
 
         self._sensor = next_sensor
-        self._history.append(sensorimotor_input)
-        del(self._history[:-self._history_length])
+        if 0 < self._history_length:
+            self._history.append(sensorimotor_input)
+            del(self._history[:-self._history_length])
 
         return examples

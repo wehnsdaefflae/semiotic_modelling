@@ -41,16 +41,13 @@ class Experiment(Generic[TYPE_A, TYPE_B]):
         return self._name
 
     def _single_step(self):
-        examples_train = self._stream_train.next()
-        inputs_train, targets_train = zip(*examples_train)
-
         examples_test = self._stream_test.next()
         inputs_test, targets_test = zip(*examples_test)
+        reward_test = self._stream_test.get_reward()
 
-        reward_train = self._stream_test.get_reward()
-        reward_test = self._stream_train.get_reward()
-
-        outputs_test = self._predictor.predict(inputs_test)
+        examples_train = self._stream_train.next()
+        inputs_train, targets_train = zip(*examples_train)
+        reward_train = self._stream_train.get_reward()
 
         this_time = time.time()
 
@@ -58,6 +55,8 @@ class Experiment(Generic[TYPE_A, TYPE_B]):
         self._predictor.fit(inputs_train, targets_train)
 
         duration = time.time() - this_time
+
+        outputs_test = self._predictor.predict(inputs_test)
         errors_train = self._stream_train.error(outputs_train, targets_train)
         errors_test = self._stream_train.error(outputs_test, targets_test)
 
