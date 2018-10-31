@@ -17,5 +17,5 @@ class NominalController(Controller[RATIONAL_SENSOR, RATIONAL_MOTOR]):
     def react(self, perception: Optional[RATIONAL_SENSOR]) -> RATIONAL_MOTOR:
         raise NotImplementedError()
 
-    def integrate(self, last_perception: Optional[RATIONAL_SENSOR], last_action: RATIONAL_MOTOR, perception: Optional[RATIONAL_SENSOR], action: RATIONAL_MOTOR, reward: float):
+    def integrate(self, perception: Optional[RATIONAL_SENSOR], action: RATIONAL_MOTOR, reward: float):
         raise NotImplementedError()

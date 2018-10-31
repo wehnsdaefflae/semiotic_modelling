@@ -8,7 +8,7 @@ from tools.load_configs import Config
 
 if __name__ == "__main__":
     config = Config("../../configs/config.json")
-    file_path = config["data_dir"] + "grid_worlds/simple.txt"
+    file_path = config["data_dir"] + "grid_worlds/square.txt"
 
     experiment_factories = (
         ExperimentFactory(
@@ -39,13 +39,13 @@ if __name__ == "__main__":
             ), controller_def=(
                 NominalSarsaController,
                 {
-                    "alpha": 1.,
-                    "gamma": .75,
+                    "alpha": .1,
+                    "gamma": .5,
                     "epsilon": .1
                 }
             )
         ),
     )
 
-    setup = Setup(experiment_factories, 1, 0, step_size=5000)
+    setup = Setup(experiment_factories, 10, 0, step_size=500)
     setup.run_experiment()

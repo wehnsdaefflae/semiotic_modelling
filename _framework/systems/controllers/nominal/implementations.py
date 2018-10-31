@@ -12,7 +12,7 @@ class NominalNoneController(NominalController):
     def __init__(self, motor_space: Collection[NOMINAL_MOTOR]):
         super().__init__(motor_space)
 
-    def integrate(self, last_perception: Optional[Any], last_action: Type[None], perception: Optional[Any], action: Type[None], reward: float):
+    def integrate(self, perception: Optional[Any], action: Type[None], reward: float):
         pass
 
     def react(self, perception: Optional[Any]) -> Type[None]:
@@ -23,7 +23,7 @@ class NominalRandomController(NominalController):
     def __init__(self, motor_space: Collection[NOMINAL_MOTOR]):
         super().__init__(motor_space)
 
-    def integrate(self, last_perception: Optional[NOMINAL_SENSOR], last_action: NOMINAL_MOTOR, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
+    def integrate(self, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
         pass
 
     def react(self, perception: Optional[NOMINAL_SENSOR]) -> NOMINAL_MOTOR:
@@ -43,7 +43,7 @@ class NominalManualController(NominalController):
             action = input(f"Action {action:s} is not among {self._space_string}. Try again: ")
         return action
 
-    def integrate(self, last_perception: Optional[NOMINAL_SENSOR], last_action: NOMINAL_MOTOR, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
+    def integrate(self, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
         Logger.log(f"### Controller {id(self):d} received reward: {reward:f}.")
 
 
@@ -59,6 +59,9 @@ class NominalSarsaController(NominalController):
 
         self._save_steps = 10000
         self._iterations = 0
+
+        self._last_condition = None
+        self._last_reward = 0.
 
     def store_evaluation_function(self, file_path: str):
         with open(file_path, mode="w") as file:
@@ -81,27 +84,36 @@ class NominalSarsaController(NominalController):
 
         return action
 
-    def integrate(self, last_perception: Optional[NOMINAL_SENSOR], last_action: NOMINAL_MOTOR, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
-        last_sub_dict = self._evaluation_function.get(last_perception)
-        if last_sub_dict is None:
-            last_evaluation = self._default_evaluation
-            last_sub_dict = dict()
-            self._evaluation_function[last_perception] = last_sub_dict
-
-        else:
-            last_evaluation = last_sub_dict.get(last_action, self._default_evaluation)
+    def integrate(self, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
+        # update last_condition evaluation with last reward and this evaluation
 
         sub_dict = self._evaluation_function.get(perception)
         if sub_dict is None:
-            evaluation = self._default_evaluation
+            this_evaluation = self._default_evaluation
         else:
-            evaluation = sub_dict.get(action, self._default_evaluation)
+            this_evaluation = sub_dict.get(action, self._default_evaluation)
 
-        last_sub_dict[last_action] = last_evaluation + self._alpha * (reward + self._gamma * evaluation - last_evaluation)
+        if self._last_condition is not None:
+            last_perception, last_action = self._last_condition
+            new_value = self._last_reward + self._gamma * this_evaluation
+            last_sub_dict = self._evaluation_function.get(last_perception)
+            if last_sub_dict is None:
+                last_sub_dict = dict()
+                self._evaluation_function[last_perception] = last_sub_dict
+                old_value = self._default_evaluation
+            else:
+                old_value = last_sub_dict.get(action, self._default_evaluation)
+
+            last_sub_dict[last_action] = old_value + self._alpha * (new_value - old_value)
+
+        self._last_reward = reward
+        self._last_condition = perception, action
 
         if self._iterations >= self._save_steps:
             self._iterations = 0
             self.store_evaluation_function(self.__class__.__name__ + f"_{id(self):d}.json")
+
+        self._last_reward = reward
         self._iterations += 1
 
 
@@ -113,5 +125,5 @@ class NominalSemioticSarsaController(NominalController):
     def react(self, perception: Optional[NOMINAL_SENSOR]) -> NOMINAL_MOTOR:
         raise NotImplementedError()
 
-    def integrate(self, last_perception: Optional[NOMINAL_SENSOR], last_action: NOMINAL_MOTOR, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
+    def integrate(self, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
         raise NotImplementedError()

@@ -1,6 +1,7 @@
 # coding=utf-8
 import random
 import string
+import time
 from typing import Tuple, Optional
 
 
@@ -167,7 +168,7 @@ class DebugSarsa:
         self._gamma = gamma
         self._epsilon = epsilon
         self._evaluation = dict()
-        self._last_condition = None
+        self._condition = None
 
     def get_evaluation(self, perception, action):
         sub_dict = self._evaluation.get(perception)
@@ -186,11 +187,11 @@ class DebugSarsa:
             else:
                 action, _ = max(sub_dict.items(), key=lambda _x: _x[1])
 
-        if self._last_condition is not None and self._last_condition[1] is not None:
-            # evaluation update
+        # evaluation update
+        if self._condition is not None and self._condition[1] is not None:
             evaluation = self.get_evaluation(perception, action)
 
-            last_perception, last_action = self._last_condition
+            last_perception, last_action = self._condition
             sub_dict = self._evaluation.get(last_perception)
             if sub_dict is None:
                 self._evaluation[last_perception] = {last_action: reward + self._gamma * evaluation}
@@ -198,12 +199,12 @@ class DebugSarsa:
                 last_evaluation = sub_dict.get(last_action, 0.)
                 sub_dict[last_action] = last_evaluation + self._alpha * (reward + self._gamma * evaluation - last_evaluation)
 
-        self._last_condition = perception, action
+        self._condition = perception, action
         return action
 
 
 if __name__ == "__main__":
-    c = DebugSarsa(("e", "w"), .1, .5, .1)
+    c = DebugSarsa(("n", "e", "s", "w"), .1, .5, .1)
     w = GridWorldGlobal("D:/Data/grid_worlds/simple.txt", rotational=False)
 
     avrg_reward = 0
@@ -216,3 +217,11 @@ if __name__ == "__main__":
 
         if _i % 100000 == 0:
             print(f"{_i:d}: {avrg_reward:f}")
+
+        if _i >= 1000000 // 2:
+            c._epsilon = 0.
+
+            print(str(w))
+            time.sleep(.5)
+
+    pass

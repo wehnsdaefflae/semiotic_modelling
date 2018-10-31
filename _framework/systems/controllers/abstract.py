@@ -18,7 +18,7 @@ class Controller(System[SENSOR_TYPE, MOTOR_TYPE], Generic[SENSOR_TYPE, MOTOR_TYP
     def react(self, perception: Optional[SENSOR_TYPE]) -> MOTOR_TYPE:
         raise NotImplementedError()
 
-    def integrate(self, last_perception: Optional[SENSOR_TYPE], last_action: MOTOR_TYPE, perception: Optional[SENSOR_TYPE], action: MOTOR_TYPE, reward: float):
+    def integrate(self, perception: Optional[SENSOR_TYPE], action: MOTOR_TYPE, reward: float):
         raise NotImplementedError()
 
     def decide(self, perception: Optional[SENSOR_TYPE]) -> MOTOR_TYPE:
