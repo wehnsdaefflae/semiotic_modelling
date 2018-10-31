@@ -29,6 +29,9 @@ class RotationalGridWorld(GridWorld, RotationalMixin, NominalTask):
     def __init__(self, local: bool, file_path: str):
         super().__init__(True, local, file_path)
 
+    def __str__(self) -> str:
+        return str(self._grid_wold)
+
 
 class TransitionalMixin:
     @staticmethod
@@ -40,3 +43,6 @@ class TransitionalMixin:
 class TransitionalGridWorld(GridWorld, TransitionalMixin, NominalTask):
     def __init__(self, local: bool, file_path: str):
         super().__init__(False, local, file_path)
+
+    def __str__(self) -> str:
+        return str(self._grid_wold)

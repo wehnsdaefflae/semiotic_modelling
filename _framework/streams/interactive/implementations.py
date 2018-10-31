@@ -46,6 +46,9 @@ class InteractionStream(ExampleStream[SENSORIMOTOR_INPUT[SENSOR_TYPE, MOTOR_TYPE
 
         action = self._controller.decide(perception)      # (sensor, motor)*, sensor, state
 
+        #print(str(self._task))
+        #print(f"last_perception: {str(self._last_perception):s}, last_action: {str(self._last_action):s}")
+        #print(f"perception: {str(perception):s}, last_action: {str(action):s}, reward: {self.get_reward():f}\n")
         next_sensor, self._reward = self._task.respond(action)
 
         if self._learn_control:

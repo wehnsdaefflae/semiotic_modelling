@@ -1,4 +1,5 @@
 # coding=utf-8
+import random
 import string
 from typing import Tuple, Optional
 
@@ -157,3 +158,61 @@ class GridWorldLocal(GridWorldGlobal):
             reward = -1.
 
         return sensor, reward
+
+
+class DebugSarsa:
+    def __init__(self, actions, alpha, gamma, epsilon):
+        self._actions = actions
+        self._alpha = alpha
+        self._gamma = gamma
+        self._epsilon = epsilon
+        self._evaluation = dict()
+        self._last_condition = None
+
+    def get_evaluation(self, perception, action):
+        sub_dict = self._evaluation.get(perception)
+        if sub_dict is None:
+            return 0.
+        return sub_dict.get(action, 0.)
+
+    def react(self, perception, reward):
+        # action selection
+        if random.random() < self._epsilon:
+            action, = random.sample(self._actions, 1)
+        else:
+            sub_dict = self._evaluation.get(perception)
+            if sub_dict is None:
+                action, = random.sample(self._actions, 1)
+            else:
+                action, _ = max(sub_dict.items(), key=lambda _x: _x[1])
+
+        if self._last_condition is not None and self._last_condition[1] is not None:
+            # evaluation update
+            evaluation = self.get_evaluation(perception, action)
+
+            last_perception, last_action = self._last_condition
+            sub_dict = self._evaluation.get(last_perception)
+            if sub_dict is None:
+                self._evaluation[last_perception] = {last_action: reward + self._gamma * evaluation}
+            else:
+                last_evaluation = sub_dict.get(last_action, 0.)
+                sub_dict[last_action] = last_evaluation + self._alpha * (reward + self._gamma * evaluation - last_evaluation)
+
+        self._last_condition = perception, action
+        return action
+
+
+if __name__ == "__main__":
+    c = DebugSarsa(("e", "w"), .1, .5, .1)
+    w = GridWorldGlobal("D:/Data/grid_worlds/simple.txt", rotational=False)
+
+    avrg_reward = 0
+    m = None
+    for _i in range(1000000):
+        s, r = w.react_to(m)
+        m = c.react(s, r)
+
+        avrg_reward = (avrg_reward * _i + r) / (_i + 1)
+
+        if _i % 100000 == 0:
+            print(f"{_i:d}: {avrg_reward:f}")
