@@ -216,8 +216,8 @@ def new():
     for _i in range(1000000):
         m = str(c.decide(s))
         new_s, r = w.react_to(m)
-
         c.integrate(s, m, r)
+
         s = new_s
 
         avrg_reward = (avrg_reward * _i + r) / (_i + 1)

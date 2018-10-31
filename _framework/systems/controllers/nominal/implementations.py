@@ -98,10 +98,10 @@ class NominalSarsaController(NominalController):
             last_sub_dict = self._evaluation_function.get(last_perception)
 
             if last_sub_dict is None:
-                self._evaluation_function[last_perception] = {last_action: reward + self._gamma * this_evaluation}
+                self._evaluation_function[last_perception] = {last_action: new_value}
             else:
                 last_evaluation = last_sub_dict.get(last_action, self._default_evaluation)
-                last_sub_dict[last_action] = last_evaluation + self._alpha * (self._last_reward + self._gamma * this_evaluation - last_evaluation)
+                last_sub_dict[last_action] = last_evaluation + self._alpha * (new_value - last_evaluation)
 
         if self._iterations >= self._save_steps:
             self._iterations = 0
