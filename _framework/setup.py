@@ -14,7 +14,6 @@ from _framework.systems.tasks.rational.abstract import RationalTask
 from _live_dash_plotly.send_data import SemioticVisualization
 from tools.functionality import DictList, smear
 from tools.logger import Logger, DataLogger, get_time_string, get_main_script_name
-from tools.timer import Timer
 
 TYPE_A = TypeVar("TYPE_A")
 TYPE_B = TypeVar("TYPE_B")
@@ -152,6 +151,7 @@ class Setup(Generic[TYPE_A, TYPE_B]):
                 for _i, _v in enumerate(_value_list):
                     header.append(_plot_name + f"_{_i:03d}")
                     values_str.append(f"{_v:.5f}")
+
             DataLogger.log_to(header, values_str, dir_path=Logger.dir_path, file_name=each_experiment_name + ".tsv")
 
     @staticmethod
@@ -159,10 +159,9 @@ class Setup(Generic[TYPE_A, TYPE_B]):
         plot_data = tuple((_a, _p, _v) for _a, _sd in result.items() for _p, _v in _sd.items())
         SemioticVisualization.plot_batch(plot_data)
 
-    def _batch(self):
-        start_iterations = self._iteration
+    def _batch(self, interval_sec: float):
         start_time = time.time()
-        while time.time() < start_time + self._interval:
+        while time.time() < start_time + interval_sec:
             for _i, each_array in enumerate(self._experiments):
                 for each_instance in each_array:
                     each_instance.step()
@@ -197,11 +196,11 @@ class Setup(Generic[TYPE_A, TYPE_B]):
     def run_experiment(self):
         if 0 >= self._max_iterations:
             while True:
-                self._batch()
+                self._batch(self._interval)
 
         with tqdm.tqdm(total=self._max_iterations) as progress_bar:
             while self._iteration < self._max_iterations:
                 last_iteration = self._iteration
-                self._batch()
+                self._batch(self._interval)
                 progress_bar.update(self._iteration - last_iteration)
 
