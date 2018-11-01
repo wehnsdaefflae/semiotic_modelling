@@ -32,7 +32,7 @@ if __name__ == "__main__":
                             "file_path": file_path,
                         }
                     ),
-                    "history_length": 0
+                    "history_length": 1
                 },
                 {
                     "task_def": (
@@ -42,7 +42,7 @@ if __name__ == "__main__":
                             "file_path": file_path,
                         }
                     ),
-                    "history_length": 0
+                    "history_length": 1
                 }
             ),
             "controller_def": (

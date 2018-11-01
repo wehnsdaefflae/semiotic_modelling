@@ -1,6 +1,5 @@
 # coding=utf-8
 import numbers
-from collections import deque
 from typing import TypeVar, Generic, Tuple, Sequence
 
 
@@ -19,11 +18,41 @@ class ExampleStream(Generic[INPUT_TYPE, OUTPUT_TYPE]):
         self._reward = 0.
         self._history_length = history_length  # todo: implement input memory in abstract class
 
+        self._input_histories = tuple([] for _ in range(no_examples))
+
     def __str__(self):
         raise NotImplementedError()
 
-    def next(self) -> Tuple[EXAMPLE_TYPE, ...]:
+    def __memorize_inputs(self, inputs: Tuple[INPUT_TYPE, ...]):
+        if self._history_length < 1:
+            return
+
+        for each_history, each_input in zip(self._input_histories, inputs):
+            each_history.append(each_input)
+            del each_history[:-self._history_length]
+
+    def _before(self):
         raise NotImplementedError()
+
+    def _get_inputs(self) -> Tuple[INPUT_TYPE, ...]:
+        raise NotImplementedError()
+
+    def _get_outputs(self) -> Tuple[OUTPUT_TYPE, ...]:
+        raise NotImplementedError()
+
+    def _after(self):
+        raise NotImplementedError()
+
+    def next(self) -> Tuple[EXAMPLE_TYPE, ...]:
+        self._before()
+
+        inputs = self._get_inputs()
+        self.__memorize_inputs(inputs)
+        outputs = self._get_outputs()
+        examples = tuple((tuple(each_input_history), each_output) for each_input_history, each_output in zip(self._input_histories, outputs))
+
+        self._after()
+        return examples
 
     def get_reward(self) -> float:
         return self._reward

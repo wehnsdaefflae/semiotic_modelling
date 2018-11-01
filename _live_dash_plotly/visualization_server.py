@@ -243,9 +243,16 @@ class VisualizationView:
                     showlegend=_i == 0,
                     x=each_range,
                     y=outline,
+                    mode="lines",
                     name=_plot_name,
                     fill="tozerox",
-                    line={"color": "rgba(255, 255, 255, 0)"},
+                    line={
+                        "color": f"rgba({color_str:s}, 1)",
+                        "width": 1,
+                        "shape": "hv",
+                        #"shape": "spline",
+                    },
+                    # line={"color": "rgba(255, 255, 255, 0)"},
                 )
                 axis_data.append(data)
 
