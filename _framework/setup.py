@@ -147,13 +147,13 @@ class Setup(Generic[TYPE_A, TYPE_B]):
     Logger.file_name = get_main_script_name() + ".log"
     Logger.dir_path = f"results/{get_time_string():s}/"
 
-    def __init__(self, factories: Collection[ExperimentFactory[TYPE_A, TYPE_B]], no_instances: int, iterations: int, step_size: int = 1000, visualization: bool = True):
+    def __init__(self, factory_args: Collection[Dict[str, Any]], no_instances: int, iterations: int, step_size: int = 1000, visualization: bool = True):
         self._no_instances = no_instances
         self._iterations = iterations
         self._step_size = step_size
 
-        self._factories = factories
-        self._experiments = tuple(tuple(_f.create() for _ in range(self._no_instances)) for _f in self._factories)
+        factories = tuple(ExperimentFactory[TYPE_A, TYPE_B](**each_args) for each_args in factory_args)
+        self._experiments = tuple(tuple(_f.create() for _ in range(self._no_instances)) for _f in factories)
 
         self._finished_batches = 0
 

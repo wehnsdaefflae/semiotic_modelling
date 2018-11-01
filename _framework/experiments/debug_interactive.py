@@ -1,21 +1,28 @@
 # coding=utf-8
-from _framework.setup import ExperimentFactory, Setup
+from _framework.setup import Setup
 from _framework.streams.interactive.implementations import InteractionStream
 from _framework.systems.controllers.nominal.implementations import NominalSarsaController
 from _framework.systems.predictors.nominal.implementations import NominalMarkov
 from _framework.systems.tasks.nominal.implementations import TransitionalGridWorld
 from tools.load_configs import Config
 
+
+# todo: manage input history in abstract class
+
 if __name__ == "__main__":
     config = Config("../../configs/config.json")
     file_path = config["data_dir"] + "grid_worlds/square.txt"
 
-    experiment_factories = (
-        ExperimentFactory(
-            (
+    experiments = (
+        {
+            "predictor_def": (
                 NominalMarkov,
-                {"no_states": 1}
-            ), (
+                {
+                    "no_states":
+                        1
+                }
+            ),
+            "streams_def": (
                 InteractionStream,
                 {
                     "task_def": (
@@ -26,7 +33,8 @@ if __name__ == "__main__":
                         }
                     ),
                     "history_length": 0
-                }, {
+                },
+                {
                     "task_def": (
                         TransitionalGridWorld,
                         {
@@ -36,7 +44,8 @@ if __name__ == "__main__":
                     ),
                     "history_length": 0
                 }
-            ), controller_def=(
+            ),
+            "controller_def": (
                 NominalSarsaController,
                 {
                     "alpha": .1,
@@ -44,8 +53,8 @@ if __name__ == "__main__":
                     "epsilon": .1
                 }
             )
-        ),
+        },
     )
 
-    setup = Setup(experiment_factories, 10, -100, step_size=5000)
+    setup = Setup(experiments, 10, -100, step_size=5000)
     setup.run_experiment()

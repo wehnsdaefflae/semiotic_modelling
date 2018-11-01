@@ -1,5 +1,5 @@
 # coding=utf-8
-from _framework.setup import ExperimentFactory, Setup
+from _framework.setup import Setup
 from _framework.streams.interactive.implementations import InteractionStream
 from _framework.systems.controllers.nominal.implementations import NominalManualController
 from _framework.systems.predictors.nominal.implementations import NominalMarkov
@@ -10,12 +10,14 @@ if __name__ == "__main__":
     config = Config("../../configs/config.json")
     file_path = config["data_dir"] + "grid_worlds/simple.txt"
 
-    experiment_factories = (
-        ExperimentFactory(
-            (
-                NominalMarkov,
-                {"no_states": 1}
-            ), (
+    experiments = (
+        {
+            "predictor_def": (
+                NominalMarkov, {
+                    "no_states": 1
+                }
+            ),
+            "streams_def": (
                 InteractionStream,
                 {
                     "task_def": (
@@ -36,12 +38,13 @@ if __name__ == "__main__":
                     ),
                     "history_length": 0
                 }
-            ), controller_def=(
+            ),
+            "controller_def": (
                 NominalManualController,
                 dict()
             )
-        ),
+        },
     )
 
-    setup = Setup(experiment_factories, 1, 0, step_size=10, visualization=False)
+    setup = Setup(experiments, 1, 0, step_size=10, visualization=False)
     setup.run_experiment()

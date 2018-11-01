@@ -1,4 +1,5 @@
 # coding=utf-8
+import collections
 import random
 import string
 from typing import Tuple
@@ -18,6 +19,7 @@ class NominalAscendingDescending(ExampleStream[NOMINAL_INPUT, NOMINAL_OUTPUT]):
 
         self._sequence = string.digits
         self._len = len(self._sequence)
+        self._history = collections.deque(maxlen=self._history_length)
 
     def __str__(self):
         return self.__class__.__name__
