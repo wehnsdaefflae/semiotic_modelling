@@ -23,6 +23,7 @@ class VisualizationModel:
         self.axes = tuple(_name for _name, _ in axes)
         self._axes_width = {_name: (dict(), _width) for _name, _width in axes}
         self._length = length
+        self._range = []
 
     def __len__(self) -> int:
         return abs(self._length)
@@ -42,23 +43,30 @@ class VisualizationModel:
         series = _named_series[plot_name]
         return series
 
-    def add_data(self, axis_name: str, plot_name: str, *value: float):
+    def get_range(self) -> Tuple[int, ...]:
+        return tuple(self._range)
+
+    def add_data(self, axis_name: str, plot_name: str, time_step: int, *values: float):
         _named_series, _width = self._axes_width[axis_name]
-        if len(value) != _width:
+        if len(values) != _width:
             raise ValueError("inconsistent width")
 
         series = _named_series.get(plot_name)
         if series is None:
             series = self._new_plot(axis_name, plot_name)
 
-        for _v, _s in zip(value, series):
+        for _v, _s in zip(values, series):
             _s.append(_v)
+
+        self._range.append(time_step)
 
         if 0 >= self._length:
             return
 
         for _s in series:
             del _s[:-self._length]
+
+        del self._range[:-self._length]
 
 
 class VisualizationView:
@@ -143,11 +151,12 @@ class VisualizationView:
 
         d = json.loads(data)
         batch = d["batch"]
+        iteration = d["iteration"]
 
         for axis_name, plot_name, values in batch:
             if axis_name in VisualizationView.dist_axes:
                 values = sorted(values)
-            VisualizationView.model.add_data(axis_name, plot_name, *values)
+            VisualizationView.model.add_data(axis_name, plot_name, iteration, *values)
 
         return jsonify(f"added batch of size {len(batch):d}")
 
@@ -231,6 +240,7 @@ class VisualizationView:
                     **plot_properties,
                     showlegend=_i == 0,
                     x=each_range,
+                    # x=VisualizationView.model.get_range(),
                     y=outline,
                     name=_plot_name,
                     fill="tozerox",
@@ -271,6 +281,7 @@ class VisualizationView:
                 data = graph_objs.Scatter(
                     **plot_properties,
                     showlegend=True,
+                    # x=VisualizationView.model.get_range(),
                     x=list(range(x_min, x_max)),
                     y=each_series,
                     name=_plot_name,
@@ -298,6 +309,7 @@ class VisualizationView:
             this_plot_style = VisualizationView.plot_styles.get(_axis_name, dict())
 
             x_min, x_max = VisualizationView.__x_min_max()
+            # x_min, x_max = get_min_max(VisualizationView.model.get_range())
 
             if _axis_name in VisualizationView.dist_axes:
                 axis_data, (y_min, y_max) = VisualizationView._get_concentration(_axis_name, this_plot_style)

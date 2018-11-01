@@ -155,9 +155,9 @@ class Setup(Generic[TYPE_A, TYPE_B]):
             DataLogger.log_to(header, values_str, dir_path=Logger.dir_path, file_name=each_experiment_name + ".tsv")
 
     @staticmethod
-    def _plot_batch(result: Dict[str, DictList[str, Sequence[float]]]):
+    def _plot_batch(iteration: int, result: Dict[str, DictList[str, Sequence[float]]]):
         plot_data = tuple((_a, _p, _v) for _a, _sd in result.items() for _p, _v in _sd.items())
-        SemioticVisualization.plot_batch(plot_data)
+        SemioticVisualization.plot_batch(iteration, plot_data)
 
     def _batch(self, interval_sec: float):
         start_time = time.time()
@@ -190,7 +190,7 @@ class Setup(Generic[TYPE_A, TYPE_B]):
 
         Setup._save_results_batch(self._iteration, file_data)
         if self._visualization:
-            Setup._plot_batch({"error": error_data, "reward": reward_data, "duration": duration_data})
+            Setup._plot_batch(self._iteration, {"error": error_data, "reward": reward_data, "duration": duration_data})
             SemioticVisualization.update()
 
     def run_experiment(self):

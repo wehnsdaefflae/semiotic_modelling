@@ -33,9 +33,10 @@ def send_data(axis_name: str, plot_name: str, *values: float):
     return r.status_code, r.json()
 
 
-def send_batch(batch: Sequence[Tuple[str, str, Sequence[float]]]):
+def send_batch(iteration: int, batch: Sequence[Tuple[str, str, Sequence[float]]]):
     params = {
-        "batch": batch
+        "batch": batch,
+        "iteration": iteration,
     }
     r = requests.post(URL + "data_batch?", json=params)
     return r.status_code, r.json()
@@ -75,8 +76,8 @@ class SemioticVisualization:
         Logger.log(f"{status:d}\n{json_response:s}")
 
     @staticmethod
-    def plot_batch(batch: Sequence[Tuple[str, str, Sequence[float]]]):
-        status, json_response = send_batch(batch)
+    def plot_batch(iteration: int, batch: Sequence[Tuple[str, str, Sequence[float]]]):
+        status, json_response = send_batch(iteration, batch)
         Logger.log(f"{status:d}\n{json_response:s}")
 
     @staticmethod
