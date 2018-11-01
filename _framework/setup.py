@@ -141,7 +141,7 @@ class Setup(Generic[TYPE_A, TYPE_B]):
         if self._visualization:
             SemioticVisualization.initialize(("reward", "error", "duration"), no_instances, length=max_iterations)
 
-        self._iterations = 0
+        self._iteration = 0
 
     @staticmethod
     def _save_results_batch(iteration: int, result: Dict[str, DictList[str, Sequence[float]]]):
@@ -160,11 +160,13 @@ class Setup(Generic[TYPE_A, TYPE_B]):
         SemioticVisualization.plot_batch(plot_data)
 
     def _batch(self):
+        start_iterations = self._iteration
         start_time = time.time()
         while time.time() < start_time + self._interval:
             for _i, each_array in enumerate(self._experiments):
                 for each_instance in each_array:
                     each_instance.step()
+            self._iteration += 1
 
         duration_data = DictList()
         error_data = DictList()
@@ -179,7 +181,7 @@ class Setup(Generic[TYPE_A, TYPE_B]):
                 error_data.add(name + " train", each_instance.error_train)
                 error_data.add(name + " test", each_instance.error_test)
                 reward_data.add(name + " train", each_instance.reward_train)
-                reward_data.add(name + "test", each_instance.reward_test)
+                reward_data.add(name + " test", each_instance.reward_test)
 
                 file_dict.add("duration", each_instance.duration)
                 file_dict.add("error train", each_instance.error_train)
@@ -187,18 +189,19 @@ class Setup(Generic[TYPE_A, TYPE_B]):
                 file_dict.add("reward train", each_instance.reward_train)
                 file_dict.add("reward test", each_instance.reward_test)
 
-        Setup._save_results_batch(self._iterations, file_data)
+        Setup._save_results_batch(self._iteration, file_data)
         if self._visualization:
             Setup._plot_batch({"error": error_data, "reward": reward_data, "duration": duration_data})
             SemioticVisualization.update()
 
     def run_experiment(self):
-        if 0 == self._max_iterations:
+        if 0 >= self._max_iterations:
             while True:
                 self._batch()
 
-        with tqdm.tqdm(total=self._iterations) as progress_bar:
-            while self._iterations < self._max_iterations:
+        with tqdm.tqdm(total=self._max_iterations) as progress_bar:
+            while self._iteration < self._max_iterations:
+                last_iteration = self._iteration
                 self._batch()
-                progress_bar.update(1)
+                progress_bar.update(self._iteration - last_iteration)
 
