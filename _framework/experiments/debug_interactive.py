@@ -7,8 +7,6 @@ from _framework.systems.tasks.nominal.implementations import TransitionalGridWor
 from tools.load_configs import Config
 
 
-# todo: manage input history in abstract class
-
 if __name__ == "__main__":
     config = Config("../../configs/config.json")
     file_path = config["data_dir"] + "grid_worlds/square.txt"

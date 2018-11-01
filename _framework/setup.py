@@ -178,6 +178,47 @@ class Setup(Generic[TYPE_A, TYPE_B]):
         plot_data = tuple((_a, _p, _v) for _a, _sd in result.items() for _p, _v in _sd.items())
         SemioticVisualization.plot_batch(plot_data)
 
+    def __batch(self, no_steps: int):
+        error_data = DictList()
+        reward_data = DictList()
+        duration_data = DictList()
+
+        file_data = {f"experiment_{_i:02d}": DictList() for _i in range(len(self._experiments))}
+
+        start_time = time.time()
+        while time.time() < start_time + 1.:
+            for _i, each_array in enumerate(self._experiments):
+                name = f"experiment_{_i:02d}"
+
+                for each_instance in each_array:
+                    result_single = each_instance.step(100)
+
+                    for _name, _value in result_single.items():
+                        plot_name = name + " " + _name
+                        if "error" in _name:
+                            error_data.add(plot_name, _value)
+
+                        elif "reward" in _name:
+                            reward_data.add(plot_name, _value)
+
+                        elif "duration" in _name:
+                            duration_data.add(plot_name, _value)
+
+                        else:
+                            Logger.log(f"unknown value name {_name:s}")
+                            continue
+
+                        experiment_file_data = file_data[name]
+                        experiment_file_data.add(_name, _value)
+
+        Setup._save_results_batch(self._finished_batches * self._step_size, file_data)
+        if self._visualization:
+            Setup._plot_batch({"error": error_data, "reward": reward_data, "duration": duration_data})
+            SemioticVisualization.update()
+            # SemioticVisualization.update(steps=self._step_size)
+
+        self._finished_batches += 1
+
     def _batch(self, no_steps: int):
         plot_data = {"error": DictList(), "reward": DictList(), "duration": DictList()}
         file_data = dict()
@@ -212,6 +253,9 @@ class Setup(Generic[TYPE_A, TYPE_B]):
             # SemioticVisualization.update(steps=self._step_size)
 
         self._finished_batches += 1
+
+    def _temporal_batch(self, seconds: float = 1.):
+        raise NotImplementedError()
 
     def run_experiment(self):
         if 0 >= self._iterations:

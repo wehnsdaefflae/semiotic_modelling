@@ -133,17 +133,6 @@ class VisualizationView:
         return jsonify("styling done")
 
     @staticmethod
-    def _add_to_means(key: Hashable, value: float):
-        series = VisualizationView.means.get(key)
-        if series is None:
-            series = []
-            VisualizationView.means[key] = series
-
-        series.append(value)
-
-        del series[:-abs(VisualizationView.length)]
-
-    @staticmethod
     @flask.route("/data_batch", methods=["POST"])
     def add_data_batch():
         if VisualizationView.model is None:
@@ -243,9 +232,9 @@ class VisualizationView:
                     showlegend=_i == 0,
                     x=each_range,
                     y=outline,
-                    mode="lines",
                     name=_plot_name,
                     fill="tozerox",
+                    mode="lines",
                     line={
                         "color": f"rgba({color_str:s}, 1)",
                         "width": 1,
@@ -267,7 +256,10 @@ class VisualizationView:
 
         x_min, x_max = x_range
 
-        for _plot_name in VisualizationView.model.get_plot_names(_axis_name):
+        for _j, _plot_name in enumerate(VisualizationView.model.get_plot_names(_axis_name)):
+            color = hsv_to_rgb((distribute_circular(_j), .7, .7))
+            color_str = ", ".join([f"{int(_x * 255.):d}" for _x in color])
+
             plot_properties = this_plot_style.get(_plot_name, dict())
 
             series = VisualizationView.model.get_plot(_axis_name, _plot_name)
@@ -281,7 +273,14 @@ class VisualizationView:
                     showlegend=True,
                     x=list(range(x_min, x_max)),
                     y=each_series,
-                    name=_plot_name
+                    name=_plot_name,
+                    mode="lines",
+                    line={
+                        "color": f"rgba({color_str:s}, 1)",
+                        "width": 1,
+                        "shape": "hv",
+                        #"shape": "spline",
+                    },
                 )
                 axis_data.append(data)
 
