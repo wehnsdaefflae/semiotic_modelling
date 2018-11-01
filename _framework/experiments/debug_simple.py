@@ -38,5 +38,5 @@ if __name__ == "__main__":
         },
     )
 
-    setup = Setup(experiments, 10, 0, step_size=1000, visualization=True)
+    setup = Setup(experiments, 10, 0, visualization=True)
     setup.run_experiment()

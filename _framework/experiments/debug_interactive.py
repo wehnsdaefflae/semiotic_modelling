@@ -54,5 +54,5 @@ if __name__ == "__main__":
         },
     )
 
-    setup = Setup(experiments, 10, -100, step_size=5000)
+    setup = Setup(experiments, 10, -100)
     setup.run_experiment()

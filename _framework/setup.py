@@ -33,58 +33,40 @@ class Experiment(Generic[TYPE_A, TYPE_B]):
         self._stream_train = stream_train
         self._stream_test = stream_test
 
-        self._data = dict()
+        self.error_train = 0.
+        self.error_test = 0.
+        self.reward_train = 0.
+        self.reward_test = 0.
+        self.duration = 0.
 
         self._iterations = 0
 
     def __str__(self):
         return self._name
 
-    def _single_step(self):
+    def step(self) -> Tuple[float, float, float, float, float]:
         examples_test = self._stream_test.next()
         inputs_test, targets_test = zip(*examples_test)
-        reward_test = self._stream_test.get_reward()
+        self.reward_test = smear(self.reward_test, self._stream_test.get_reward(), self._iterations)
 
         examples_train = self._stream_train.next()
         inputs_train, targets_train = zip(*examples_train)
-        reward_train = self._stream_train.get_reward()
+        self.reward_train = smear(self.reward_train, self._stream_train.get_reward(), self._iterations)
 
         this_time = time.time()
 
         outputs_train = self._predictor.predict(inputs_train)
         self._predictor.fit(inputs_train, targets_train)
 
-        duration = time.time() - this_time
+        self.duration = smear(self.duration, (time.time() - this_time) * 1000., self._iterations)
 
         outputs_test = self._predictor.predict(inputs_test)
-        errors_train = self._stream_train.error(outputs_train, targets_train)
-        errors_test = self._stream_train.error(outputs_test, targets_test)
+        self.error_train = smear(self.error_train, self._stream_train.error(outputs_train, targets_train), self._iterations)
+        self.error_test = smear(self.error_test, self._stream_train.error(outputs_test, targets_test), self._iterations)
 
-        return duration * 1000., errors_train, errors_test, reward_train, reward_test
+        self._iterations += 1
 
-    def step(self, steps: int) -> Dict[str, float]:
-        avrg_train_error, avrg_test_error = self._data.get("error train", 0.), self._data.get("error test", 0.)
-        avrg_train_reward, avrg_test_reward = self._data.get("reward train", 0.), self._data.get("reward test", 0.)
-        avrg_duration = self._data.get("duration", 0.)
-
-        for _ in range(steps):
-            duration, train_error, test_error, train_reward, test_reward = self._single_step()
-
-            avrg_train_error = smear(avrg_train_error, train_error, self._iterations)
-            avrg_train_reward = smear(avrg_train_reward, train_reward, self._iterations)
-
-            avrg_test_error = smear(avrg_test_error, test_error, self._iterations)
-            avrg_test_reward = smear(avrg_test_reward, test_reward, self._iterations)
-
-            avrg_duration = smear(avrg_duration, duration, self._iterations)
-
-            self._iterations += 1
-
-        self._data["error train"], self._data["error test"] = avrg_train_error, avrg_test_error
-        self._data["reward train"], self._data["reward test"] = avrg_train_reward, avrg_test_reward
-        self._data["duration"] = avrg_duration
-
-        return dict(self._data)
+        return self.duration, self.error_train, self.error_test, self.reward_train, self.reward_test
 
 
 SENSOR_TYPE = TypeVar("SENSOR_TYPE")
@@ -147,20 +129,19 @@ class Setup(Generic[TYPE_A, TYPE_B]):
     Logger.file_name = get_main_script_name() + ".log"
     Logger.dir_path = f"results/{get_time_string():s}/"
 
-    def __init__(self, factory_args: Collection[Dict[str, Any]], no_instances: int, iterations: int, step_size: int = 1000, visualization: bool = True):
+    def __init__(self, factory_args: Collection[Dict[str, Any]], no_instances: int, max_iterations: int, interval: float = 1., visualization: bool = True):
         self._no_instances = no_instances
-        self._iterations = iterations
-        self._step_size = step_size
+        self._max_iterations = max_iterations
+        self._interval = interval
 
         factories = tuple(ExperimentFactory[TYPE_A, TYPE_B](**each_args) for each_args in factory_args)
         self._experiments = tuple(tuple(_f.create() for _ in range(self._no_instances)) for _f in factories)
 
-        self._finished_batches = 0
-
-        self._axes = "reward", "error", "duration"
         self._visualization = visualization
         if self._visualization:
-            SemioticVisualization.initialize(self._axes, no_instances, length=iterations)
+            SemioticVisualization.initialize(("reward", "error", "duration"), no_instances, length=max_iterations)
+
+        self._iterations = 0
 
     @staticmethod
     def _save_results_batch(iteration: int, result: Dict[str, DictList[str, Sequence[float]]]):
@@ -178,97 +159,46 @@ class Setup(Generic[TYPE_A, TYPE_B]):
         plot_data = tuple((_a, _p, _v) for _a, _sd in result.items() for _p, _v in _sd.items())
         SemioticVisualization.plot_batch(plot_data)
 
-    def __batch(self, no_steps: int):
+    def _batch(self):
+        start_time = time.time()
+        while time.time() < start_time + self._interval:
+            for _i, each_array in enumerate(self._experiments):
+                for each_instance in each_array:
+                    each_instance.step()
+
+        duration_data = DictList()
         error_data = DictList()
         reward_data = DictList()
-        duration_data = DictList()
-
         file_data = {f"experiment_{_i:02d}": DictList() for _i in range(len(self._experiments))}
-
-        start_time = time.time()
-        while time.time() < start_time + 1.:
-            for _i, each_array in enumerate(self._experiments):
-                name = f"experiment_{_i:02d}"
-
-                for each_instance in each_array:
-                    result_single = each_instance.step(100)
-
-                    for _name, _value in result_single.items():
-                        plot_name = name + " " + _name
-                        if "error" in _name:
-                            error_data.add(plot_name, _value)
-
-                        elif "reward" in _name:
-                            reward_data.add(plot_name, _value)
-
-                        elif "duration" in _name:
-                            duration_data.add(plot_name, _value)
-
-                        else:
-                            Logger.log(f"unknown value name {_name:s}")
-                            continue
-
-                        experiment_file_data = file_data[name]
-                        experiment_file_data.add(_name, _value)
-
-        Setup._save_results_batch(self._finished_batches * self._step_size, file_data)
-        if self._visualization:
-            Setup._plot_batch({"error": error_data, "reward": reward_data, "duration": duration_data})
-            SemioticVisualization.update()
-            # SemioticVisualization.update(steps=self._step_size)
-
-        self._finished_batches += 1
-
-    def _batch(self, no_steps: int):
-        plot_data = {"error": DictList(), "reward": DictList(), "duration": DictList()}
-        file_data = dict()
 
         for _i, each_array in enumerate(self._experiments):
             name = f"experiment_{_i:02d}"
-
-            file_data_dict = DictList()
-            file_data[name] = file_data_dict
-
+            file_dict = file_data[name]
             for each_instance in each_array:
-                result_single = each_instance.step(no_steps)
-                file_data_dict.update_lists(result_single)
+                duration_data.add(name + " duration", each_instance.duration)
+                error_data.add(name + " train", each_instance.error_train)
+                error_data.add(name + " test", each_instance.error_test)
+                reward_data.add(name + " train", each_instance.reward_train)
+                reward_data.add(name + "test", each_instance.reward_test)
 
-                for _name, _value in result_single.items():
-                    if "error" in _name:
-                        plot_data_dict = plot_data["error"]
-                    elif "reward" in _name:
-                        plot_data_dict = plot_data["reward"]
-                    elif "duration" in _name:
-                        plot_data_dict = plot_data["duration"]
-                    else:
-                        Logger.log(f"unknown value name {_name:s}")
-                        continue
+                file_dict.add("duration", each_instance.duration)
+                file_dict.add("error train", each_instance.error_train)
+                file_dict.add("error test", each_instance.error_test)
+                file_dict.add("reward train", each_instance.reward_train)
+                file_dict.add("reward test", each_instance.reward_test)
 
-                    plot_data_dict.add(name + " " + _name, _value)
-
-        Setup._save_results_batch(self._finished_batches * self._step_size, file_data)
+        Setup._save_results_batch(self._iterations, file_data)
         if self._visualization:
-            Setup._plot_batch(plot_data)
+            Setup._plot_batch({"error": error_data, "reward": reward_data, "duration": duration_data})
             SemioticVisualization.update()
-            # SemioticVisualization.update(steps=self._step_size)
-
-        self._finished_batches += 1
-
-    def _temporal_batch(self, seconds: float = 1.):
-        raise NotImplementedError()
 
     def run_experiment(self):
-        if 0 >= self._iterations:
+        if 0 == self._max_iterations:
             while True:
-                self._batch(self._step_size)
-                if Timer.time_passed(2000):
-                    Logger.log(f"finished iteration #{self._finished_batches * self._step_size:d}")
+                self._batch()
 
         with tqdm.tqdm(total=self._iterations) as progress_bar:
-            for _ in range(self._iterations // self._step_size):
-                self._batch(self._step_size)
-                progress_bar.update(self._step_size)
+            while self._iterations < self._max_iterations:
+                self._batch()
+                progress_bar.update(1)
 
-            remainder = self._iterations % self._step_size
-            self._batch(remainder)
-            progress_bar.update(remainder)
