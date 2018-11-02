@@ -55,7 +55,7 @@ if __name__ == "__main__":
     )
 
     # todo: fix positive iterations
-    # setup = Setup(experiments, 10, -100000, visualization_interval_secs=1., storage_interval_its=1000)
+    setup = Setup(experiments, 10, -100000, visualization_interval_secs=1., storage_interval_its=1000)
     # setup = Setup(experiments, 10,  100000, visualization_interval_secs=1., storage_interval_its=1000)
-    setup = Setup(experiments, 10, 0, visualization_interval_secs=1., storage_interval_its=1000)
+    # setup = Setup(experiments, 10, 0, visualization_interval_secs=1., storage_interval_its=1000)
     setup.run_experiment()
