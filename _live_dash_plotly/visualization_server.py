@@ -56,18 +56,17 @@ class VisualizationModel:
         for axis_name, plot_name, values in batch:
             _named_series, _width = self._axes_width[axis_name]
 
-            if axis_name in VisualizationView._dist_axes:
-                if len(values) != _width:
-                    raise ValueError("inconsistent width")
+            if len(values) != _width:
+                raise ValueError("inconsistent width")
 
-                series = _named_series.get(plot_name)
-                if series is None:
-                    series = self._new_plot(axis_name, plot_name)
+            series = _named_series.get(plot_name)
+            if series is None:
+                series = self._new_plot(axis_name, plot_name)
 
-                values = sorted(values)
-                for _v, _s in zip(values, series):
-                    _s.append(_v)
-                    del _s[:-no_iterations]
+            values = sorted(values)
+            for _v, _s in zip(values, series):
+                _s.append(_v)
+                del _s[:-no_iterations]
 
 
 class VisualizationView:
@@ -260,11 +259,11 @@ class VisualizationView:
         for _axis_name in VisualizationView._model.axes:
             this_plot_style = VisualizationView._plot_styles.get(_axis_name, dict())
 
-            if _axis_name in VisualizationView._dist_axes:
-                axis_data, (y_min, y_max) = VisualizationView._get_concentration(_axis_name, this_plot_style)
+            if _axis_name not in VisualizationView._dist_axes:
+                axis_data, (y_min, y_max) = VisualizationView._get_lines(_axis_name, this_plot_style)
 
             else:
-                axis_data, (y_min, y_max) = VisualizationView._get_lines(_axis_name, this_plot_style)
+                axis_data, (y_min, y_max) = VisualizationView._get_concentration(_axis_name, this_plot_style)
 
             axis_properties = VisualizationView._axis_styles.get(_axis_name, dict())
 

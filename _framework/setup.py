@@ -231,7 +231,7 @@ class Setup(Generic[TYPE_A, TYPE_B]):
                 last_time = now_time
 
             # store result
-            if self._iteration % self._storage_interval == 0:
+            if 0 < self._storage_interval and self._iteration % self._storage_interval == 0:
                 self._store()
 
             # iteration control
