@@ -2,7 +2,7 @@
 # !/usr/bin/env python3
 
 import time
-from typing import Tuple, Any, TypeVar, Generic, Dict, Collection, Sequence, Type, Optional
+from typing import Tuple, Any, TypeVar, Generic, Dict, Collection, Sequence, Type, Optional, List
 
 import tqdm
 
@@ -156,7 +156,7 @@ class Setup(Generic[TYPE_A, TYPE_B]):
 
             DataLogger.log_to(header, values_str, dir_path=Logger.dir_path, file_name=each_experiment_name + ".tsv")
 
-    def _plot(self):
+    def _plot_progress(self):
         if not self._visualization:
             return
 
@@ -176,8 +176,7 @@ class Setup(Generic[TYPE_A, TYPE_B]):
 
         result = {"error": error_data, "reward": reward_data, "duration": duration_data}
         plot_data = tuple((_a, _p, _v) for _a, _sd in result.items() for _p, _v in _sd.items())
-        SemioticVisualization.plot_batch(self._iteration, plot_data)
-        SemioticVisualization.update()
+        SemioticVisualization.plot(self._iteration, plot_data)
 
     def _store(self):
         file_data = dict()
@@ -196,22 +195,46 @@ class Setup(Generic[TYPE_A, TYPE_B]):
 
         Setup._save_results_batch(self._iteration, file_data)
 
+    def _new_frame(self, frames: List[Any]):
+        frame = None
+        for _i, each_array in enumerate(self._experiments):
+            for each_instance in each_array:
+                # generate frame
+                pass
+        frames.append(frame)
+
+    def _plot_live(self, frames: List[Any]):
+        # send to server
+        frames.clear()
+
     def run_experiment(self):
+        # live frames
+        no_frames = int(self._visualization_interval * 30)
+        frames = []
+
         last_time = time.time()
         while True:
+            # simulate
             for _i, each_array in enumerate(self._experiments):
                 for each_instance in each_array:
                     each_instance.step()
 
+            # add new frame
+            if len(frames) < no_frames:
+                self._new_frame(frames)
+
+            # plot result
             now_time = time.time()
             if now_time - last_time >= self._visualization_interval:
-                self._plot()
+                self._plot_progress()
+                self._plot_live(frames)
                 last_time = now_time
 
+            # store result
             if self._iteration % self._storage_interval == 0:
                 self._store()
 
+            # iteration control
             self._iteration += 1
-
             if self._iteration >= self._max_iterations > 0:
                 break

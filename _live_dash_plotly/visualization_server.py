@@ -1,6 +1,6 @@
 # coding=utf-8
 import json
-from typing import Tuple, Sequence, Dict, List, Hashable, Any
+from typing import Tuple, Sequence, Dict, List, Any
 
 import dash_core_components
 import dash_html_components
@@ -22,8 +22,9 @@ class VisualizationModel:
     def __init__(self, axes: Sequence[Tuple[str, int]], length: int = 0):
         self.axes = tuple(_name for _name, _ in axes)
         self._axes_width = {_name: (dict(), _width) for _name, _width in axes}
-        self._length = length
-        self._range = []
+        self.is_trailing = length < 0
+        self._length = abs(length)
+        self.x_range = []
 
     def __len__(self) -> int:
         return abs(self._length)
@@ -43,30 +44,30 @@ class VisualizationModel:
         series = _named_series[plot_name]
         return series
 
-    def get_range(self) -> Tuple[int, ...]:
-        return tuple(self._range)
+    def add_batch(self, iteration: int, batch: Sequence[Tuple[str, str, Sequence[float]]]):
+        self.x_range.append(iteration)
 
-    def add_data(self, axis_name: str, plot_name: str, time_step: int, *values: float):
-        _named_series, _width = self._axes_width[axis_name]
-        if len(values) != _width:
-            raise ValueError("inconsistent width")
+        if self.is_trailing:
+            while iteration - self.x_range[0] >= self._length:
+                self.x_range.pop(0)
 
-        series = _named_series.get(plot_name)
-        if series is None:
-            series = self._new_plot(axis_name, plot_name)
+        no_iterations = len(self.x_range)
 
-        for _v, _s in zip(values, series):
-            _s.append(_v)
+        for axis_name, plot_name, values in batch:
+            _named_series, _width = self._axes_width[axis_name]
 
-        self._range.append(time_step)
+            if axis_name in VisualizationView.dist_axes:
+                if len(values) != _width:
+                    raise ValueError("inconsistent width")
 
-        if 0 >= self._length:
-            return
+                series = _named_series.get(plot_name)
+                if series is None:
+                    series = self._new_plot(axis_name, plot_name)
 
-        for _s in series:
-            del _s[:-self._length]
-
-        del self._range[:-self._length]
+                values = sorted(values)
+                for _v, _s in zip(values, series):
+                    _s.append(_v)
+                    del _s[:-no_iterations]
 
 
 class VisualizationView:
@@ -82,8 +83,6 @@ class VisualizationView:
 
     length = 0
     means = dict()
-
-    _trailing = False
 
     dash.layout = dash_html_components.Div(children=[
         dash_html_components.Div(children=[
@@ -115,12 +114,10 @@ class VisualizationView:
         axes = d["axes"]
         VisualizationView.length = d.get("length", 0)
 
-        VisualizationView._trailing = VisualizationView.length < 0
-
         VisualizationView.dist_axes = {_axis_name for _axis_name, _, _is_dist in axes if _is_dist}
 
         axes_model = tuple((_axis_name, _width) for _axis_name, _width, _ in axes)
-        VisualizationView.model = VisualizationModel(axes_model, length=abs(VisualizationView.length))
+        VisualizationView.model = VisualizationModel(axes_model, length=VisualizationView.length)
 
         return jsonify(f"initialized {str(axes):s}, length {VisualizationView.length:d}")
 
@@ -141,8 +138,8 @@ class VisualizationView:
         return jsonify("styling done")
 
     @staticmethod
-    @flask.route("/data_batch", methods=["POST"])
-    def add_data_batch():
+    @flask.route("/data", methods=["POST"])
+    def add_data():
         if VisualizationView.model is None:
             raise ValueError("visualization model not initialized")
 
@@ -153,60 +150,9 @@ class VisualizationView:
         batch = d["batch"]
         iteration = d["iteration"]
 
-        for axis_name, plot_name, values in batch:
-            if axis_name in VisualizationView.dist_axes:
-                values = sorted(values)
-            VisualizationView.model.add_data(axis_name, plot_name, iteration, *values)
+        VisualizationView.model.add_batch(iteration, batch)
 
         return jsonify(f"added batch of size {len(batch):d}")
-
-    @staticmethod
-    @flask.route("/data", methods=["POST"])
-    def add_data():
-        if VisualizationView.model is None:
-            raise ValueError("visualization model not initialized")
-
-        data = request.data
-        Logger.log(f"adding {str(data):s}")
-
-        d = json.loads(data)
-        values = d["values"]
-        if len(values) == 0:
-            raise ValueError("no values passed")
-
-        axis_name = d["axis_name"]
-        plot_name = d["plot_name"]
-        if axis_name in VisualizationView.dist_axes:
-            values = sorted(values)
-
-        VisualizationView.model.add_data(axis_name, plot_name, *values)
-        return jsonify(f"added {str(values):s} to plot '{plot_name:s}' in axis '{axis_name:s}'")
-
-    @staticmethod
-    @flask.route("/tick", methods=["POST"])
-    def tick():
-        data = request.data
-        Logger.log(f"progressing {str(data):s}")
-
-        d = json.loads(data)
-        steps = d.get("steps", 1)
-
-        assert steps == 1
-
-        VisualizationView._iterations += steps
-        return jsonify(f"progressed {steps:d}")
-
-    @staticmethod
-    def __x_min_max():
-        _axis_len = len(VisualizationView.model)
-
-        if _axis_len == 0:
-            return 0, VisualizationView._iterations
-
-        elif VisualizationView._trailing:
-            return max(VisualizationView._iterations - _axis_len, 0), max(VisualizationView._iterations, _axis_len)
-
-        return 0, _axis_len
 
     @staticmethod
     def _get_concentration(_axis_name: str, this_plot_style: Dict[str, Any]) -> Tuple[Sequence[BasePlotlyType], Tuple[float, float]]:
@@ -230,7 +176,7 @@ class VisualizationView:
                 series_a = series[_i]
                 series_b = series[_i + half_plus_one - 1]
                 outline = series_a + series_b[::-1]
-                range_a = list(range(max(0, VisualizationView._iterations - len(series_a)), VisualizationView._iterations))
+                range_a = VisualizationView.model.x_range
                 each_range = range_a + range_a[::-1]
 
                 _min, _max = get_min_max(outline)
@@ -240,7 +186,6 @@ class VisualizationView:
                     **plot_properties,
                     showlegend=_i == 0,
                     x=each_range,
-                    # x=VisualizationView.model.get_range(),
                     y=outline,
                     name=_plot_name,
                     fill="tozerox",
@@ -258,13 +203,11 @@ class VisualizationView:
         return axis_data, (y_min, y_max)
 
     @staticmethod
-    def _get_lines(_axis_name: str, this_plot_style: Dict[str, Any], x_range: Tuple[int, int]) -> Tuple[Sequence[BasePlotlyType], Tuple[float, float]]:
+    def _get_lines(_axis_name: str, this_plot_style: Dict[str, Any]) -> Tuple[Sequence[BasePlotlyType], Tuple[float, float]]:
         axis_data = []
 
         y_min = float("inf")
         y_max = -y_min
-
-        x_min, x_max = x_range
 
         for _j, _plot_name in enumerate(VisualizationView.model.get_plot_names(_axis_name)):
             color = hsv_to_rgb((distribute_circular(_j), .7, .7))
@@ -281,8 +224,7 @@ class VisualizationView:
                 data = graph_objs.Scatter(
                     **plot_properties,
                     showlegend=True,
-                    # x=VisualizationView.model.get_range(),
-                    x=list(range(x_min, x_max)),
+                    x=VisualizationView.model.x_range,
                     y=each_series,
                     name=_plot_name,
                     mode="lines",
@@ -301,21 +243,29 @@ class VisualizationView:
     @dash.callback(dependencies.Output("graphs", "children"), events=[dependencies.Event("graph-update", "interval")])
     def __update_graph():
         graphs = []
-
-        if VisualizationView.model is None:
+        if VisualizationView.model is None or len(VisualizationView.model.x_range) < 1:
             return graphs
+
+        if VisualizationView.length < 0:
+            x_min = max(0, VisualizationView.model.x_range[-1] + VisualizationView.length)
+            x_max = x_min - VisualizationView.length
+
+        elif 0 < VisualizationView.length:
+            x_min = 0
+            x_max = VisualizationView.length
+
+        else:
+            x_min = 0
+            x_max = VisualizationView.model.x_range[-1]
 
         for _axis_name in VisualizationView.model.axes:
             this_plot_style = VisualizationView.plot_styles.get(_axis_name, dict())
-
-            x_min, x_max = VisualizationView.__x_min_max()
-            # x_min, x_max = get_min_max(VisualizationView.model.get_range())
 
             if _axis_name in VisualizationView.dist_axes:
                 axis_data, (y_min, y_max) = VisualizationView._get_concentration(_axis_name, this_plot_style)
 
             else:
-                axis_data, (y_min, y_max) = VisualizationView._get_lines(_axis_name, this_plot_style, (x_min, x_max))
+                axis_data, (y_min, y_max) = VisualizationView._get_lines(_axis_name, this_plot_style)
 
             axis_properties = VisualizationView.axis_styles.get(_axis_name, dict())
 
