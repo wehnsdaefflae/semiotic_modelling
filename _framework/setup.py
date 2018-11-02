@@ -128,15 +128,17 @@ class Setup(Generic[TYPE_A, TYPE_B]):
     Logger.file_name = get_main_script_name() + ".log"
     Logger.dir_path = f"results/{get_time_string():s}/"
 
-    def __init__(self, factory_args: Collection[Dict[str, Any]], no_instances: int, max_iterations: int, interval: float = 1., visualization: bool = True):
+    def __init__(self, factory_args: Collection[Dict[str, Any]], no_instances: int, max_iterations: int, storage_interval_its: int = 1000, visualization_interval_secs: float = 1.):
         self._no_instances = no_instances
         self._max_iterations = max_iterations
-        self._interval = interval
+
+        self._visualization_interval = visualization_interval_secs
+        self._storage_interval = storage_interval_its
 
         factories = tuple(ExperimentFactory[TYPE_A, TYPE_B](**each_args) for each_args in factory_args)
         self._experiments = tuple(tuple(_f.create() for _ in range(self._no_instances)) for _f in factories)
 
-        self._visualization = visualization
+        self._visualization = 0. < visualization_interval_secs
         if self._visualization:
             SemioticVisualization.initialize(("reward", "error", "duration"), no_instances, length=max_iterations)
 
@@ -154,27 +156,17 @@ class Setup(Generic[TYPE_A, TYPE_B]):
 
             DataLogger.log_to(header, values_str, dir_path=Logger.dir_path, file_name=each_experiment_name + ".tsv")
 
-    @staticmethod
-    def _plot_batch(iteration: int, result: Dict[str, DictList[str, Sequence[float]]]):
-        plot_data = tuple((_a, _p, _v) for _a, _sd in result.items() for _p, _v in _sd.items())
-        SemioticVisualization.plot_batch(iteration, plot_data)
-
-    def _batch(self, interval_sec: float):
-        start_time = time.time()
-        while time.time() < start_time + interval_sec:
-            for _i, each_array in enumerate(self._experiments):
-                for each_instance in each_array:
-                    each_instance.step()
-            self._iteration += 1
+    def _plot(self):
+        if not self._visualization:
+            return
 
         duration_data = DictList()
         error_data = DictList()
         reward_data = DictList()
-        file_data = {f"experiment_{_i:02d}": DictList() for _i in range(len(self._experiments))}
 
         for _i, each_array in enumerate(self._experiments):
             name = f"experiment_{_i:02d}"
-            file_dict = file_data[name]
+
             for each_instance in each_array:
                 duration_data.add(name + " duration", each_instance.duration)
                 error_data.add(name + " train", each_instance.error_train)
@@ -182,6 +174,20 @@ class Setup(Generic[TYPE_A, TYPE_B]):
                 reward_data.add(name + " train", each_instance.reward_train)
                 reward_data.add(name + " test", each_instance.reward_test)
 
+        result = {"error": error_data, "reward": reward_data, "duration": duration_data}
+        plot_data = tuple((_a, _p, _v) for _a, _sd in result.items() for _p, _v in _sd.items())
+        SemioticVisualization.plot_batch(self._iteration, plot_data)
+        SemioticVisualization.update()
+
+    def _store(self):
+        file_data = dict()
+
+        for _i, each_array in enumerate(self._experiments):
+            name = f"experiment_{_i:02d}"
+            file_dict = DictList()
+            file_data[name] = file_dict
+
+            for each_instance in each_array:
                 file_dict.add("duration", each_instance.duration)
                 file_dict.add("error train", each_instance.error_train)
                 file_dict.add("error test", each_instance.error_test)
@@ -189,18 +195,23 @@ class Setup(Generic[TYPE_A, TYPE_B]):
                 file_dict.add("reward test", each_instance.reward_test)
 
         Setup._save_results_batch(self._iteration, file_data)
-        if self._visualization:
-            Setup._plot_batch(self._iteration, {"error": error_data, "reward": reward_data, "duration": duration_data})
-            SemioticVisualization.update()
 
     def run_experiment(self):
-        if 0 >= self._max_iterations:
-            while True:
-                self._batch(self._interval)
+        last_time = time.time()
+        while True:
+            for _i, each_array in enumerate(self._experiments):
+                for each_instance in each_array:
+                    each_instance.step()
 
-        with tqdm.tqdm(total=self._max_iterations) as progress_bar:
-            while self._iteration < self._max_iterations:
-                last_iteration = self._iteration
-                self._batch(self._interval)
-                progress_bar.update(self._iteration - last_iteration)
+            now_time = time.time()
+            if now_time - last_time >= self._visualization_interval:
+                self._plot()
+                last_time = now_time
 
+            if self._iteration % self._storage_interval == 0:
+                self._store()
+
+            self._iteration += 1
+
+            if self._iteration >= self._max_iterations > 0:
+                break
