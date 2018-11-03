@@ -69,20 +69,8 @@ class VisualizationModel:
                 del _s[:-no_iterations]
 
 
-class VisualizationView:
-    _model = None    # type: VisualizationModel
-
-    # https://github.com/plotly/dash/issues/214
-    _flask = Flask(__name__)
-    _dash = Dash(__name__, server=_flask)
-
-    _axis_styles = dict()
-    _plot_styles = dict()
-    _dist_axes = None
-
-    _length = 0
-
-    _dash.layout = dash_html_components.Div(children=[
+def get_layout():
+    return dash_html_components.Div(children=[
         dash_html_components.Div(children=[
             dash_html_components.H2("semiotic modelling", style={"float": "left"})
         ]),
@@ -100,6 +88,22 @@ class VisualizationView:
         # style={"width": "98%", "margin-left": 10, "margin-right": 10, "max-width": 50000}
     )
 
+
+class VisualizationView:
+    _model = None    # type: VisualizationModel
+
+    # https://github.com/plotly/dash/issues/214
+    _flask = Flask(__name__)
+    _dash = Dash(__name__, server=_flask)
+
+    _axis_styles = dict()
+    _plot_styles = dict()
+    _dist_axes = None
+
+    length = 0
+
+    _dash.layout = get_layout()
+
     _iterations = 0
 
     @staticmethod
@@ -110,14 +114,19 @@ class VisualizationView:
 
         d = json.loads(data)
         axes = d["axes"]
-        VisualizationView._length = d.get("length", 0)
-
-        VisualizationView._dist_axes = {_axis_name for _axis_name, _, _is_dist in axes if _is_dist}
 
         axes_model = tuple((_axis_name, _width) for _axis_name, _width, _ in axes)
-        VisualizationView._model = VisualizationModel(axes_model, length=VisualizationView._length)
+        VisualizationView._model = VisualizationModel(axes_model, length=VisualizationView.length)
 
-        return jsonify(f"initialized {str(axes):s}, length {VisualizationView._length:d}")
+        VisualizationView._dist_axes = {_axis_name for _axis_name, _, _is_dist in axes if _is_dist}
+        VisualizationView._axis_styles.clear()
+        VisualizationView._plot_styles.clear()
+        VisualizationView.length = d.get("length", 0)
+
+        VisualizationView._dash.layout = get_layout()
+        _iterations = 0
+
+        return jsonify(f"initialized {str(axes):s}, length {VisualizationView.length:d}")
 
     @staticmethod
     @_flask.route("/style", methods=["POST"])
@@ -244,13 +253,13 @@ class VisualizationView:
         if VisualizationView._model is None or len(VisualizationView._model.x_range) < 1:
             return graphs
 
-        if VisualizationView._length < 0:
-            x_min = max(0, VisualizationView._model.x_range[-1] + VisualizationView._length)
-            x_max = x_min - VisualizationView._length
+        if VisualizationView.length < 0:
+            x_min = max(0, VisualizationView._model.x_range[-1] + VisualizationView.length)
+            x_max = x_min - VisualizationView.length
 
-        elif 0 < VisualizationView._length:
+        elif 0 < VisualizationView.length:
             x_min = 0
-            x_max = VisualizationView._length
+            x_max = VisualizationView.length
 
         else:
             x_min = 0

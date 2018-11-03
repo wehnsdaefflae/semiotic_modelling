@@ -18,6 +18,8 @@ class SemioticModel(Generic[INPUT_TYPE, OUTPUT_TYPE]):
                  output_dimensions: int = 1,
                  drag: int = 1):
 
+        self._base_content_factory = ContentFactory(input_dimensions, output_dimensions, drag, alpha)
+
         if is_nominal:
             assert input_dimensions == 1
             assert output_dimensions == 1
@@ -26,8 +28,6 @@ class SemioticModel(Generic[INPUT_TYPE, OUTPUT_TYPE]):
             self._model = [{0: self._base_content_factory.nominal(0)}]                                    # type: semiotic_functions.MODEL
         else:
             self._model = [{0: self._base_content_factory.rational(0)}]                                   # type: semiotic_functions.MODEL
-
-        self._base_content_factory = ContentFactory(input_dimensions, output_dimensions, drag, alpha)
 
         self._traces = tuple([] for _ in range(no_examples))                                             # type: Tuple[semiotic_functions.TRACE, ...]
 

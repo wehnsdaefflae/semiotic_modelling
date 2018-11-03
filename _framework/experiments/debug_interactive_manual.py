@@ -1,6 +1,6 @@
 # coding=utf-8
 from _framework.setup import Setup
-from _framework.streams.interactive.implementations import InteractionStream
+from _framework.streams.interactive.interaction_stream import InteractionStream
 from _framework.systems.controllers.nominal.implementations import NominalManualController
 from _framework.systems.predictors.nominal.implementations import NominalMarkov
 from _framework.systems.tasks.nominal.implementations import TransitionalGridWorld
