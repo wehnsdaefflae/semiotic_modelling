@@ -11,7 +11,7 @@ class RationalLinearRegression(RationalPredictor):
         super().__init__(no_states, input_dimensions, output_dimensions, drag)
         self._regressions = tuple(tuple(Regressor(input_dimensions, drag) for _ in range(output_dimensions)) for _ in range(no_states))
 
-    def __predict(self, data_in: Tuple[RATIONAL_INPUT, ...]) -> Tuple[RATIONAL_OUTPUT, ...]:
+    def _low_predict(self, data_in: Tuple[Tuple[RATIONAL_INPUT, ...], ...]) -> Tuple[RATIONAL_OUTPUT, ...]:
         output_values = tuple(
             tuple(
                 single_regression.output(each_input) for single_regression in each_regression
@@ -19,7 +19,7 @@ class RationalLinearRegression(RationalPredictor):
         )
         return output_values
 
-    def __fit(self, data_in: Tuple[RATIONAL_INPUT, ...], data_out: Tuple[RATIONAL_OUTPUT, ...]):
+    def _low_fit(self, data_in: Tuple[Tuple[RATIONAL_INPUT, ...], ...], data_out: Tuple[RATIONAL_OUTPUT, ...]):
         for example_index in range(self._no_states):
             each_regression = self._regressions[example_index]
 

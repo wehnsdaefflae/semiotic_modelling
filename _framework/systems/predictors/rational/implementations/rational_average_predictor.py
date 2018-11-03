@@ -12,10 +12,10 @@ class RationalAverage(RationalPredictor):
         self._average = tuple([0. for _ in range(output_dimensions)] for _ in range(no_states))
         self._iteration = 0
 
-    def __predict(self, data_in: Tuple[RATIONAL_INPUT, ...]) -> Tuple[RATIONAL_OUTPUT, ...]:
+    def _low_predict(self, data_in: Tuple[Tuple[RATIONAL_INPUT, ...], ...]) -> Tuple[RATIONAL_OUTPUT, ...]:
         return tuple(tuple(_o) for _o in self._average)
 
-    def __fit(self, data_in: Tuple[RATIONAL_INPUT, ...], data_out: Tuple[RATIONAL_OUTPUT, ...]):
+    def _low_fit(self, data_in: Tuple[Tuple[RATIONAL_INPUT, ...], ...], data_out: Tuple[RATIONAL_OUTPUT, ...]):
         inertia = self._iteration if self._drag == 0 else self._drag
 
         for each_target, each_average in zip(data_out, self._average):

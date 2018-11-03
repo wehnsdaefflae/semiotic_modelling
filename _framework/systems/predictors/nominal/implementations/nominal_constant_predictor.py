@@ -11,10 +11,10 @@ class NominalConstantPredictor(NominalPredictor):
         self._last_output = self._dummy
         self._changed = False
 
-    def _predict(self, data_in: Tuple[NOMINAL_INPUT, ...]) -> Tuple[NOMINAL_OUTPUT, ...]:
+    def _predict(self, data_in: Tuple[Tuple[NOMINAL_INPUT, ...], ...]) -> Tuple[NOMINAL_OUTPUT, ...]:
         return self._last_output
 
-    def _fit(self, data_in: Tuple[NOMINAL_INPUT, ...], data_out: Tuple[NOMINAL_OUTPUT, ...]):
+    def _fit(self, data_in: Tuple[Tuple[NOMINAL_INPUT, ...], ...], data_out: Tuple[NOMINAL_OUTPUT, ...]):
         if not self._changed:
             self._last_output = data_out
             self._changed = True

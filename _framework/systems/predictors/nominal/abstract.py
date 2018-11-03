@@ -10,10 +10,10 @@ class NominalPredictor(Predictor[NOMINAL_INPUT, NOMINAL_OUTPUT]):
         super().__init__(no_states, *args, **kwargs)
         self._dummy = tuple("#" for _ in range(no_states))
 
-    def _predict(self, data_in: Tuple[NOMINAL_INPUT, ...]) -> Tuple[NOMINAL_OUTPUT, ...]:
+    def _predict(self, data_in: Tuple[Tuple[NOMINAL_INPUT, ...], ...]) -> Tuple[NOMINAL_OUTPUT, ...]:
         raise NotImplementedError()
 
-    def _fit(self, data_in: Tuple[NOMINAL_INPUT, ...], data_out: Tuple[NOMINAL_OUTPUT, ...]):
+    def _fit(self, data_in: Tuple[Tuple[NOMINAL_INPUT, ...], ...], data_out: Tuple[NOMINAL_OUTPUT, ...]):
         raise NotImplementedError()
 
     def get_state(self) -> PREDICTOR_STATE:

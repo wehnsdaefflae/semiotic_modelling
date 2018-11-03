@@ -10,10 +10,10 @@ class NominalLastPredictor(NominalPredictor):
         super().__init__(no_states)
         self._last_output = self._dummy
 
-    def _predict(self, data_in: Tuple[NOMINAL_INPUT, ...]) -> Tuple[NOMINAL_OUTPUT, ...]:
+    def _predict(self, data_in: Tuple[Tuple[NOMINAL_INPUT, ...], ...]) -> Tuple[NOMINAL_OUTPUT, ...]:
         return self._last_output
 
-    def _fit(self, data_in: Tuple[NOMINAL_INPUT, ...], data_out: Tuple[NOMINAL_OUTPUT, ...]):
+    def _fit(self, data_in: Tuple[Tuple[NOMINAL_INPUT, ...], ...], data_out: Tuple[NOMINAL_OUTPUT, ...]):
         self._last_output = data_out
 
     def get_state(self) -> PREDICTOR_STATE:

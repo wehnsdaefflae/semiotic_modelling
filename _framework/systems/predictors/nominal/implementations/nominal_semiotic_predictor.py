@@ -18,10 +18,10 @@ class NominalSemiotic(NominalPredictor):
             "drag": 1}
         self._predictor = SemioticModel[NOMINAL_INPUT, NOMINAL_OUTPUT](no_states, alpha, sigma, **semiotic_keywords)
 
-    def _predict(self, data_in: Tuple[NOMINAL_INPUT, ...]) -> Tuple[NOMINAL_OUTPUT, ...]:
+    def _predict(self, data_in: Tuple[Tuple[NOMINAL_INPUT, ...], ...]) -> Tuple[NOMINAL_OUTPUT, ...]:
         return self._predictor.predict(data_in)
 
-    def _fit(self, data_in: Tuple[NOMINAL_INPUT, ...], data_out: Tuple[NOMINAL_OUTPUT, ...]):
+    def _fit(self, data_in: Tuple[Tuple[NOMINAL_INPUT, ...], ...], data_out: Tuple[NOMINAL_OUTPUT, ...]):
         self._predictor.fit(data_in, data_out)
 
     def get_state(self) -> PREDICTOR_STATE:

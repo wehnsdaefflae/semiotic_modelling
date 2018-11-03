@@ -10,14 +10,14 @@ class NominalMarkov(NominalPredictor):
         super().__init__(no_states)
         self._table = dict()
 
-    def _predict(self, data_in: Tuple[NOMINAL_INPUT, ...]) -> Tuple[NOMINAL_OUTPUT, ...]:
+    def _predict(self, data_in: Tuple[Tuple[NOMINAL_INPUT, ...], ...]) -> Tuple[NOMINAL_OUTPUT, ...]:
         sub_dict = self._table.get(data_in)
         if sub_dict is None:
             return self._dummy
         prediction, _ = max(sub_dict.items(), key=lambda x: x[1])
         return prediction
 
-    def _fit(self, data_in: Tuple[NOMINAL_INPUT, ...], data_out: Tuple[NOMINAL_OUTPUT, ...]):
+    def _fit(self, data_in: Tuple[Tuple[NOMINAL_INPUT, ...], ...], data_out: Tuple[NOMINAL_OUTPUT, ...]):
         sub_dict = self._table.get(data_in)
         if sub_dict is None:
             self._table[data_in] = {data_out: 1}
