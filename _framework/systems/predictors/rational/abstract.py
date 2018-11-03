@@ -13,6 +13,7 @@ class RationalPredictor(Predictor[RATIONAL_INPUT, RATIONAL_OUTPUT]):
         self._out_dim = output_dimensions
         self._drag = drag
 
+    # TODO: pass structured examples
     def _low_predict(self, data_in: Tuple[RATIONAL_INPUT, ...]) -> Tuple[RATIONAL_OUTPUT, ...]:
         raise NotImplementedError()
 
