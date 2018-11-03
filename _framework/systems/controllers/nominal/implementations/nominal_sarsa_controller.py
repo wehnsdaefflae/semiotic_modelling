@@ -1,50 +1,10 @@
 # coding=utf-8
 import json
 import random
-from typing import Any, Type, Collection, Optional
+from typing import Collection, Optional
 
+from _framework.data_types import NOMINAL_MOTOR, NOMINAL_SENSOR
 from _framework.systems.controllers.nominal.abstract import NominalController
-from _framework.data_types import NOMINAL_SENSOR, NOMINAL_MOTOR
-from tools.logger import Logger
-
-
-class NominalNoneController(NominalController):
-    def __init__(self, motor_space: Collection[NOMINAL_MOTOR]):
-        super().__init__(motor_space)
-
-    def integrate(self, perception: Optional[Any], action: Type[None], reward: float):
-        pass
-
-    def react(self, perception: Optional[Any]) -> Type[None]:
-        return None
-
-
-class NominalRandomController(NominalController):
-    def __init__(self, motor_space: Collection[NOMINAL_MOTOR]):
-        super().__init__(motor_space)
-
-    def integrate(self, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
-        pass
-
-    def react(self, perception: Optional[NOMINAL_SENSOR]) -> NOMINAL_MOTOR:
-        action, = random.sample(self._motor_space, 1)
-        return action
-
-
-class NominalManualController(NominalController):
-    def __init__(self, motor_space: Collection[NOMINAL_MOTOR], *args, **kwargs):
-        super().__init__(motor_space, *args, **kwargs)
-        self._space_string = str(list(sorted(self._motor_space)))
-
-    def react(self, perception: Optional[NOMINAL_SENSOR]) -> NOMINAL_MOTOR:
-        Logger.log(f"\nController {id(self):d} perceives:\n{str(perception):s}")
-        action = input(f"Target action {self._space_string:s}: ")
-        while action not in self._motor_space:
-            action = input(f"Action {action:s} is not among {self._space_string}. Try again: ")
-        return action
-
-    def integrate(self, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
-        Logger.log(f"### Controller {id(self):d} received reward: {reward:f}.")
 
 
 class NominalSarsaController(NominalController):
@@ -102,15 +62,3 @@ class NominalSarsaController(NominalController):
 
         self._last_condition = perception, action
         self._last_reward = reward
-
-
-class NominalSemioticSarsaController(NominalController):
-    def __init__(self, motor_space: Collection[NOMINAL_MOTOR], *args, **kwargs):
-        super().__init__(motor_space, *args, **kwargs)
-        raise NotImplementedError()
-
-    def react(self, perception: Optional[NOMINAL_SENSOR]) -> NOMINAL_MOTOR:
-        raise NotImplementedError()
-
-    def integrate(self, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
-        raise NotImplementedError()

@@ -2,12 +2,10 @@
 import datetime
 import time
 from math import sqrt
-from typing import Tuple, Generator, Any, Union, Hashable, Iterator, TypeVar, Generic, Dict, Collection, Sequence, Type
+from typing import Tuple, Generator, Any, Union, Hashable, Iterator, TypeVar
 
-from _live_dash_plotly.send_data import SemioticVisualization
-from data_generation.data_sources.systems.abstract_classes import System, Controller
 from modelling.predictors.abstract_predictor import Predictor
-from tools.logger import Logger, DataLogger
+from tools.logger import DataLogger
 from tools.timer import Timer
 from visualization.visualization import Visualize
 

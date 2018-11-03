@@ -4,14 +4,13 @@
 import time
 from typing import Tuple, Any, TypeVar, Generic, Dict, Collection, Sequence, Type, Optional, List
 
-import tqdm
 
 from _framework.systems.controllers.abstract import Controller
 from _framework.systems.predictors.abstract import Predictor
 from _framework.streams.abstract import ExampleStream
 from _framework.systems.tasks.nominal.abstract import NominalTask
 from _framework.systems.tasks.rational.abstract import RationalTask
-from _live_dash_plotly.send_data import SemioticVisualization
+from _framework.visualization_server.send_data import SemioticVisualization
 from tools.functionality import DictList, smear
 from tools.logger import Logger, DataLogger, get_time_string, get_main_script_name
 

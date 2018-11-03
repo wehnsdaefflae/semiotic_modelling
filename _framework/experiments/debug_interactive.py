@@ -1,9 +1,9 @@
 # coding=utf-8
 from _framework.setup import Setup
 from _framework.streams.interactive.implementations import InteractionStream
-from _framework.systems.controllers.nominal.implementations import NominalSarsaController
-from _framework.systems.predictors.nominal.implementations import NominalMarkov
-from _framework.systems.tasks.nominal.implementations import TransitionalGridWorld
+from _framework.systems.controllers.nominal.implementations.nominal_sarsa_controller import NominalSarsaController
+from _framework.systems.predictors.nominal.implementations.nominal_markov_predictor import NominalMarkov
+from _framework.systems.tasks.nominal.implementations.grid_world.implementations.transitional_grid_world import TransitionalGridWorld
 from tools.load_configs import Config
 
 

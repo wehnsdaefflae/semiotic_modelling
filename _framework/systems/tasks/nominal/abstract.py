@@ -18,3 +18,5 @@ class NominalTask(Task[NOMINAL_MOTOR, NOMINAL_SENSOR]):
     @staticmethod
     def motor_space() -> Collection[NOMINAL_MOTOR]:
         raise NotImplementedError()
+
+
