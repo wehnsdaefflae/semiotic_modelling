@@ -55,8 +55,8 @@ class VisualizationModel:
 
         for axis_name, plot_name, values in batch:
             _named_series, _width = self._axes_width[axis_name]
-
-            if len(values) != _width:
+            no_values = len(values)
+            if no_values != _width:
                 raise ValueError("inconsistent width")
 
             series = _named_series.get(plot_name)
@@ -115,13 +115,13 @@ class VisualizationView:
         d = json.loads(data)
         axes = d["axes"]
 
-        axes_model = tuple((_axis_name, _width) for _axis_name, _width, _ in axes)
-        VisualizationView._model = VisualizationModel(axes_model, length=VisualizationView.length)
-
         VisualizationView._dist_axes = {_axis_name for _axis_name, _, _is_dist in axes if _is_dist}
         VisualizationView._axis_styles.clear()
         VisualizationView._plot_styles.clear()
         VisualizationView.length = d.get("length", 0)
+
+        axes_model = tuple((_axis_name, _width) for _axis_name, _width, _ in axes)
+        VisualizationView._model = VisualizationModel(axes_model, length=VisualizationView.length)
 
         VisualizationView._dash.layout = get_layout()
         _iterations = 0
@@ -199,7 +199,7 @@ class VisualizationView:
                     mode="lines",
                     line={
                         "color": f"rgba({color_str:s}, 1)",
-                        "width": 1,
+                        "width": 0,
                         "shape": "hv",
                         #"shape": "spline",
                     },

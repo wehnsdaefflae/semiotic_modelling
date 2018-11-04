@@ -7,8 +7,8 @@ from _framework.streams.abstract import ExampleStream
 
 
 class RationalStream(ExampleStream[RATIONAL_INPUT, RATIONAL_OUTPUT]):
-    def __init__(self, learn_control: bool, *args, **kwargs):
-        super().__init__(learn_control, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(False, *args, **kwargs)
 
     def __str__(self):
         raise NotImplementedError()

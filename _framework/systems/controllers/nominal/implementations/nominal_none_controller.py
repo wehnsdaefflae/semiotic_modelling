@@ -6,8 +6,8 @@ from _framework.systems.controllers.nominal.abstract import NominalController
 
 
 class NominalNoneController(NominalController):
-    def __init__(self, motor_space: Collection[NOMINAL_MOTOR]):
-        super().__init__(motor_space)
+    def __init__(self, motor_space: Collection[NOMINAL_MOTOR], *args, **kwargs):
+        super().__init__(motor_space, *args, **kwargs)
 
     def _integrate(self, perception: Any, action: Type[None], reward: float):
         pass

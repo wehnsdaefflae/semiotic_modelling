@@ -8,6 +8,7 @@
       <excludeFolder url="file://$MODULE_DIR$/_framework/mains/logs" />
       <excludeFolder url="file://$MODULE_DIR$/_framework/mains/results" />
       <excludeFolder url="file://$MODULE_DIR$/_framework/results" />
+      <excludeFolder url="file://$MODULE_DIR$/_framework/visualization_server/logs" />
       <excludeFolder url="file://$MODULE_DIR$/_live_dash_plotly/logs" />
       <excludeFolder url="file://$MODULE_DIR$/configs" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />

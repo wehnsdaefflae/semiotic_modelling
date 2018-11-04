@@ -1,5 +1,5 @@
 # coding=utf-8
-from typing import Collection, Optional
+from typing import Collection
 
 from _framework.data_types import NOMINAL_MOTOR, NOMINAL_SENSOR
 from _framework.systems.controllers.nominal.abstract import NominalController

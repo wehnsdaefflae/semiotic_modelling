@@ -98,9 +98,6 @@ class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
             else:
                 raise ValueError(f"unknown task class '{task_train_class.__name__:s}'")
 
-            self._train_stream_args["learn_control"] = True
-            self._test_stream_args["learn_control"] = False
-
         self._no_experiment = 0
 
     def create(self) -> Experiment[TYPE_A, TYPE_B]:

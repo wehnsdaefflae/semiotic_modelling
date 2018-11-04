@@ -1,15 +1,15 @@
 # coding=utf-8
 import json
 import random
-from typing import Collection, Optional
+from typing import Collection
 
 from _framework.data_types import NOMINAL_MOTOR, NOMINAL_SENSOR
 from _framework.systems.controllers.nominal.abstract import NominalController
 
 
 class NominalSarsaController(NominalController):
-    def __init__(self, motor_space: Collection[NOMINAL_MOTOR], alpha: float, gamma: float, epsilon: float, default_evaluation: float = 0.):
-        super().__init__(motor_space)
+    def __init__(self, motor_space: Collection[NOMINAL_MOTOR], alpha: float, gamma: float, epsilon: float, default_evaluation: float = 0., *args, **kwargs):
+        super().__init__(motor_space, *args, **kwargs)
         self._alpha = alpha
         self._gamma = gamma
         self._epsilon = epsilon
