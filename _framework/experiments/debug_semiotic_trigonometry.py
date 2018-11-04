@@ -1,16 +1,9 @@
 # coding=utf-8
 from _framework.setup import Setup
-from _framework.streams.interactive.interaction_stream import InteractionStream
-from _framework.streams.linear.nominal.text_stream import TextStream
 from _framework.streams.linear.rational.trigonometric_stream import TrigonometricStream
-from _framework.systems.controllers.nominal.implementations.nominal_random_controller import NominalRandomController
-from _framework.systems.controllers.nominal.implementations.nominal_sarsa_controller import NominalSarsaController
-from _framework.systems.predictors.nominal.implementations.nominal_markov_predictor import NominalMarkov
-from _framework.systems.predictors.nominal.implementations.nominal_semiotic_predictor import NominalSemiotic
 from _framework.systems.predictors.rational.implementations.rational_average_predictor import RationalAverage
 from _framework.systems.predictors.rational.implementations.rational_linear_regression_predictor import RationalLinearRegression
 from _framework.systems.predictors.rational.implementations.rational_semiotic_predictor import RationalSemiotic
-from _framework.systems.tasks.nominal.implementations.grid_world.implementations.transitional_grid_world import TransitionalGridWorld
 from tools.load_configs import Config
 
 
