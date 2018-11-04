@@ -2,6 +2,7 @@
   <dictionary name="Mark">
     <words>
       <w>avrg</w>
+      <w>regressor</w>
       <w>sarsa</w>
       <w>sensorimotor</w>
     </words>

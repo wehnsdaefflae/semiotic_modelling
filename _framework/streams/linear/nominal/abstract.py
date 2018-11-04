@@ -1,8 +1,11 @@
 # coding=utf-8
-from typing import Tuple
+from typing import Tuple, Hashable
 
-from _framework.data_types import NOMINAL_INPUT, NOMINAL_OUTPUT
 from _framework.streams.abstract import ExampleStream
+
+
+NOMINAL_INPUT = Hashable
+NOMINAL_OUTPUT = Hashable
 
 
 class NominalStream(ExampleStream[NOMINAL_INPUT, NOMINAL_OUTPUT]):

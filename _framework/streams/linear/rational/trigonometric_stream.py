@@ -5,9 +5,9 @@ from _framework.data_types import RATIONAL_INPUT, RATIONAL_OUTPUT
 from _framework.streams.linear.rational.abstract import RationalStream
 
 
-class TrigonometricStream(RationalStream[RATIONAL_INPUT, RATIONAL_OUTPUT]):
-    def __init__(self):
-        super().__init__(False)
+class TrigonometricStream(RationalStream):
+    def __init__(self, *args, **kwargs):
+        super().__init__(False, *args, **kwargs)
         self._iteration = 0
 
     def __str__(self):

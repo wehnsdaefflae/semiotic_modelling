@@ -18,21 +18,27 @@ if __name__ == "__main__":
     config = Config("../../configs/config.json")
     file_dir = config["data_dir"]
 
+    history_length = 1
+
     experiments = (
         {
             "predictor_def": (
                 RationalAverage,
                 {
                     "no_states": 1,
-                    "input_dimensions": 1,
+                    "input_dimensions": 1 * history_length,
                     "output_dimensions": 1,
                     "drag": 100,
                 }
             ),
             "streams_def": (
                 TrigonometricStream,
-                dict(),
-                dict()
+                {
+                    "history_length": history_length,
+                },
+                {
+                    "history_length": history_length,
+                }
             ),
         },
         {
@@ -40,15 +46,20 @@ if __name__ == "__main__":
                 RationalLinearRegression,
                 {
                     "no_states": 1,
-                    "input_dimensions": 1,
+                    "input_dimensions": 1 * history_length,
                     "output_dimensions": 1,
+                    "history_length": 1,
                     "drag": 100,
                 }
             ),
             "streams_def": (
                 TrigonometricStream,
-                dict(),
-                dict()
+                {
+                    "history_length": history_length,
+                },
+                {
+                    "history_length": history_length,
+                }
             ),
         },
         {
@@ -56,8 +67,9 @@ if __name__ == "__main__":
                 RationalSemiotic,
                 {
                     "no_states": 1,
-                    "input_dimensions": 1,
+                    "input_dimensions": 1 * history_length,
                     "output_dimensions": 1,
+                    "concrete_history_length": history_length,
                     "drag": 100,
                     "alpha": 100,
                     "sigma": .2,
@@ -65,8 +77,12 @@ if __name__ == "__main__":
             ),
             "streams_def": (
                 TrigonometricStream,
-                dict(),
-                dict()
+                {
+                    "history_length": history_length,
+                },
+                {
+                    "history_length": history_length,
+                }
             ),
         },
     )

@@ -12,9 +12,10 @@ class ExchangeRateStream(RationalStream[RATIONAL_INPUT, RATIONAL_OUTPUT]):
                  input_file_paths: Sequence[str], target_file_paths: Sequence[str],
                  interval_seconds: int, offset_seconds: int,
                  start_val: Optional[Union[int, str]] = None,
-                 end_val: Optional[Union[int, str]]= None):
+                 end_val: Optional[Union[int, str]]= None,
+                 *args, **kwargs):
 
-        super().__init__(False)
+        super().__init__(False, *args, **kwargs)
         self._input_sequences = tuple(sequence_rational_crypto(each_path, interval_seconds, start_val, end_val) for each_path in input_file_paths)
         self._target_sequences = tuple(sequence_rational_crypto(each_path, interval_seconds, start_val + offset_seconds, end_val + offset_seconds) for each_path in target_file_paths)
 

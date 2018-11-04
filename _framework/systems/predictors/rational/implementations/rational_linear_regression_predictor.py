@@ -7,26 +7,28 @@ from tools.regression import Regressor
 
 
 class RationalLinearRegression(RationalPredictor):
-    def __init__(self, no_states: int, input_dimensions: int, output_dimensions: int, drag: int):
+    def __init__(self, no_states: int, history_length: int, input_dimensions: int, output_dimensions: int, drag: int):
         super().__init__(no_states, input_dimensions, output_dimensions, drag)
-        self._regressions = tuple(tuple(Regressor(input_dimensions, drag) for _ in range(output_dimensions)) for _ in range(no_states))
+        self._history_length = history_length
+        self._regressions = tuple(tuple(Regressor(input_dimensions * history_length, drag) for _ in range(output_dimensions)) for _ in range(no_states))
 
     def _low_predict(self, data_in: Tuple[Tuple[RATIONAL_INPUT, ...], ...]) -> Tuple[RATIONAL_OUTPUT, ...]:
-        output_values = tuple(
-            tuple(
-                single_regression.output(each_input) for single_regression in each_regression
-            ) for each_regression, each_input in zip(self._regressions, data_in)
-        )
-        return output_values
+        data_out = []
+        for _regressor_array, _input_history in zip(self._regressions, data_in):
+            _flat_input = tuple(_value for _vector in _input_history for _value in _vector)
+            _each_output = []
+            for _each_regressor in _regressor_array:
+                _o = _each_regressor.output(_flat_input)
+                _each_output.append(_o)
+            data_out.append(tuple(_each_output))
+        return tuple(data_out)
 
     def _low_fit(self, data_in: Tuple[Tuple[RATIONAL_INPUT, ...], ...], data_out: Tuple[RATIONAL_OUTPUT, ...]):
-        for example_index in range(self._no_states):
-            each_regression = self._regressions[example_index]
+        for _regressor_array, _input_history, _each_target in zip(self._regressions, data_in, data_out):
+            _flat_input = tuple(_value for _vector in _input_history for _value in _vector)
 
-            each_input, each_target = data_in[example_index], data_out[example_index]
-
-            for each_single_regression, each_target_value in zip(each_regression, each_target):
-                each_single_regression.fit(each_input, each_target_value)
+            for _each_regressor, _target_value in zip(_regressor_array, _each_target):
+                _each_regressor.fit(_flat_input, _target_value)
 
     def get_state(self) -> PREDICTOR_STATE:
         return tuple()

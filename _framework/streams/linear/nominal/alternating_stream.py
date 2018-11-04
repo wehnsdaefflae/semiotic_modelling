@@ -12,8 +12,8 @@ NOMINAL_EXAMPLE = Tuple[NOMINAL_HISTORY, NOMINAL_OUTPUT]
 
 
 class NominalAscendingDescending(NominalStream[NOMINAL_INPUT, NOMINAL_OUTPUT]):
-    def __init__(self, history_length: int = 1):
-        super().__init__(False, history_length=history_length)
+    def __init__(self, *args, **kwargs):
+        super().__init__(False, *args, **kwargs)
         self._index = 0
         self._state = False
 
