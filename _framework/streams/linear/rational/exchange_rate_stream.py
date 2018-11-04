@@ -24,10 +24,10 @@ class ExchangeRateStream(ExampleStream[RATIONAL_INPUT, RATIONAL_OUTPUT]):
         pass
 
     def _get_inputs(self) -> Tuple[INPUT_TYPE, ...]:
-        pass
+        return tuple(next(each_sequence) for each_sequence in self._input_sequences)
 
     def _get_outputs(self) -> Tuple[OUTPUT_TYPE, ...]:
-        pass
+        return tuple(next(each_sequence) for each_sequence in self._target_sequences)
 
     def _after(self):
         pass
