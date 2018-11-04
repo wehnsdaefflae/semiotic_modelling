@@ -2,11 +2,12 @@
 from typing import Tuple, Sequence, Optional, Union
 
 from _framework.data_types import RATIONAL_INPUT, RATIONAL_OUTPUT
-from _framework.streams.abstract import ExampleStream, OUTPUT_TYPE, INPUT_TYPE
 from _framework.streams.linear.nominal.resources.crypto_generator import sequence_rational_crypto
+from _framework.streams.linear.rational.abstract import RationalStream
 
 
-class ExchangeRateStream(ExampleStream[RATIONAL_INPUT, RATIONAL_OUTPUT]):
+# TODO: finish implementing exchange rate stream
+class ExchangeRateStream(RationalStream[RATIONAL_INPUT, RATIONAL_OUTPUT]):
     def __init__(self,
                  input_file_paths: Sequence[str], target_file_paths: Sequence[str],
                  interval_seconds: int, offset_seconds: int,
@@ -23,10 +24,10 @@ class ExchangeRateStream(ExampleStream[RATIONAL_INPUT, RATIONAL_OUTPUT]):
     def _before(self):
         pass
 
-    def _get_inputs(self) -> Tuple[INPUT_TYPE, ...]:
+    def _get_inputs(self) -> Tuple[RATIONAL_INPUT, ...]:
         return tuple(next(each_sequence) for each_sequence in self._input_sequences)
 
-    def _get_outputs(self) -> Tuple[OUTPUT_TYPE, ...]:
+    def _get_outputs(self) -> Tuple[RATIONAL_OUTPUT, ...]:
         return tuple(next(each_sequence) for each_sequence in self._target_sequences)
 
     def _after(self):

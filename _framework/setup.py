@@ -59,8 +59,8 @@ class Experiment(Generic[TYPE_A, TYPE_B]):
         self.duration = smear(self.duration, (time.time() - this_time) * 1000., self._iterations)
 
         outputs_test = self._predictor.predict(inputs_test)
-        self.error_train = smear(self.error_train, self._stream_train.error(outputs_train, targets_train), self._iterations)
-        self.error_test = smear(self.error_test, self._stream_train.error(outputs_test, targets_test), self._iterations)
+        self.error_train = smear(self.error_train, self._stream_train.total_error(outputs_train, targets_train), self._iterations)
+        self.error_test = smear(self.error_test, self._stream_train.total_error(outputs_test, targets_test), self._iterations)
 
         self._iterations += 1
 

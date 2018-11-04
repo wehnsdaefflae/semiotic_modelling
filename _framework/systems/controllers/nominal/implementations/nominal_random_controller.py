@@ -10,9 +10,9 @@ class NominalRandomController(NominalController):
     def __init__(self, motor_space: Collection[NOMINAL_MOTOR]):
         super().__init__(motor_space)
 
-    def integrate(self, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
+    def _integrate(self, perception: NOMINAL_SENSOR, action: NOMINAL_MOTOR, reward: float):
         pass
 
-    def react(self, perception: Optional[NOMINAL_SENSOR]) -> NOMINAL_MOTOR:
+    def react(self, _perception: NOMINAL_SENSOR) -> NOMINAL_MOTOR:
         action, = random.sample(self._motor_space, 1)
         return action

@@ -24,7 +24,7 @@ class NominalSarsaController(NominalController):
         with open(file_path, mode="w") as file:
             json.dump(tuple((str(_x), _y) for _x, _y in self._evaluation_function.items()), file, sort_keys=True, indent=2)
 
-    def react(self, perception: Optional[NOMINAL_SENSOR]) -> NOMINAL_MOTOR:
+    def react(self, perception: NOMINAL_SENSOR) -> NOMINAL_MOTOR:
         # exploration
         if random.random() < self._epsilon:
             action = self._random_action()
@@ -41,7 +41,7 @@ class NominalSarsaController(NominalController):
 
         return action
 
-    def integrate(self, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
+    def _integrate(self, perception: NOMINAL_SENSOR, action: NOMINAL_MOTOR, reward: float):
         sub_dict = self._evaluation_function.get(perception)
         if sub_dict is None:
             this_evaluation = self._default_evaluation

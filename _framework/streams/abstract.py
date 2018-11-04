@@ -1,6 +1,5 @@
 # coding=utf-8
-import numbers
-from typing import TypeVar, Generic, Tuple, Sequence
+from typing import TypeVar, Generic, Tuple
 
 
 INPUT_TYPE = TypeVar("INPUT_TYPE")
@@ -57,27 +56,8 @@ class ExampleStream(Generic[INPUT_TYPE, OUTPUT_TYPE]):
     def get_reward(self) -> float:
         return self._reward
 
-    @staticmethod
-    def _error(value_output: ANY_TYPE, value_target: ANY_TYPE) -> float:
-        if isinstance(value_output, numbers.Rational):
-            return abs(value_output - value_target)
+    def _single_error(self, data_output: OUTPUT_TYPE, data_target: OUTPUT_TYPE) -> float:
+        raise NotImplementedError()
 
-        return float(value_output != value_target)
-
-    @staticmethod
-    def error(data_output: Sequence[ANY_TYPE], data_target: Sequence[ANY_TYPE]) -> float:
-        d = len(data_output)
-        assert d == len(data_target)
-
-        error_sum = 0.
-        for _o, _t in zip(data_output, data_target):
-            if d == 1 and isinstance(_o, str):
-                error_sum += ExampleStream._error(_o, _t)
-
-            elif isinstance(_o, Sequence):
-                error_sum += ExampleStream.error(_o, _t)
-
-            else:
-                error_sum += ExampleStream._error(_o, _t)
-
-        return error_sum / d
+    def total_error(self, data_outputs: Tuple[OUTPUT_TYPE, ...], data_targets: Tuple[OUTPUT_TYPE, ...]) -> float:
+        return sum(self._single_error(each_output, each_target) for each_output, each_target in zip(data_outputs, data_targets)) / self._no_examples

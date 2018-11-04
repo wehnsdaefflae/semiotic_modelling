@@ -2,10 +2,10 @@
 from math import sin, cos
 
 from _framework.data_types import RATIONAL_INPUT, RATIONAL_OUTPUT
-from _framework.streams.abstract import ExampleStream
+from _framework.streams.linear.rational.abstract import RationalStream
 
 
-class TrigonometricStream(ExampleStream[RATIONAL_INPUT, RATIONAL_OUTPUT]):
+class TrigonometricStream(RationalStream[RATIONAL_INPUT, RATIONAL_OUTPUT]):
     def __init__(self):
         super().__init__(False)
         self._iteration = 0

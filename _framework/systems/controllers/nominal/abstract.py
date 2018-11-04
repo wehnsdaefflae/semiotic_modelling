@@ -15,8 +15,8 @@ class NominalController(Controller[NOMINAL_SENSOR, NOMINAL_MOTOR]):
         action, = random.sample(self._motor_space, 1)
         return action
 
-    def react(self, perception: Optional[NOMINAL_SENSOR]) -> NOMINAL_MOTOR:
+    def react(self, perception: NOMINAL_SENSOR) -> NOMINAL_MOTOR:
         raise NotImplementedError()
 
-    def integrate(self, perception: Optional[NOMINAL_SENSOR], action: NOMINAL_MOTOR, reward: float):
+    def _integrate(self, perception: NOMINAL_SENSOR, action: NOMINAL_MOTOR, reward: float):
         raise NotImplementedError()

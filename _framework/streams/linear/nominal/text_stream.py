@@ -1,11 +1,12 @@
 # coding=utf-8
 from typing import Tuple
 
-from _framework.streams.abstract import ExampleStream, OUTPUT_TYPE, INPUT_TYPE
+from _framework.streams.abstract import OUTPUT_TYPE, INPUT_TYPE
+from _framework.streams.linear.nominal.abstract import NominalStream
 from _framework.streams.linear.nominal.resources.text_generator import sequence_nominal_text
 
 
-class TextStream(ExampleStream[INPUT_TYPE, OUTPUT_TYPE]):
+class TextStream(NominalStream[INPUT_TYPE, OUTPUT_TYPE]):
     def __init__(self, file_path: str, history_length: int = 1):
         super().__init__(False, no_examples=1, history_length=history_length)
         self._file_path = file_path

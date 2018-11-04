@@ -1,9 +1,8 @@
 # coding=utf-8
-from collections import deque
 from typing import TypeVar, Tuple, Any, Type, Dict, Generic
 
 from _framework.data_types import PREDICTOR_STATE
-from _framework.streams.abstract import ExampleStream, OUTPUT_TYPE, INPUT_TYPE
+from _framework.streams.abstract import ExampleStream
 from _framework.systems.tasks.abstract import Task
 from _framework.systems.controllers.abstract import Controller
 from _framework.systems.predictors.abstract import Predictor
@@ -52,11 +51,14 @@ class InteractionStream(ExampleStream[SENSORIMOTOR_INPUT[SENSOR_TYPE, MOTOR_TYPE
         if self._learn_control:
             self._controller.integrate(perception, self._action, self._reward)
 
-    def _get_inputs(self) -> Tuple[INPUT_TYPE, ...]:
+    def _get_inputs(self) -> SENSORIMOTOR_INPUT[SENSOR_TYPE, MOTOR_TYPE]:
         return self._sensor, self._action
 
-    def _get_outputs(self) -> Tuple[OUTPUT_TYPE, ...]:
+    def _get_outputs(self) -> SENSOR_TYPE:
         return self._next_sensor
 
     def _after(self):
         self._sensor = self._next_sensor
+
+    def _single_error(self, data_output: SENSOR_TYPE, data_target: SENSOR_TYPE) -> float:
+        return float(data_output != data_target)

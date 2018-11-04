@@ -4,13 +4,14 @@ import string
 from typing import Tuple
 
 from _framework.data_types import NOMINAL_INPUT, NOMINAL_OUTPUT
-from _framework.streams.abstract import ExampleStream, OUTPUT_TYPE, INPUT_TYPE
+from _framework.streams.abstract import OUTPUT_TYPE, INPUT_TYPE
+from _framework.streams.linear.nominal.abstract import NominalStream
 
 NOMINAL_HISTORY = Tuple[NOMINAL_INPUT, ...]
 NOMINAL_EXAMPLE = Tuple[NOMINAL_HISTORY, NOMINAL_OUTPUT]
 
 
-class NominalAscendingDescending(ExampleStream[NOMINAL_INPUT, NOMINAL_OUTPUT]):
+class NominalAscendingDescending(NominalStream[NOMINAL_INPUT, NOMINAL_OUTPUT]):
     def __init__(self, history_length: int = 1):
         super().__init__(False, history_length=history_length)
         self._index = 0
