@@ -38,13 +38,13 @@ class ExchangeRateStream(RationalStream):
         return self.__class__.__name__
 
     def _before(self):
-        self._input_data = tuple(next(each_sequence)[1] for each_sequence in self._input_sequences)
+        self._input_data = tuple(next(each_sequence) for each_sequence in self._input_sequences)
 
     def _get_inputs(self) -> Tuple[RATIONAL_INPUT, ...]:
         return self._input_data,
 
     def _get_outputs(self) -> Tuple[RATIONAL_OUTPUT, ...]:
-        future_data = tuple(next(each_sequence)[1] for each_sequence in self._target_sequences)
+        future_data = tuple(next(each_sequence) for each_sequence in self._target_sequences)
         target_data = tuple(float(1. - _n / _t >= .05) for _n, _t in zip(future_data, self._input_data))
         return target_data,
 

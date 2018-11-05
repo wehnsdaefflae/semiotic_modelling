@@ -90,6 +90,7 @@ def get_layout():
     )
 
 
+# todo: always plot average
 class VisualizationView:
     _model = None    # type: VisualizationModel
 

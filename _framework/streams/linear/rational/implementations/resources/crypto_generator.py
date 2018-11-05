@@ -36,7 +36,7 @@ def binance_generator(file_path: str, start_timestamp: int = -1, end_timestamp: 
             raise ValueError(msg.format(file_path, str(end_time), end_timestamp, str(last_date), row_ts))
 
 
-def equisample(iterator: Iterator[Tuple[float, float]], target_delta: float) -> Generator[Tuple[float, float], None, None]:
+def equisample(iterator: Iterator[Tuple[float, float]], target_delta: float) -> Generator[float, None, None]:
     assert 0 < target_delta
     last_time = -1
     last_value = 0.
@@ -48,7 +48,7 @@ def equisample(iterator: Iterator[Tuple[float, float]], target_delta: float) -> 
 
         elif delta == target_delta or last_time < 0:
             assert last_time < 0 or time_stamp == last_time + target_delta
-            yield time_stamp, value
+            yield value
 
             last_value = value
             last_time = time_stamp
@@ -59,4 +59,4 @@ def equisample(iterator: Iterator[Tuple[float, float]], target_delta: float) -> 
             for each_step in range(no_intermediate_steps):
                 last_value += value_change
                 last_time += target_delta
-                yield last_time, last_value
+                yield last_value
