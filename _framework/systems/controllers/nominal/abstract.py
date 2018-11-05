@@ -20,3 +20,4 @@ class NominalController(Controller[NOMINAL_SENSOR, NOMINAL_MOTOR]):
 
     def _integrate(self, perception: NOMINAL_SENSOR, action: NOMINAL_MOTOR, reward: float):
         raise NotImplementedError()
+    

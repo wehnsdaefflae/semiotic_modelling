@@ -17,6 +17,8 @@ IP = "127.0.0.1"
 # IP = "192.168.178.20"
 
 
+# TODO: refactor visualization server
+
 class VisualizationModel:
     def __init__(self, axes: Sequence[Tuple[str, int]], length: int = 0):
         self.axes = tuple(_name for _name, _ in axes)
