@@ -10,7 +10,6 @@ from matplotlib.colors import hsv_to_rgb
 from plotly import graph_objs
 from plotly.basedatatypes import BasePlotlyType
 
-from tools.functionality import get_min_max
 from tools.logger import Logger
 from tools.math_functions import distribute_circular
 
@@ -162,10 +161,8 @@ class VisualizationView:
         return jsonify(f"added batch of size {len(batch):d}")
 
     @staticmethod
-    def _get_concentration(_axis_name: str, this_plot_style: Dict[str, Any]) -> Tuple[Sequence[BasePlotlyType], Tuple[float, float]]:
+    def _get_concentration(_axis_name: str, this_plot_style: Dict[str, Any]) -> Sequence[BasePlotlyType]:
         axis_data = []
-        y_min = float("inf")
-        y_max = -y_min
 
         for _j, _plot_name in enumerate(VisualizationView._model.get_plot_names(_axis_name)):
             series = VisualizationView._model.get_plot(_axis_name, _plot_name)
@@ -186,9 +183,6 @@ class VisualizationView:
                 range_a = VisualizationView._model.x_range
                 each_range = range_a + range_a[::-1]
 
-                _min, _max = get_min_max(outline)
-                y_min, y_max = min(y_min, _min), max(y_max, _max)
-
                 data = graph_objs.Scatter(
                     **plot_properties,
                     showlegend=_i == 0,
@@ -207,14 +201,11 @@ class VisualizationView:
                 )
                 axis_data.append(data)
 
-        return axis_data, (y_min, y_max)
+        return axis_data
 
     @staticmethod
-    def _get_lines(_axis_name: str, this_plot_style: Dict[str, Any]) -> Tuple[Sequence[BasePlotlyType], Tuple[float, float]]:
+    def _get_lines(_axis_name: str, this_plot_style: Dict[str, Any]) -> Sequence[BasePlotlyType]:
         axis_data = []
-
-        y_min = float("inf")
-        y_max = -y_min
 
         for _j, _plot_name in enumerate(VisualizationView._model.get_plot_names(_axis_name)):
             color = hsv_to_rgb((distribute_circular(_j), .7, .7))
@@ -225,9 +216,6 @@ class VisualizationView:
             series = VisualizationView._model.get_plot(_axis_name, _plot_name)
 
             for each_series in series:
-                _min, _max = get_min_max(each_series)
-                y_min, y_max = min(y_min, _min), max(y_max, _max)
-
                 data = graph_objs.Scatter(
                     **plot_properties,
                     showlegend=True,
@@ -244,7 +232,7 @@ class VisualizationView:
                 )
                 axis_data.append(data)
 
-        return axis_data, (y_min, y_max)
+        return axis_data
 
     @staticmethod
     @_dash.callback(dependencies.Output("graphs", "children"), events=[dependencies.Event("graph-update", "interval")])
@@ -269,14 +257,16 @@ class VisualizationView:
             this_plot_style = VisualizationView._plot_styles.get(_axis_name, dict())
 
             if _axis_name not in VisualizationView._dist_axes:
-                axis_data, (y_min, y_max) = VisualizationView._get_lines(_axis_name, this_plot_style)
+                axis_data = VisualizationView._get_lines(_axis_name, this_plot_style)
 
             else:
-                axis_data, (y_min, y_max) = VisualizationView._get_concentration(_axis_name, this_plot_style)
+                axis_data = VisualizationView._get_concentration(_axis_name, this_plot_style)
 
             axis_properties = VisualizationView._axis_styles.get(_axis_name, dict())
 
-            y_margin = (y_max - y_min) * .1
+            # todo: get axis, update with default values
+            # todo: also set y axis in constructor
+            # todo: try axis property "autorange=True"
 
             layout = graph_objs.Layout(
                 **axis_properties,
@@ -285,8 +275,9 @@ class VisualizationView:
                     "title": "iterations",
                 },
                 yaxis={
-                    "range": [y_min - y_margin, y_max + y_margin],
-                    "title": _axis_name
+                    "title": _axis_name,
+                    #"type": "log",
+                    "autorange": True   # only works if Graph animate=False, see https://community.plot.ly/t/how-to-enable-automatic-autoscale/5276/9
                 },
                 legend={
                     "x": 1,
@@ -297,7 +288,7 @@ class VisualizationView:
             graphs.append(dash_html_components.Div(children=[
                 dash_core_components.Graph(
                     id=_axis_name,
-                    animate=True,
+                    animate=False,
                     animation_options={
                         "mode": "immediate",
                         #"frame": {

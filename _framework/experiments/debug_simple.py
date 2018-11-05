@@ -1,6 +1,6 @@
 # coding=utf-8
 from _framework.setup import Setup
-from _framework.streams.linear.nominal.alternating_stream import NominalAscendingDescending
+from _framework.streams.linear.nominal.implementations.alternating_stream import NominalAscendingDescending
 from _framework.systems.predictors.nominal.implementations import NominalMarkov
 
 if __name__ == "__main__":

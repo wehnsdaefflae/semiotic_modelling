@@ -1,6 +1,6 @@
 # coding=utf-8
 from _framework.setup import Setup
-from _framework.streams.linear.rational.trigonometric_stream import TrigonometricStream
+from _framework.streams.linear.rational.implementations.trigonometric_stream import TrigonometricStream
 from _framework.systems.predictors.rational.implementations.rational_average_predictor import RationalAverage
 from _framework.systems.predictors.rational.implementations.rational_linear_regression_predictor import RationalLinearRegression
 from _framework.systems.predictors.rational.implementations.rational_semiotic_predictor import RationalSemiotic

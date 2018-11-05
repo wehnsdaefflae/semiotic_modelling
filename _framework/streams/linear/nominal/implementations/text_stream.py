@@ -3,7 +3,7 @@ from typing import Tuple
 
 from _framework.data_types import NOMINAL_INPUT, NOMINAL_OUTPUT
 from _framework.streams.linear.nominal.abstract import NominalStream
-from _framework.streams.linear.nominal.resources.text_generator import sequence_nominal_text
+from _framework.streams.linear.nominal.implementations.resources.text_generator import sequence_nominal_text
 
 
 class TextStream(NominalStream):

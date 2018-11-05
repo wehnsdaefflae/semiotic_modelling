@@ -20,15 +20,12 @@ class RationalSarsa(RationalController):
 
         # TODO: choose appropriate predictors
         self._evaluation_predictor = None        # approximate S x M -> float    # RationalPredictor
-        self._best_action_predictor = None       # approximate S -> M, float     # RationalPredictor (alternative input: state of evaluation predictor + sensor)
+        self._best_action_predictor = None       # approximate S -> M            # RationalPredictor (alternative input: state of evaluation predictor + sensor)
 
         self._iteration = 0
 
     def react(self, perception: RATIONAL_SENSOR) -> RATIONAL_MOTOR:
-        if random.random() < self._epsilon:
-            return self._random_action()
-        action, _ = self._best_action_predictor(perception)
-        return action
+        return self._random_action() if random.random() < self._epsilon else self._best_action_predictor(perception)
 
     def _integrate(self, perception: RATIONAL_SENSOR, action: RATIONAL_MOTOR, reward: float):
         if self._iteration >= 1:
@@ -41,7 +38,8 @@ class RationalSarsa(RationalController):
             self._evaluation_predictor.fit(last_condition, update_value)
 
             if self._iteration >= 2:
-                best_action, best_eval = self._best_action_predictor.predict(self._last_perception, self._last_action)
+                best_last_action = self._best_action_predictor.predict(self._last_perception)
+                best_eval = self._evaluation_predictor(best_last_action, self._last_action)
 
                 if best_eval < update_value:
                     self._best_action_predictor.fit(self._last_perception, (self._last_action, update_value))

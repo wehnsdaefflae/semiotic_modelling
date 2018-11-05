@@ -1,14 +1,11 @@
 # coding=utf-8
 import datetime
-from typing import Optional, Union, Generator, Tuple
+from typing import Generator, Tuple, Iterator
 
-from dateutil import parser
 from dateutil.tz import tzutc
 
-from data_generation.data_processing import equisample
 
-
-def series_generator(file_path: str, start_timestamp: int = -1, end_timestamp: int = -1) -> Generator[Tuple[float, float], None, None]:
+def binance_generator(file_path: str, start_timestamp: int = -1, end_timestamp: int = -1) -> Generator[Tuple[float, float], None, None]:
     print("Reading time series from {:s}...".format(file_path))
 
     with open(file_path, mode="r") as file:
@@ -39,25 +36,27 @@ def series_generator(file_path: str, start_timestamp: int = -1, end_timestamp: i
             raise ValueError(msg.format(file_path, str(end_time), end_timestamp, str(last_date), row_ts))
 
 
-def _convert_to_timestamp(time_val: Optional[Union[int, str]]) -> int:
-    if time_val is None:
-        return -1
-    time_type = type(time_val)
-    if time_type == int:
-        return time_val
-    elif time_type == str:
-        date_time = parser.parse(time_val)
-        return date_time.timestamp()
-    raise ValueError()
+def equisample(iterator: Iterator[Tuple[float, float]], target_delta: float) -> Generator[Tuple[float, float], None, None]:
+    assert 0 < target_delta
+    last_time = -1
+    last_value = 0.
+    for time_stamp, value in iterator:
+        delta = time_stamp - last_time
 
+        if delta < target_delta:
+            continue
 
-def sequence_rational_crypto(file_path: str, interval_seconds: int,
-                             start_val: Optional[Union[int, str]] = None,
-                             end_val: Optional[Union[int, str]]= None) -> Generator[float, None, None]:
-    start_ts = _convert_to_timestamp(start_val)
-    end_ts = _convert_to_timestamp(end_val)
+        elif delta == target_delta or last_time < 0:
+            assert last_time < 0 or time_stamp == last_time + target_delta
+            yield time_stamp, value
 
-    while True:
-        raw_generator = series_generator(file_path, start_timestamp=start_ts, end_timestamp=end_ts)
-        for t, value in equisample(raw_generator, interval_seconds):
-            yield value
+            last_value = value
+            last_time = time_stamp
+
+        else:
+            value_change = (value - last_value) / delta
+            no_intermediate_steps = round(delta // target_delta)
+            for each_step in range(no_intermediate_steps):
+                last_value += value_change
+                last_time += target_delta
+                yield last_time, last_value
