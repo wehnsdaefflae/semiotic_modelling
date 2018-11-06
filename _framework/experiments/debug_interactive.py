@@ -1,7 +1,6 @@
 # coding=utf-8
 from _framework.setup import Setup
 from _framework.streams.interactive.interaction_stream import InteractionStream
-from _framework.systems.controllers.nominal.implementations.nominal_random_controller import NominalRandomController
 from _framework.systems.controllers.nominal.implementations.nominal_sarsa_controller import NominalSarsaController
 from _framework.systems.predictors.nominal.implementations.nominal_markov_predictor import NominalMarkov
 from _framework.systems.predictors.nominal.implementations.nominal_semiotic_predictor import NominalSemiotic

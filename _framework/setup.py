@@ -104,6 +104,7 @@ class ExperimentFactory(Generic[TYPE_A, TYPE_B]):
         predictor = self._predictor_class(**self._predictor_args)
 
         if self.is_interactive:
+            # todo: initialize train and test class to make motor space / range instance method
             controller = self._controller_class(**self._controller_args)
             self._train_stream_args["controller"] = controller
             self._test_stream_args["controller"] = controller

@@ -88,4 +88,4 @@ class CryptoInvestFour(RationalTask):
 
     @staticmethod
     def motor_range() -> Tuple[Tuple[float, float], ...]:
-        return (.0, 1.), (.0, 1.), (.0, 1.), (.0, 1.)
+        return (-1., 1.), (-1., 1.), (-1., 1.), (-1., 1.)

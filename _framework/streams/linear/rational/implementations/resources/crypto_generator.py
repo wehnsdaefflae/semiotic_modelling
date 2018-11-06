@@ -20,6 +20,7 @@ def binance_generator(file_path: str, start_timestamp: int = -1, end_timestamp: 
                         start_time = datetime.datetime.fromtimestamp(start_timestamp, tz=tzutc())
                         msg = "Source {:s} starts after {:s} (ts {:f}) at {:s} (ts {:f})!"
                         raise ValueError(msg.format(file_path, str(start_time), start_timestamp, str(first_date), row_ts))
+
                 elif row_ts < end_timestamp:
                     continue
 

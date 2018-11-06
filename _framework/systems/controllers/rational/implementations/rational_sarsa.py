@@ -13,8 +13,8 @@ class RationalSarsa(RationalController):
         self._alpha = alpha
         self._gamma = gamma
 
-        self._perception = None
-        self._action = None
+        self._sensor = None
+        self._motor = None
         self._reward = 0.
         self._last_condition = None
 
@@ -24,29 +24,31 @@ class RationalSarsa(RationalController):
 
         self._iteration = 0
 
-    def react(self, perception: RATIONAL_SENSOR) -> RATIONAL_MOTOR:
-        return self._random_action() if random.random() < self._epsilon else self._best_action_predictor(perception)
+    def react(self, sensor: RATIONAL_SENSOR) -> RATIONAL_MOTOR:
+        return self._random_action() if random.random() < self._epsilon else self._best_action_predictor(sensor)
 
-    def _integrate(self, perception: RATIONAL_SENSOR, action: RATIONAL_MOTOR, reward: float):
+    def _integrate(self, sensor: RATIONAL_SENSOR, motor: RATIONAL_MOTOR, reward: float):
         if self._iteration >= 1:
-            this_condition = perception, action
+            this_condition = sensor, motor
             evaluation = self._evaluation_predictor.predict(this_condition)
 
             update_value = self._reward + self._gamma * evaluation
 
-            last_condition = self._last_perception, self._last_action
+            last_condition = self._last_sensor, self._last_motor
             self._evaluation_predictor.fit(last_condition, update_value)
 
+            _last_perception = self._evaluation_predictor.get_state(), self._last_sensor
+
             if self._iteration >= 2:
-                best_last_action = self._best_action_predictor.predict(self._last_perception)
-                best_eval = self._evaluation_predictor(best_last_action, self._last_action)
+                best_last_action = self._best_action_predictor.predict(self._last_sensor)                   # _last_perception
+                best_eval = self._evaluation_predictor(best_last_action, self._last_motor)
 
                 if best_eval < update_value:
-                    self._best_action_predictor.fit(self._last_perception, (self._last_action, update_value))
+                    self._best_action_predictor.fit(self._last_sensor, (self._last_motor, update_value))    # _last_perception
 
-            self._last_perception, self._last_action = self._perception, self._action
+            self._last_sensor, self._last_motor = self._sensor, self._motor
 
-        self._perception, self._action = perception, action
+        self._sensor, self._motor = sensor, motor
         self._reward = reward
 
         self._iteration += 1
