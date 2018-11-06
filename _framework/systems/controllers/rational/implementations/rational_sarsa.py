@@ -19,8 +19,9 @@ class RationalSarsa(RationalController):
         self._last_condition = None
 
         # TODO: choose appropriate predictors
-        self._evaluation_predictor = None        # approximate S x M -> float    # RationalPredictor
+        self._evaluation_predictor = None        # approximate S x M -> float    # RationalPredictor (alternative input: state of best action predictor + sensor)
         self._best_action_predictor = None       # approximate S -> M            # RationalPredictor (alternative input: state of evaluation predictor + sensor)
+                                                                                 # alternative output motor and best evaluation
 
         self._iteration = 0
 
