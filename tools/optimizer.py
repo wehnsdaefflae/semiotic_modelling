@@ -16,7 +16,6 @@ AREA = Tuple[POINT, POINT]
 PRIORITY_ELEMENT = Tuple[float, POINT, AREA]
 
 
-# TODO: make into generator with send
 def stateful_optimizer(ranges: Sequence[RANGE], limit: int = 1000) -> Generator[POINT, Optional[float], None]:
     dimensionality = len(ranges)                                        # type: int
     origin = tuple(min(_x) for _x in ranges)                            # type: POINT
