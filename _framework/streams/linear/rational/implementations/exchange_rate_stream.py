@@ -23,12 +23,12 @@ class ExchangeRateStream(RationalStream):
         end_ts = dt_obj.timestamp()
 
         self._input_sequences = tuple(
-            equisample(binance_generator(_each_path, start_timestamp=start_ts, end_timestamp=end_ts), interval_seconds)
+            equisample(binance_generator(_each_path, start_timestamp=start_ts, end_timestamp=end_ts - offset_seconds), interval_seconds)
             for _each_path in input_file_paths
         )
 
         self._target_sequences = tuple(
-            equisample(binance_generator(_each_path, start_timestamp=start_ts + offset_seconds, end_timestamp=end_ts + offset_seconds), interval_seconds)
+            equisample(binance_generator(_each_path, start_timestamp=start_ts + offset_seconds, end_timestamp=end_ts), interval_seconds)
             for _each_path in target_file_paths
         )
 
