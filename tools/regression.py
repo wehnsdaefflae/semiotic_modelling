@@ -6,7 +6,12 @@ from matplotlib import pyplot
 
 
 # TODO: implement polynomial regressor for rational reinforcement learning
+from tools.functionality import smear
+
+
 class PolynomialRegressor:
+    # https://arachnoid.com/sage/polynomial.html
+    # https://www.quantinsti.com/blog/polynomial-regression-adding-non-linearity-to-a-linear-model
     # https://stats.stackexchange.com/a/294900/62453
     # https://stats.stackexchange.com/questions/92065/why-is-polynomial-regression-considered-a-special-case-of-multiple-linear-regres
     def __init__(self, input_dimensions: int, drag: int, degree: int):
@@ -24,7 +29,7 @@ class LinearRegressor:
         self._var_x = [0. for _ in range(input_dimensions)]
         self._var_y = 0.
         self._cov_xy = [0. for _ in range(input_dimensions)]
-        self._necessary_points = 1
+        self._iterations = 0
 
     def __str__(self):
         parameters = self._get_parameters()
@@ -35,10 +40,10 @@ class LinearRegressor:
 
     def sim(self, x: Tuple[float, ...], y: float, default: float = 1.) -> float:
         assert len(x) == self._input_dimensions
-        if 0 < self._necessary_points:
+        if 0 >= self._iterations:
             return default
-        fx = self.output(x)
-        d = (fx - y) ** 2.
+
+        d = (self.output(x) - y) ** 2.      # deviation
         if 0. >= d:
             return 1.
 
@@ -54,21 +59,21 @@ class LinearRegressor:
 
         dy = y - self._mean_y
         for _i, (_var_x, _cov_xy) in enumerate(zip(self._var_x, self._cov_xy)):
-            _dx = x[_i] - self._mean_x[_i]
-            self._var_x[_i] = (self._drag * _var_x + _dx ** 2.) / (self._drag + 1)
-            self._cov_xy[_i] = (self._drag * _cov_xy + _dx * dy) / (self._drag + 1)
+            _dx = x[_i] - self._mean_x[_i]      # distance from mean x
+            self._var_x[_i] = smear(_var_x, _dx ** 2., self._drag)
+            self._cov_xy[_i] = smear(_cov_xy, _dx * dy, self._drag)
 
-        self._var_y = (self._drag * self._var_y + dy ** 2.) / (self._drag + 1)
+        self._var_y = smear(self._var_y, dy ** 2., self._drag)
 
-        if 0 < self._necessary_points:
+        if 0 >= self._iterations:
             self._mean_x = list(x)
             self._mean_y = y
-            self._necessary_points -= 1
 
-        else:
-            for _i, (_mean_x, _x) in enumerate(zip(self._mean_x, x)):
-                self._mean_x[_i] = (self._drag * _mean_x + _x) / (self._drag + 1)
-            self._mean_y = (self._drag * self._mean_y + y) / (self._drag + 1)
+        for _i, (_mean_x, _x) in enumerate(zip(self._mean_x, x)):
+            self._mean_x[_i] = smear(_mean_x, _x, self._drag)
+
+        self._mean_y = smear(self._mean_y, y, self._drag)
+        self._iterations = 1    # provisorial solution
 
     def output(self, x: Tuple[float, ...]) -> float:
         assert len(x) == self._input_dimensions
