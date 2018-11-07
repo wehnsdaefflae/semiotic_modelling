@@ -11,11 +11,13 @@ import numpy
 
 
 class SinglePolynomialRegressor:
+    # TODO: use for multiple polynomial regressor and multiple linear regressor
     # https://arachnoid.com/sage/polynomial.html
     # https://www.quantinsti.com/blog/polynomial-regression-adding-non-linearity-to-a-linear-model
     # https://stats.stackexchange.com/a/294900/62453
     # https://stats.stackexchange.com/questions/92065/why-is-polynomial-regression-considered-a-special-case-of-multiple-linear-regres
     def __init__(self, drag: int, degree: int):
+        assert degree >= 1
         self._drag = drag
         self._degree = degree
         self._var_matrix = tuple([0. for _ in range(degree + 1)] for _ in range(degree + 1))
@@ -37,6 +39,19 @@ class SinglePolynomialRegressor:
     def output(self, x: float):
         parameters = self._get_parameters()
         return sum(_c * x ** _i for _i, _c in enumerate(parameters))
+
+
+class MultiplePolynomialRegressor:
+    def __init__(self, input_dimensions: int, degree: int, drag: int):
+        self._input_dimensions = input_dimensions
+        self._regressors = tuple(SinglePolynomialRegressor(drag, degree) for _ in range(input_dimensions))
+
+    def fit(self, x: Tuple[float, ...], y: float):
+        for _x, _regressor in zip(x, self._regressors):
+            _regressor.fit(_x, y)
+
+    def output(self, x: Tuple[float, ...]) -> float:
+        return sum(_regressor.output(_x) for _x, _regressor in zip(x, self._regressors)) / self._input_dimensions
 
 
 class LinearRegressor:
