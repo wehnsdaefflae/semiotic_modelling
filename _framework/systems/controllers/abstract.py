@@ -12,11 +12,8 @@ class Controller(System[SENSOR_TYPE, MOTOR_TYPE], Generic[SENSOR_TYPE, MOTOR_TYP
     def __init__(self, *args, **kwargs):
         pass
 
-    def _random_action(self) -> MOTOR_TYPE:
-        raise NotImplementedError()
-
     def react(self, perception: SENSOR_TYPE) -> MOTOR_TYPE:
-        raise NotImplementedError()
+        return self.decide(perception)
 
     def _integrate(self, perception: SENSOR_TYPE, action: MOTOR_TYPE, reward: float):
         raise NotImplementedError()
@@ -27,9 +24,4 @@ class Controller(System[SENSOR_TYPE, MOTOR_TYPE], Generic[SENSOR_TYPE, MOTOR_TYP
         self._integrate(perception, action, reward)
 
     def decide(self, perception: Optional[SENSOR_TYPE]) -> MOTOR_TYPE:
-        if perception is None:
-            action = self._random_action()
-        else:
-            action = self.react(perception)
-
-        return action
+        raise NotImplementedError()

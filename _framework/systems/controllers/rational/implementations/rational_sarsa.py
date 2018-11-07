@@ -7,9 +7,8 @@ from _framework.systems.controllers.rational.abstract import RationalController
 
 
 class RationalSarsa(RationalController):
-    def __init__(self, motor_range: Tuple[Tuple[float, float], ...], epsilon: float, alpha: float, gamma: float):
-        super().__init__(motor_range)
-        self._epsilon = epsilon
+    def __init__(self, motor_range: Tuple[Tuple[float, float], ...], alpha: float, gamma: float, mean: float, deviation: float):
+        super().__init__(motor_range, mean, deviation)
         self._alpha = alpha
         self._gamma = gamma
 
@@ -25,8 +24,8 @@ class RationalSarsa(RationalController):
 
         self._iteration = 0
 
-    def react(self, sensor: RATIONAL_SENSOR) -> RATIONAL_MOTOR:
-        return self._random_action() if random.random() < self._epsilon else self._actor(sensor)
+    def _decide(self, sensor: RATIONAL_SENSOR) -> RATIONAL_MOTOR:
+        return self._actor(sensor)
 
     def _integrate(self, sensor: RATIONAL_SENSOR, motor: RATIONAL_MOTOR, reward: float):
         if self._iteration >= 1:

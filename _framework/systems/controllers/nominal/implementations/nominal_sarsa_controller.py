@@ -24,7 +24,7 @@ class NominalSarsaController(NominalController):
         with open(file_path, mode="w") as file:
             json.dump(tuple((str(_x), _y) for _x, _y in self._evaluation_function.items()), file, sort_keys=True, indent=2)
 
-    def react(self, perception: NOMINAL_SENSOR) -> NOMINAL_MOTOR:
+    def decide(self, perception: NOMINAL_SENSOR) -> NOMINAL_MOTOR:
         # exploration
         if random.random() < self._epsilon:
             action = self._random_action()

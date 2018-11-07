@@ -10,7 +10,7 @@ class NominalSemioticSarsaController(NominalController):
         super().__init__(motor_space, *args, **kwargs)
         raise NotImplementedError()
 
-    def react(self, perception: NOMINAL_SENSOR) -> NOMINAL_MOTOR:
+    def decide(self, perception: NOMINAL_SENSOR) -> NOMINAL_MOTOR:
         raise NotImplementedError()
 
     def _integrate(self, perception: NOMINAL_SENSOR, action: NOMINAL_MOTOR, reward: float):

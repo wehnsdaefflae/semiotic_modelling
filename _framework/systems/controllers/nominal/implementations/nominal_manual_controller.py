@@ -11,7 +11,7 @@ class NominalManualController(NominalController):
         super().__init__(motor_space, *args, **kwargs)
         self._space_string = str(list(sorted(self._motor_space)))
 
-    def react(self, perception: NOMINAL_SENSOR) -> NOMINAL_MOTOR:
+    def decide(self, perception: NOMINAL_SENSOR) -> NOMINAL_MOTOR:
         Logger.log(f"\nController {id(self):d} perceives:\n{str(perception):s}")
         action = input(f"Target action {self._space_string:s}: ")
         while action not in self._motor_space:

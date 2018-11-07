@@ -2,7 +2,7 @@
 import random
 from typing import Collection, Optional
 
-from _framework.systems.controllers.abstract import Controller, MOTOR_TYPE
+from _framework.systems.controllers.abstract import Controller, MOTOR_TYPE, SENSOR_TYPE
 from _framework.data_types import NOMINAL_MOTOR, NOMINAL_SENSOR
 
 
@@ -15,9 +15,8 @@ class NominalController(Controller[NOMINAL_SENSOR, NOMINAL_MOTOR]):
         action, = random.sample(self._motor_space, 1)
         return action
 
-    def react(self, perception: NOMINAL_SENSOR) -> NOMINAL_MOTOR:
+    def decide(self, perception: Optional[NOMINAL_SENSOR]) -> NOMINAL_MOTOR:
         raise NotImplementedError()
 
     def _integrate(self, perception: NOMINAL_SENSOR, action: NOMINAL_MOTOR, reward: float):
         raise NotImplementedError()
-    

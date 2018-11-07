@@ -12,5 +12,5 @@ class NominalNoneController(NominalController):
     def _integrate(self, perception: Any, action: Type[None], reward: float):
         pass
 
-    def react(self, perception: Any) -> Type[None]:
+    def decide(self, perception: Any) -> Type[None]:
         return None
