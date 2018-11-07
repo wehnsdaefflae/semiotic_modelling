@@ -1,21 +1,42 @@
 # coding=utf-8
 import random
+import time
 from typing import Tuple
-import numpy
 from matplotlib import pyplot
 
 
 # TODO: implement polynomial regressor for rational reinforcement learning
 from tools.functionality import smear
+import numpy
 
 
-class PolynomialRegressor:
+class SinglePolynomialRegressor:
     # https://arachnoid.com/sage/polynomial.html
     # https://www.quantinsti.com/blog/polynomial-regression-adding-non-linearity-to-a-linear-model
     # https://stats.stackexchange.com/a/294900/62453
     # https://stats.stackexchange.com/questions/92065/why-is-polynomial-regression-considered-a-special-case-of-multiple-linear-regres
-    def __init__(self, input_dimensions: int, drag: int, degree: int):
-        pass
+    def __init__(self, drag: int, degree: int):
+        self._drag = drag
+        self._degree = degree
+        self._var_matrix = tuple([0. for _ in range(degree + 1)] for _ in range(degree + 1))
+        self._cov_matrix = [0. for _ in range(degree + 1)]
+
+    def fit(self, x: float, y: float, drag: int = -1):
+        d = self._drag if drag < 0 else drag
+        for _r, _var_row in enumerate(self._var_matrix):
+            for _c in range(self._degree + 1):
+                _var_row[_c] = smear(_var_row[_c], x ** (_r + _c), d)
+            self._cov_matrix[_r] = smear(self._cov_matrix[_r], y * x ** _r, d)
+
+    def _get_parameters(self):
+        try:
+            return tuple(numpy.linalg.solve(self._var_matrix, self._cov_matrix))
+        except numpy.linalg.linalg.LinAlgError:
+            return tuple(0. for _ in range(self._degree))
+
+    def output(self, x: float):
+        parameters = self._get_parameters()
+        return sum(_c * x ** _i for _i, _c in enumerate(parameters))
 
 
 class LinearRegressor:
@@ -158,8 +179,8 @@ def test2d(s: float, o: float):
         for _x, _y in zip(X, Y):
             r.fit((_x,),  _y)
 
-        (a, ), t = r._get_parameters()
-        Yd = [a * _x + t for _x in X]
+        (_a, ), t = r._get_parameters()
+        Yd = [_a * _x + t for _x in X]
         ax.plot(X, Yd, label="fit")
 
         var = sum((r.output((_x,)) - _t) ** 2. for (_x, _t) in zip(X, Y))
@@ -170,12 +191,52 @@ def test2d(s: float, o: float):
         pyplot.show()
 
 
-if __name__ == "__main__":
+def test_linear_regression():
     random.seed(8746587)
 
     for _ in range(100):
-        _a = random.random() * 20. - 10
-        _b = random.random() * 100. - 50
-        _c = random.random() * 40. - 20
-        test3d(_a, _b, _c, size=10)
+        a = random.random() * 20. - 10
+        b = random.random() * 100. - 50
+        c = random.random() * 40. - 20
+        test3d(a, b, c, size=10)
         # test2d(_a, _b)
+
+
+def test_poly_regression():
+    # https://arachnoid.com/sage/polynomial.html
+    p = SinglePolynomialRegressor(0, 3)
+    points = (-1., -1.), (0., 3.), (1., 2.5), (2., 5.), (3., 4.), (5., 2.), (7., 5.), (9., 4.)
+
+    for x, y in points:
+        p.fit(x, y, drag=len(points))
+
+    print(p._get_parameters())
+
+    pyplot.scatter(*zip(*points))
+    pyplot.plot([_x / 10. for _x in range(-10, 90)], [p.output(_x / 10.) for _x in range(-10, 90)])
+    pyplot.show()
+
+
+def test_random_poly_regression():
+    p = SinglePolynomialRegressor(0, 2)
+    #pyplot.xlim([0., 10.])
+    #pyplot.ylim([0., 10.])
+
+    polynomial = lambda _x: .4 * _x ** .3 + .52 * _x ** .2 + - .17 * _x ** 1. - .9
+    while True:
+        x = random.random() * 10.
+        # y = random.random() * 10.
+        y = polynomial(x)
+        p.fit(x, y, drag=10)
+        pyplot.scatter([x], [y])
+        line, = pyplot.plot([_x / 10. for _x in range(-10, 110)], [p.output(_x / 10.) for _x in range(-10, 110)])
+        pyplot.draw()
+        pyplot.pause(.01)
+        time.sleep(.5)
+        line.remove()
+
+    pyplot.show()
+
+
+if __name__ == "__main__":
+    test_random_poly_regression()
