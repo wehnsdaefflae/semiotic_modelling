@@ -3,14 +3,14 @@ from typing import Tuple
 
 from _framework.data_types import RATIONAL_INPUT, RATIONAL_OUTPUT, PREDICTOR_STATE
 from _framework.systems.predictors.rational.abstract import RationalPredictor
-from tools.regression import Regressor
+from tools.regression import LinearRegressor
 
 
 class RationalLinearRegression(RationalPredictor):
     def __init__(self, no_states: int, history_length: int, input_dimensions: int, output_dimensions: int, drag: int):
         super().__init__(no_states, input_dimensions, output_dimensions, drag)
         self._history_length = history_length
-        self._regressions = tuple(tuple(Regressor(input_dimensions * history_length, drag) for _ in range(output_dimensions)) for _ in range(no_states))
+        self._regressions = tuple(tuple(LinearRegressor(input_dimensions * history_length, drag) for _ in range(output_dimensions)) for _ in range(no_states))
 
     def _low_predict(self, data_in: Tuple[Tuple[RATIONAL_INPUT, ...], ...]) -> Tuple[RATIONAL_OUTPUT, ...]:
         data_out = []

@@ -1,6 +1,6 @@
 from typing import Hashable, Any, Dict, Tuple, Generic, TypeVar, Optional
 
-from tools.regression import Regressor
+from tools.regression import LinearRegressor
 
 CONDITION = TypeVar("CONDITION")
 CONSEQUENCE = TypeVar("CONSEQUENCE")
@@ -82,7 +82,7 @@ class RationalContent(Content[Tuple[float, ...], Tuple[float, ...]]):
         super().__init__(shape, alpha)
         self.input_dimension = input_dimension
         self.output_dimension = output_dimension
-        self.regressions = tuple(Regressor(input_dimension, drag) for _ in range(output_dimension))
+        self.regressions = tuple(LinearRegressor(input_dimension, drag) for _ in range(output_dimension))
 
     def _adapt(self, condition: CONDITION, consequence: CONSEQUENCE):
         assert len(condition) == self.input_dimension

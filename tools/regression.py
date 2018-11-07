@@ -5,73 +5,80 @@ import numpy
 from matplotlib import pyplot
 
 
-class Regressor:
+# TODO: implement polynomial regressor for rational reinforcement learning
+class PolynomialRegressor:
+    # https://stats.stackexchange.com/a/294900/62453
+    # https://stats.stackexchange.com/questions/92065/why-is-polynomial-regression-considered-a-special-case-of-multiple-linear-regres
+    def __init__(self, input_dimensions: int, drag: int, degree: int):
+        pass
+
+
+class LinearRegressor:
     def __init__(self, input_dimensions: int, drag: int):
         # https://de.wikipedia.org/wiki/Multiple_lineare_Regression
         # https://mubaris.com/2017/09/28/linear-regression-from-scratch/
-        self.drag = drag
-        self.input_dimensions = input_dimensions
-        self.mean_x = [0. for _ in range(input_dimensions)]
-        self.mean_y = 0.
-        self.var_x = [0. for _ in range(input_dimensions)]
-        self.var_y = 0.
-        self.cov_xy = [0. for _ in range(input_dimensions)]
-        self.initial = True
+        self._drag = drag
+        self._input_dimensions = input_dimensions
+        self._mean_x = [0. for _ in range(input_dimensions)]
+        self._mean_y = 0.
+        self._var_x = [0. for _ in range(input_dimensions)]
+        self._var_y = 0.
+        self._cov_xy = [0. for _ in range(input_dimensions)]
+        self._necessary_points = 1
 
     def __str__(self):
         parameters = self._get_parameters()
-        component_list = ["{:.4f} * x{:d}".format(_p, _i) for _p, _i in zip(parameters[:-1], range(self.input_dimensions))]
-        arguments = ", ".join(["x{:d}".format(_i) for _i in range(self.input_dimensions)])
+        component_list = ["{:.4f} * x{:d}".format(_p, _i) for _p, _i in zip(parameters[:-1], range(self._input_dimensions))]
+        arguments = ", ".join(["x{:d}".format(_i) for _i in range(self._input_dimensions)])
         components = " + ".join(component_list)
         return "f({:s}) = {:s} + {:.4f}".format(arguments, components, parameters[-1])
 
     def sim(self, x: Tuple[float, ...], y: float, default: float = 1.) -> float:
-        assert len(x) == self.input_dimensions
-        if self.initial:
+        assert len(x) == self._input_dimensions
+        if 0 < self._necessary_points:
             return default
         fx = self.output(x)
         d = (fx - y) ** 2.
         if 0. >= d:
             return 1.
 
-        if self.var_y == 0.:
+        if self._var_y == 0.:
             return 0.
 
-        return 1. - min(1., d / self.var_y)
+        return 1. - min(1., d / self._var_y)
 
     def fit(self, x: Tuple[float, ...], y: float):
-        assert len(x) == self.input_dimensions
-        if self.drag < 0:
+        assert len(x) == self._input_dimensions
+        if self._drag < 0:
             return
 
-        dy = y - self.mean_y
-        for _i, (_var_x, _cov_xy) in enumerate(zip(self.var_x, self.cov_xy)):
-            _dx = x[_i] - self.mean_x[_i]
-            self.var_x[_i] = (self.drag * _var_x + _dx ** 2) / (self.drag + 1)
-            self.cov_xy[_i] = (self.drag * _cov_xy + _dx * dy) / (self.drag + 1)
+        dy = y - self._mean_y
+        for _i, (_var_x, _cov_xy) in enumerate(zip(self._var_x, self._cov_xy)):
+            _dx = x[_i] - self._mean_x[_i]
+            self._var_x[_i] = (self._drag * _var_x + _dx ** 2.) / (self._drag + 1)
+            self._cov_xy[_i] = (self._drag * _cov_xy + _dx * dy) / (self._drag + 1)
 
-        self.var_y = (self.drag * self.var_y + dy ** 2) / (self.drag + 1)
+        self._var_y = (self._drag * self._var_y + dy ** 2.) / (self._drag + 1)
 
-        if self.initial:
-            self.mean_x = list(x)
-            self.mean_y = y
-            self.initial = False
+        if 0 < self._necessary_points:
+            self._mean_x = list(x)
+            self._mean_y = y
+            self._necessary_points -= 1
 
         else:
-            for _i, (_mean_x, _x) in enumerate(zip(self.mean_x, x)):
-                self.mean_x[_i] = (self.drag * _mean_x + _x) / (self.drag + 1)
-            self.mean_y = (self.drag * self.mean_y + y) / (self.drag + 1)
+            for _i, (_mean_x, _x) in enumerate(zip(self._mean_x, x)):
+                self._mean_x[_i] = (self._drag * _mean_x + _x) / (self._drag + 1)
+            self._mean_y = (self._drag * self._mean_y + y) / (self._drag + 1)
 
     def output(self, x: Tuple[float, ...]) -> float:
-        assert len(x) == self.input_dimensions
+        assert len(x) == self._input_dimensions
         xn = self._get_parameters()
-        assert len(xn) == self.input_dimensions + 1
-        # return sum(_x * _xn for (_x, _xn) in zip(x + (1.,), xn))
+        assert len(xn) == self._input_dimensions + 1
         return sum(_x * _xn for _x, _xn in zip(x, xn[:-1])) + xn[-1]
 
     def _get_parameters(self) -> Tuple[float, ...]:
-        xn = tuple(0. if _var_x == 0. else _cov_xy / _var_x for (_cov_xy, _var_x) in zip(self.cov_xy, self.var_x))
-        x0 = self.mean_y - sum(_xn * _mean_x for (_xn, _mean_x) in zip(xn, self.mean_x))
+        xn = tuple(0. if _var_x == 0. else _cov_xy / _var_x for (_cov_xy, _var_x) in zip(self._cov_xy, self._var_x))
+        x0 = self._mean_y - sum(_xn * _mean_x for (_xn, _mean_x) in zip(xn, self._mean_x))
         parameters = *xn, x0
         return parameters
 
@@ -92,7 +99,7 @@ def test3d(x0: float, x1: float, x2: float, size: int = 15):
     # https://stackoverflow.com/questions/36060933/matplotlib-plot-a-plane-and-points-in-3d-simultaneously
     f = lambda _x, _y: x2 * _x + x1 * _y + x0
 
-    regressor = Regressor(2, 10)
+    regressor = LinearRegressor(2, 10)
     fig = pyplot.figure()
     ax = fig.add_subplot(111, projection='3d')
 
@@ -111,13 +118,13 @@ def test3d(x0: float, x1: float, x2: float, size: int = 15):
 
     for each_x in shuffled_a:
         for each_y in shuffled_b:
-            each_z = f(each_x, each_y)
+            each_z = f(each_x, each_y) + (random.random() * 2. - 1.) * 50.
             X.append(each_x)
             Y.append(each_y)
             Z.append(each_z)
 
             p = each_x, each_y
-            ax.scatter(each_x, each_y, each_z, antialiased=False, alpha=.2)
+            ax.scatter(each_x, each_y, each_z, antialiased=False, alpha=.8)
             regressor.fit(p, each_z)
 
     p2, p1, p0 = regressor._get_parameters()
@@ -127,7 +134,7 @@ def test3d(x0: float, x1: float, x2: float, size: int = 15):
     for each_x, each_y, each_z in zip(X, Y, Z):
         p = each_x, each_y
         each_o = regressor.output(p)
-        ax.scatter(each_x, each_y, each_o, antialiased=False, alpha=.2, color="black", marker="^")
+        ax.scatter(each_x, each_y, each_o, antialiased=False, alpha=.2, color="black", marker=None)
         dev += (each_z - each_o) ** 2.
 
     print(dev)
@@ -142,7 +149,7 @@ def test2d(s: float, o: float):
         fig, ax = pyplot.subplots(1, sharex="all")
         ax.scatter(X, Y, label="original")
 
-        r = Regressor(1, 10)
+        r = LinearRegressor(1, 10)
         for _x, _y in zip(X, Y):
             r.fit((_x,),  _y)
 

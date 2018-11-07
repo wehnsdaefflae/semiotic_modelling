@@ -30,7 +30,7 @@ class RationalSarsa(RationalController):
     def _integrate(self, sensor: RATIONAL_SENSOR, motor: RATIONAL_MOTOR, reward: float):
         if self._iteration >= 1:
             this_condition = sensor, motor
-            evaluation = self._critic.predict(this_condition)
+            evaluation = self._critic.predict(*this_condition)
 
             update_value = self._reward + self._gamma * evaluation
 
@@ -40,11 +40,11 @@ class RationalSarsa(RationalController):
             _last_perception = self._critic.get_state(), self._last_sensor
 
             if self._iteration >= 2:
-                best_last_action = self._actor.predict(self._last_sensor)                   # _last_perception
-                best_eval = self._critic(best_last_action, self._last_motor)
+                best_last_action = self._actor.predict(_last_perception)       # _last_perception
+                best_eval = self._critic(_last_perception, best_last_action)
 
                 if best_eval < update_value:
-                    self._actor.fit(self._last_sensor, (self._last_motor, update_value))    # _last_perception
+                    self._actor.fit(self._last_sensor, self._last_motor)        # _last_perception
 
             self._last_sensor, self._last_motor = self._sensor, self._motor
 

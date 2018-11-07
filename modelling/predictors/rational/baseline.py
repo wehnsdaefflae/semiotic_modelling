@@ -2,7 +2,7 @@
 from typing import Tuple, Sequence
 
 from modelling.predictors.abstract_predictor import Predictor
-from tools.regression import Regressor
+from tools.regression import LinearRegressor
 
 
 RATIONAL_VECTOR = Tuple[float, ...]
@@ -47,7 +47,7 @@ class Regression(Predictor[RATIONAL_VECTOR, RATIONAL_VECTOR]):
         super().__init__(no_examples)
         self.input_dimension = input_dimension
         self.drag = drag
-        self.regressions = tuple(tuple(Regressor(input_dimension, self.drag) for _ in range(output_dimension)) for _ in range(no_examples))
+        self.regressions = tuple(tuple(LinearRegressor(input_dimension, self.drag) for _ in range(output_dimension)) for _ in range(no_examples))
 
     def fit(self, examples: Sequence[Tuple[RATIONAL_VECTOR, RATIONAL_VECTOR]]):
         input_values, target_values = zip(*examples)
