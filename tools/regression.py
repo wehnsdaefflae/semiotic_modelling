@@ -62,7 +62,7 @@ class MultiplePolynomialRegressor:
 
         parameters = []
         for _each_regressor in self._regressors:
-            _parameters = _each_regressor._get_parameters()
+            _parameters = tuple(_p / self._input_dimensions if _i == 0 else _p for _i, _p in enumerate(_each_regressor._get_parameters()))
             parameters.append(_parameters + (0.,) * (self._max_deg - len(_parameters)))
 
         return tuple(parameters)
@@ -151,7 +151,7 @@ def plot_surface(ax: pyplot.Axes.axes, a: float, b: float, c: float, size: int, 
         ax.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False, color=color)
 
 
-def _plot_surface(axis: pyplot.Axes.axes, _x_coefficients: Tuple[float, ...], _y_coefficients: Tuple[float, ...], size: int, color: Optional[str] = None):
+def _plot_surface(axis: pyplot.Axes.axes, _x_coefficients: Sequence[float], _y_coefficients: Sequence[float], size: int, color: Optional[str] = None):
     x = numpy.linspace(0, size, endpoint=True, num=size)
     y = numpy.linspace(0, size, endpoint=True, num=size)
 
@@ -302,22 +302,24 @@ if __name__ == "__main__":
     fig = pyplot.figure()
     ax = fig.add_subplot(111, projection='3d')
 
-    x_coefficients = 0., 0., 20., -3.
-    y_coefficients = 0., 50., 10., -2.
+    x_coefficients = -10., -20., 70., #3.
+    y_coefficients = 40., 50., -10., #-2.
 
-    number_of_points = 100
+    number_of_points = 1000
 
     _plot_surface(ax, x_coefficients, y_coefficients, 10)
 
     points = sample(number_of_points, x_coefficients, y_coefficients, (0, 10))
     ax.scatter(*zip(*points))
 
-    r = MultiplePolynomialRegressor([4, 4])
+    r = MultiplePolynomialRegressor([len(x_coefficients), len(y_coefficients)])
     for _x, _y, _z in points:
         r.fit((_x, _y), _z, number_of_points)
 
     _fit_x_co, _fit_y_co = r._get_parameters()
-    _plot_surface(ax, _fit_x_co, _fit_y_co, 10)
+
+    print((_fit_x_co, _fit_y_co))
+    _plot_surface(ax, _fit_y_co, _fit_x_co, 10)
 
     pyplot.show()
 
