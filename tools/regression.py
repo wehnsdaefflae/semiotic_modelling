@@ -6,6 +6,8 @@ from matplotlib import pyplot
 
 
 # TODO: implement polynomial regressor for rational reinforcement learning
+from mpl_toolkits.mplot3d import Axes3D
+
 from tools.functionality import smear
 import numpy
 
@@ -149,6 +151,23 @@ def plot_surface(ax: pyplot.Axes.axes, a: float, b: float, c: float, size: int, 
         ax.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False, color=color)
 
 
+def _plot_surface(axis: pyplot.Axes.axes, _x_coefficients: Tuple[float, ...], _y_coefficients: Tuple[float, ...], size: int, color: Optional[str] = None):
+    x = numpy.linspace(0, size, endpoint=True, num=size)
+    y = numpy.linspace(0, size, endpoint=True, num=size)
+
+    _X, _Y = numpy.meshgrid(x, y)
+    _Z = sum(_x_c * _Y ** _i + _y_c * _X ** _i for _i, (_x_c, _y_c) in enumerate(zip(_x_coefficients, _y_coefficients)))
+
+    axis.set_xlabel("x")
+    axis.set_ylabel("y")
+    axis.set_zlabel("z")
+
+    if color is None:
+        axis.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False)
+    else:
+        axis.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False, color=color)
+
+
 def test3d(size: int):
     from mpl_toolkits.mplot3d import Axes3D
     # https://stackoverflow.com/questions/48335279/given-general-3d-plane-equation-how-can-i-plot-this-in-python-matplotlib
@@ -166,10 +185,6 @@ def test3d(size: int):
     ax = fig.add_subplot(111, projection='3d')
 
     plot_surface(ax, x0, x1, x2, size, color="black")
-
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
-    ax.set_zlabel("z")
 
     X = []
     Y = []
@@ -269,8 +284,48 @@ def test_random_poly_regression():
     pyplot.show()
 
 
+def sample(number: int, _x_coefficients: Tuple[float, ...], _y_coefficients: Tuple[float, ...], dim_range: Tuple[int, int]) -> Tuple[Tuple[float, float, float], ...]:
+    # TODO: x and y mixed up?
+    _f = lambda _x, _y: sum(_x_c * _y ** _i + _y_c * _x ** _i for _i, (_x_c, _y_c) in enumerate(zip(_x_coefficients, _y_coefficients)))
+    _points = []
+    for _ in range(number):
+        _x = random.uniform(*dim_range)
+        _y = random.uniform(*dim_range)
+        _z = _f(_x, _y)
+        _p = _x, _y, _z
+        _points.append(_p)
+    return tuple(_points)
+
+
 if __name__ == "__main__":
+    #"""
+    fig = pyplot.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    x_coefficients = 0., 0., 20., -3.
+    y_coefficients = 0., 50., 10., -2.
+
+    number_of_points = 100
+
+    _plot_surface(ax, x_coefficients, y_coefficients, 10)
+
+    points = sample(number_of_points, x_coefficients, y_coefficients, (0, 10))
+    ax.scatter(*zip(*points))
+
+    r = MultiplePolynomialRegressor([4, 4])
+    for _x, _y, _z in points:
+        r.fit((_x, _y), _z, number_of_points)
+
+    _fit_x_co, _fit_y_co = r._get_parameters()
+    _plot_surface(ax, _fit_x_co, _fit_y_co, 10)
+
+    pyplot.show()
+
+    exit()
+    
+    """
     random.seed(8746587)
 
     while True:
         test3d(20)
+    """
