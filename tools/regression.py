@@ -1,7 +1,7 @@
 # coding=utf-8
 import random
 import time
-from typing import Tuple, Sequence, Optional
+from typing import Tuple, Sequence, Optional, Callable
 from matplotlib import pyplot
 
 
@@ -50,10 +50,8 @@ class MultiplePolynomialRegressor:
         self._regressors = tuple(SinglePolynomialRegressor(_degree) for _degree in input_degrees)
 
     def fit(self, in_values: Tuple[float, ...], out_value: float, drag: int):
-        for _i, (_in_value, _regressor) in enumerate(zip(in_values, self._regressors)):
+        for _in_value, _regressor in zip(in_values, self._regressors):
             _regressor.fit(_in_value, out_value, drag)
-            if _i == 0:
-                print(f"{_in_value:f}, {out_value:f}")
 
     def output(self, in_values: Tuple[float, ...]) -> float:
         return sum(_regressor.output(_in_value) for _in_value, _regressor in zip(in_values, self._regressors)) / self._input_dimensions
@@ -68,6 +66,19 @@ class MultiplePolynomialRegressor:
             parameters.append(_parameters + (0.,) * (self._max_deg - len(_parameters)))
 
         return tuple(parameters)
+
+
+class FullPolynomialRegressor:
+    def __init__(self, input_degrees: Sequence[int], output_dimensionality: int):
+        self._out_dim = output_dimensionality
+        self._regressors = tuple(MultiplePolynomialRegressor(input_degrees) for _ in range(output_dimensionality))
+
+    def fit(self, in_values: Tuple[float, ...], out_values: Tuple[float, ...], drag: int):
+        for _each_regressor, _each_output in zip(self._regressors, out_values):
+            _each_regressor.fit(in_values, _each_output, drag)
+
+    def output(self, in_values: Tuple[float, ...]) -> Tuple[float, ...]:
+        return tuple(_each_regressor.output(in_values) for _each_regressor in self._regressors)
 
 
 class LinearRegressor:
@@ -140,9 +151,9 @@ class LinearRegressor:
         return sum(_x * _xn for _x, _xn in zip(x, xn[:-1])) + xn[-1]
 
 
-def plot_surface(axis: pyplot.Axes.axes, _x_coefficients: Sequence[float], _y_coefficients: Sequence[float], size: int, color: Optional[str] = None):
-    _x = numpy.linspace(0, size, endpoint=True, num=size)
-    _y = numpy.linspace(0, size, endpoint=True, num=size)
+def plot_surface(axis: pyplot.Axes.axes, _x_coefficients: Sequence[float], _y_coefficients: Sequence[float], dim_range: Tuple[float, float], color: Optional[str] = None):
+    _x = numpy.linspace(dim_range[0], dim_range[1], endpoint=True, num=int(dim_range[1] - dim_range[0]))
+    _y = numpy.linspace(dim_range[0], dim_range[1], endpoint=True, num=int(dim_range[1] - dim_range[0]))
 
     _X, _Y = numpy.meshgrid(_x, _y)
     _Z = sum(_y_c * (_Y ** _i) + _x_c * (_X ** _i) for _i, (_x_c, _y_c) in enumerate(zip(_x_coefficients, _y_coefficients)))
@@ -153,45 +164,95 @@ def plot_surface(axis: pyplot.Axes.axes, _x_coefficients: Sequence[float], _y_co
         axis.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False, color=color)
 
 
-def sample(number: int, _x_coefficients: Tuple[float, ...], _y_coefficients: Tuple[float, ...], dim_range: Tuple[int, int]) -> Tuple[Tuple[float, float, float], ...]:
-    _f = lambda _x, _y: sum(_x_c * (_x ** _i) + _y_c * (_y ** _i) for _i, (_x_c, _y_c) in enumerate(zip(_x_coefficients, _y_coefficients)))
-    _points = []
-    for _ in range(number):
-        _x = random.uniform(*dim_range)
-        _y = random.uniform(*dim_range)
-        _p = _x, _y, _f(_x, _y)
-        _points.append(_p)
-    return tuple(_points)
+def _plot_line(axis: pyplot.Axes.axes, _coefficients: Sequence[float], dim_range: Tuple[float, float], color: Optional[str] = None):
+    _X = numpy.linspace(dim_range[0], dim_range[1], endpoint=True, num=int(dim_range[1] - dim_range[0]))
+    _Z = tuple(sum(_c * _x ** _i for _i, _c in enumerate(_coefficients)) for _x in _X)
+
+    if color is None:
+        axis.plot(_X, _Z)
+    else:
+        axis.plot(_X, _Z, color=color)
+
+
+def target_function(_x_coefficients: Tuple[float, ...], _y_coefficients: Tuple[float, ...]) -> Callable[[float, float], float]:
+    return lambda _x, _y: sum(_x_c * (_x ** _i) + _y_c * (_y ** _i) for _i, (_x_c, _y_c) in enumerate(zip(_x_coefficients, _y_coefficients)))
 
 
 if __name__ == "__main__":
     fig = pyplot.figure()
-    ax = fig.add_subplot(111, projection='3d')
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
-    ax.set_zlabel("z")
+    axis_3d = fig.add_subplot(221, projection='3d')
+    axis_3d.set_xlabel("x")
+    axis_3d.set_ylabel("y")
+    axis_3d.set_zlabel("z")
 
-    # x_coefficients = -10., -20., 70., #3.
-    # y_coefficients = 40., 50., -10., #-2.
+    axis_2d_error = fig.add_subplot(222)
+    axis_2d_error.set_xlabel("t")
+    axis_2d_error.set_ylabel("error")
 
-    x_coefficients = 0., 0.,
-    y_coefficients = 0., 10.,
+    axis_2d_yz = fig.add_subplot(223)
+    axis_2d_yz.set_xlabel("y")
+    axis_2d_yz.set_ylabel("z")
+
+    axis_2d_xz = fig.add_subplot(224)
+    axis_2d_xz.set_xlabel("x")
+    axis_2d_xz.set_ylabel("z")
+
+    # x_coefficients = 0., 1.,
+    # y_coefficients = 0., -1.,
+
+    # degree = number of coefficients - 1
+    x_coefficients = -375., 400., -140., 20., -1.,
+    y_coefficients = 375., -400., 140., -20., 1.,
 
     number_of_points = 1000
+    drag_value = number_of_points
 
-    points = sample(number_of_points, x_coefficients, y_coefficients, (0, 10))
-    plot_surface(ax, x_coefficients, y_coefficients, 10)
-    ax.scatter(*zip(*points))
+    value_range = 0., 10.
+
+    plot_surface(axis_3d, x_coefficients, y_coefficients, value_range, color="C0")
 
     r = MultiplePolynomialRegressor([len(x_coefficients) - 1, len(y_coefficients) - 1])
-    for p_x, p_y, p_z in points:
-        r.fit((p_x, p_y), p_z, number_of_points)
+    # r = LinearRegressor(2, number_of_points)
+
+    f = target_function(x_coefficients, y_coefficients)
+
+    error = []
+    tar_z = []
+    out_z = []
+    for _t in range(number_of_points):
+        p_x = random.uniform(*value_range)
+        p_y = random.uniform(*value_range)
+
+        input_values = p_x, p_y
+        output_value = r.output(input_values)
+
+        out_z.append((p_x, p_y, output_value))
+
+        p_z = f(p_x, p_y)
+        tar_z.append((p_x, p_y, p_z))
+
+        e = abs(output_value - p_z)
+        error_value = e if _t < 1 else smear(error[-1], e, _t)
+        error.append(error_value)
+
+        r.fit(input_values, p_z, drag_value)
+
+    print(error[-1])
+    axis_3d.scatter(*zip(*out_z), color="C1")
+    # axis_3d.scatter(*zip(*tar_z), color="blue")
+
+    # axis_3d.scatter(*zip(*points))
+    axis_2d_error.plot(error)
+    axis_2d_yz.scatter([_p[1] for _p in tar_z], [_p[2] for _p in tar_z], color="C0")
+    axis_2d_xz.scatter([_p[0] for _p in tar_z], [_p[2] for _p in tar_z], color="C0")
 
     fit_x_co, fit_y_co = r.get_parameters()
 
-    print((x_coefficients, y_coefficients))
-    print((fit_x_co, fit_y_co))
-    print()
-    plot_surface(ax, fit_y_co, fit_x_co, 10)
+    # print((x_coefficients, y_coefficients))
+    # print((fit_x_co, fit_y_co))
+    # print()
+    _plot_line(axis_2d_xz, fit_x_co, value_range, color="C1")
+    _plot_line(axis_2d_yz, fit_y_co, value_range, color="C1")
 
+    pyplot.tight_layout()
     pyplot.show()

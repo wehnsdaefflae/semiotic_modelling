@@ -37,6 +37,7 @@ class Experiment(Generic[TYPE_A, TYPE_B]):
         self.reward_test = 0.
         self.duration = 0.
 
+        # TODO: pass _iterations on as major clock
         self._iterations = 0
 
     def __str__(self):
