@@ -16,42 +16,44 @@ class SinglePolynomialRegressor:
     # https://www.quantinsti.com/blog/polynomial-regression-adding-non-linearity-to-a-linear-model
     # https://stats.stackexchange.com/a/294900/62453
     # https://stats.stackexchange.com/questions/92065/why-is-polynomial-regression-considered-a-special-case-of-multiple-linear-regres
-    def __init__(self, drag: int, degree: int):
+    def __init__(self, degree: int):
         assert degree >= 1
-        self._drag = drag
         self._degree = degree
         self._var_matrix = tuple([0. for _ in range(degree + 1)] for _ in range(degree + 1))
         self._cov_matrix = [0. for _ in range(degree + 1)]
 
-    def fit(self, x: float, y: float, drag: int = -1):
-        d = self._drag if drag < 0 else drag
+    def fit(self, x: float, y: float, drag: int):
+        assert drag >= 0
         for _r, _var_row in enumerate(self._var_matrix):
             for _c in range(self._degree + 1):
-                _var_row[_c] = smear(_var_row[_c], x ** (_r + _c), d)
-            self._cov_matrix[_r] = smear(self._cov_matrix[_r], y * x ** _r, d)
+                _var_row[_c] = smear(_var_row[_c], x ** (_r + _c), drag)
+            self._cov_matrix[_r] = smear(self._cov_matrix[_r], y * x ** _r, drag)
 
-    def _get_parameters(self):
+    def _get_parameters(self) -> Tuple[float, ...]:
         try:
             return tuple(numpy.linalg.solve(self._var_matrix, self._cov_matrix))
         except numpy.linalg.linalg.LinAlgError:
-            return tuple(0. for _ in range(self._degree))
+            return tuple(0. for _ in range(self._degree + 1))
 
-    def output(self, x: float):
+    def output(self, x: float) -> float:
         parameters = self._get_parameters()
         return sum(_c * x ** _i for _i, _c in enumerate(parameters))
 
 
 class MultiplePolynomialRegressor:
-    def __init__(self, input_dimensions: int, degree: int, drag: int):
+    def __init__(self, input_dimensions: int, degree: int):
         self._input_dimensions = input_dimensions
-        self._regressors = tuple(SinglePolynomialRegressor(drag, degree) for _ in range(input_dimensions))
+        self._regressors = tuple(SinglePolynomialRegressor(degree) for _ in range(input_dimensions))
 
-    def fit(self, x: Tuple[float, ...], y: float):
+    def fit(self, x: Tuple[float, ...], y: float, drag: int):
         for _x, _regressor in zip(x, self._regressors):
-            _regressor.fit(_x, y)
+            _regressor.fit(_x, y, drag)
 
     def output(self, x: Tuple[float, ...]) -> float:
         return sum(_regressor.output(_x) for _x, _regressor in zip(x, self._regressors)) / self._input_dimensions
+
+    def _get_parameters(self) -> Tuple[float, ...]:
+        return tuple(_v for each_regressor in self._regressors for _v in each_regressor._get_parameters())
 
 
 class LinearRegressor:
@@ -134,13 +136,19 @@ def plot_surface(ax: pyplot.Axes.axes, a: float, b: float, c: float, size: int):
     ax.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False)
 
 
-def test3d(x0: float, x1: float, x2: float, size: int = 15):
+def test3d(size: int = 15):
     from mpl_toolkits.mplot3d import Axes3D
     # https://stackoverflow.com/questions/48335279/given-general-3d-plane-equation-how-can-i-plot-this-in-python-matplotlib
     # https://stackoverflow.com/questions/36060933/matplotlib-plot-a-plane-and-points-in-3d-simultaneously
+    x0 = -5.
+    x1 = +2.7
+    x2 = -1.7
+
     f = lambda _x, _y: x2 * _x + x1 * _y + x0
 
-    regressor = LinearRegressor(2, 10)
+    d = 10
+    # regressor = MultiplePolynomialRegressor(2, 1)
+    regressor = LinearRegressor(2, d)
     fig = pyplot.figure()
     ax = fig.add_subplot(111, projection='3d')
 
@@ -159,7 +167,7 @@ def test3d(x0: float, x1: float, x2: float, size: int = 15):
 
     for each_x in shuffled_a:
         for each_y in shuffled_b:
-            each_z = f(each_x, each_y) + (random.random() * 2. - 1.) * 50.
+            each_z = f(each_x, each_y) + (random.random() * 2. - 1.) * 20.
             X.append(each_x)
             Y.append(each_y)
             Z.append(each_z)
@@ -219,7 +227,7 @@ def test_linear_regression():
 
 def test_poly_regression():
     # https://arachnoid.com/sage/polynomial.html
-    p = SinglePolynomialRegressor(0, 3)
+    p = SinglePolynomialRegressor(3)
     points = (-1., -1.), (0., 3.), (1., 2.5), (2., 5.), (3., 4.), (5., 2.), (7., 5.), (9., 4.)
 
     for x, y in points:
@@ -233,7 +241,7 @@ def test_poly_regression():
 
 
 def test_random_poly_regression():
-    p = SinglePolynomialRegressor(0, 2)
+    p = SinglePolynomialRegressor(2)
     #pyplot.xlim([0., 10.])
     #pyplot.ylim([0., 10.])
 
@@ -254,4 +262,4 @@ def test_random_poly_regression():
 
 
 if __name__ == "__main__":
-    test_random_poly_regression()
+    test3d()
