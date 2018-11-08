@@ -1,7 +1,7 @@
 # coding=utf-8
 import random
 import time
-from typing import Tuple
+from typing import Tuple, Sequence, Optional
 from matplotlib import pyplot
 
 
@@ -41,9 +41,11 @@ class SinglePolynomialRegressor:
 
 
 class MultiplePolynomialRegressor:
-    def __init__(self, input_dimensions: int, degree: int):
-        self._input_dimensions = input_dimensions
-        self._regressors = tuple(SinglePolynomialRegressor(degree) for _ in range(input_dimensions))
+    def __init__(self, input_degrees: Sequence[int]):
+        # input_degrees determines the degree of the respective input dimension
+        self._input_dimensions = len(input_degrees)
+        self._max_deg = max(input_degrees)
+        self._regressors = tuple(SinglePolynomialRegressor(_degree) for _degree in input_degrees)
 
     def fit(self, x: Tuple[float, ...], y: float, drag: int):
         for _x, _regressor in zip(x, self._regressors):
@@ -52,8 +54,16 @@ class MultiplePolynomialRegressor:
     def output(self, x: Tuple[float, ...]) -> float:
         return sum(_regressor.output(_x) for _x, _regressor in zip(x, self._regressors)) / self._input_dimensions
 
-    def _get_parameters(self) -> Tuple[float, ...]:
-        return tuple(_v for each_regressor in self._regressors for _v in each_regressor._get_parameters())
+    def _get_parameters(self) -> Tuple[Tuple[float, ...], ...]:
+        # each row is one input
+        # each col is one degree from 0 to max(input_degrees)
+
+        parameters = []
+        for _each_regressor in self._regressors:
+            _parameters = _each_regressor._get_parameters()
+            parameters.append(_parameters + (0.,) * (self._max_deg - len(_parameters)))
+
+        return tuple(parameters)
 
 
 class LinearRegressor:
@@ -111,13 +121,7 @@ class LinearRegressor:
             self._mean_x[_i] = smear(_mean_x, _x, self._drag)
 
         self._mean_y = smear(self._mean_y, y, self._drag)
-        self._iterations = 1    # provisorial solution
-
-    def output(self, x: Tuple[float, ...]) -> float:
-        assert len(x) == self._input_dimensions
-        xn = self._get_parameters()
-        assert len(xn) == self._input_dimensions + 1
-        return sum(_x * _xn for _x, _xn in zip(x, xn[:-1])) + xn[-1]
+        self._iterations = 1    # TODO: change
 
     def _get_parameters(self) -> Tuple[float, ...]:
         xn = tuple(0. if _var_x == 0. else _cov_xy / _var_x for (_cov_xy, _var_x) in zip(self._cov_xy, self._var_x))
@@ -125,18 +129,27 @@ class LinearRegressor:
         parameters = *xn, x0
         return parameters
 
+    def output(self, x: Tuple[float, ...]) -> float:
+        assert len(x) == self._input_dimensions
+        xn = self._get_parameters()
+        assert len(xn) == self._input_dimensions + 1
+        return sum(_x * _xn for _x, _xn in zip(x, xn[:-1])) + xn[-1]
 
-def plot_surface(ax: pyplot.Axes.axes, a: float, b: float, c: float, size: int):
+
+def plot_surface(ax: pyplot.Axes.axes, a: float, b: float, c: float, size: int, color: Optional[str] = None):
     x = numpy.linspace(0, size, endpoint=False, num=size)
     y = numpy.linspace(0, size, endpoint=False, num=size)
 
     _X, _Y = numpy.meshgrid(x, y)
     _Z = a + b * _Y + c * _X
 
-    ax.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False)
+    if color is None:
+        ax.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False)
+    else:
+        ax.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False, color=color)
 
 
-def test3d(size: int = 15):
+def test3d(size: int):
     from mpl_toolkits.mplot3d import Axes3D
     # https://stackoverflow.com/questions/48335279/given-general-3d-plane-equation-how-can-i-plot-this-in-python-matplotlib
     # https://stackoverflow.com/questions/36060933/matplotlib-plot-a-plane-and-points-in-3d-simultaneously
@@ -144,13 +157,15 @@ def test3d(size: int = 15):
     x1 = +2.7
     x2 = -1.7
 
-    f = lambda _x, _y: x2 * _x + x1 * _y + x0
+    f = lambda _x, _y: (x2 * _x + x1 * _y) + x0
 
     d = 10
-    # regressor = MultiplePolynomialRegressor(2, 1)
+    p_regressor = MultiplePolynomialRegressor([1, 1])
     regressor = LinearRegressor(2, d)
     fig = pyplot.figure()
     ax = fig.add_subplot(111, projection='3d')
+
+    plot_surface(ax, x0, x1, x2, size, color="black")
 
     ax.set_xlabel("x")
     ax.set_ylabel("y")
@@ -173,11 +188,15 @@ def test3d(size: int = 15):
             Z.append(each_z)
 
             p = each_x, each_y
-            ax.scatter(each_x, each_y, each_z, antialiased=False, alpha=.8)
+            ax.scatter(each_x, each_y, each_z, antialiased=False, alpha=.5)
             regressor.fit(p, each_z)
+            p_regressor.fit(p, each_z, d)
 
     p2, p1, p0 = regressor._get_parameters()
-    plot_surface(ax, p0, p1, p2, size)
+    plot_surface(ax, p0, p1, p2, size, color="blue")
+
+    p_para = p_regressor._get_parameters()
+    plot_surface(ax, (p_para[0][0] + p_para[1][0]) / 2., p_para[1][1], p_para[0][1], size, color="green")
 
     dev = 0.
     for each_x, each_y, each_z in zip(X, Y, Z):
@@ -212,17 +231,6 @@ def test2d(s: float, o: float):
         pyplot.legend()
         pyplot.tight_layout()
         pyplot.show()
-
-
-def test_linear_regression():
-    random.seed(8746587)
-
-    for _ in range(100):
-        a = random.random() * 20. - 10
-        b = random.random() * 100. - 50
-        c = random.random() * 40. - 20
-        test3d(a, b, c, size=10)
-        # test2d(_a, _b)
 
 
 def test_poly_regression():
@@ -262,4 +270,7 @@ def test_random_poly_regression():
 
 
 if __name__ == "__main__":
-    test3d()
+    random.seed(8746587)
+
+    while True:
+        test3d(20)
