@@ -24,22 +24,22 @@ class SinglePolynomialRegressor:
         self._var_matrix = tuple([0. for _ in range(degree + 1)] for _ in range(degree + 1))
         self._cov_matrix = [0. for _ in range(degree + 1)]
 
-    def fit(self, x: float, y: float, drag: int):
+    def fit(self, in_value: float, out_value: float, drag: int):
         assert drag >= 0
         for _r, _var_row in enumerate(self._var_matrix):
             for _c in range(self._degree + 1):
-                _var_row[_c] = smear(_var_row[_c], x ** (_r + _c), drag)
-            self._cov_matrix[_r] = smear(self._cov_matrix[_r], y * x ** _r, drag)
+                _var_row[_c] = smear(_var_row[_c], in_value ** (_r + _c), drag)
+            self._cov_matrix[_r] = smear(self._cov_matrix[_r], out_value * in_value ** _r, drag)
 
-    def _get_parameters(self) -> Tuple[float, ...]:
+    def get_parameters(self) -> Tuple[float, ...]:
         try:
             return tuple(numpy.linalg.solve(self._var_matrix, self._cov_matrix))
         except numpy.linalg.linalg.LinAlgError:
             return tuple(0. for _ in range(self._degree + 1))
 
-    def output(self, x: float) -> float:
-        parameters = self._get_parameters()
-        return sum(_c * x ** _i for _i, _c in enumerate(parameters))
+    def output(self, in_value: float) -> float:
+        parameters = self.get_parameters()
+        return sum(_c * in_value ** _i for _i, _c in enumerate(parameters))
 
 
 class MultiplePolynomialRegressor:
@@ -49,20 +49,22 @@ class MultiplePolynomialRegressor:
         self._max_deg = max(input_degrees)
         self._regressors = tuple(SinglePolynomialRegressor(_degree) for _degree in input_degrees)
 
-    def fit(self, x: Tuple[float, ...], y: float, drag: int):
-        for _x, _regressor in zip(x, self._regressors):
-            _regressor.fit(_x, y, drag)
+    def fit(self, in_values: Tuple[float, ...], out_value: float, drag: int):
+        for _i, (_in_value, _regressor) in enumerate(zip(in_values, self._regressors)):
+            _regressor.fit(_in_value, out_value, drag)
+            if _i == 0:
+                print(f"{_in_value:f}, {out_value:f}")
 
-    def output(self, x: Tuple[float, ...]) -> float:
-        return sum(_regressor.output(_x) for _x, _regressor in zip(x, self._regressors)) / self._input_dimensions
+    def output(self, in_values: Tuple[float, ...]) -> float:
+        return sum(_regressor.output(_in_value) for _in_value, _regressor in zip(in_values, self._regressors)) / self._input_dimensions
 
-    def _get_parameters(self) -> Tuple[Tuple[float, ...], ...]:
+    def get_parameters(self) -> Tuple[Tuple[float, ...], ...]:
         # each row is one input
         # each col is one degree from 0 to max(input_degrees)
 
         parameters = []
         for _each_regressor in self._regressors:
-            _parameters = tuple(_p / self._input_dimensions if _i == 0 else _p for _i, _p in enumerate(_each_regressor._get_parameters()))
+            _parameters = _each_regressor.get_parameters()
             parameters.append(_parameters + (0.,) * (self._max_deg - len(_parameters)))
 
         return tuple(parameters)
@@ -82,7 +84,7 @@ class LinearRegressor:
         self._iterations = 0
 
     def __str__(self):
-        parameters = self._get_parameters()
+        parameters = self.get_parameters()
         component_list = ["{:.4f} * x{:d}".format(_p, _i) for _p, _i in zip(parameters[:-1], range(self._input_dimensions))]
         arguments = ", ".join(["x{:d}".format(_i) for _i in range(self._input_dimensions)])
         components = " + ".join(component_list)
@@ -125,7 +127,7 @@ class LinearRegressor:
         self._mean_y = smear(self._mean_y, y, self._drag)
         self._iterations = 1    # TODO: change
 
-    def _get_parameters(self) -> Tuple[float, ...]:
+    def get_parameters(self) -> Tuple[float, ...]:
         xn = tuple(0. if _var_x == 0. else _cov_xy / _var_x for (_cov_xy, _var_x) in zip(self._cov_xy, self._var_x))
         x0 = self._mean_y - sum(_xn * _mean_x for (_xn, _mean_x) in zip(xn, self._mean_x))
         parameters = *xn, x0
@@ -133,34 +135,17 @@ class LinearRegressor:
 
     def output(self, x: Tuple[float, ...]) -> float:
         assert len(x) == self._input_dimensions
-        xn = self._get_parameters()
+        xn = self.get_parameters()
         assert len(xn) == self._input_dimensions + 1
         return sum(_x * _xn for _x, _xn in zip(x, xn[:-1])) + xn[-1]
 
 
-def plot_surface(ax: pyplot.Axes.axes, a: float, b: float, c: float, size: int, color: Optional[str] = None):
-    x = numpy.linspace(0, size, endpoint=False, num=size)
-    y = numpy.linspace(0, size, endpoint=False, num=size)
+def plot_surface(axis: pyplot.Axes.axes, _x_coefficients: Sequence[float], _y_coefficients: Sequence[float], size: int, color: Optional[str] = None):
+    _x = numpy.linspace(0, size, endpoint=True, num=size)
+    _y = numpy.linspace(0, size, endpoint=True, num=size)
 
-    _X, _Y = numpy.meshgrid(x, y)
-    _Z = a + b * _Y + c * _X
-
-    if color is None:
-        ax.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False)
-    else:
-        ax.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False, color=color)
-
-
-def _plot_surface(axis: pyplot.Axes.axes, _x_coefficients: Sequence[float], _y_coefficients: Sequence[float], size: int, color: Optional[str] = None):
-    x = numpy.linspace(0, size, endpoint=True, num=size)
-    y = numpy.linspace(0, size, endpoint=True, num=size)
-
-    _X, _Y = numpy.meshgrid(x, y)
-    _Z = sum(_x_c * _Y ** _i + _y_c * _X ** _i for _i, (_x_c, _y_c) in enumerate(zip(_x_coefficients, _y_coefficients)))
-
-    axis.set_xlabel("x")
-    axis.set_ylabel("y")
-    axis.set_zlabel("z")
+    _X, _Y = numpy.meshgrid(_x, _y)
+    _Z = sum(_y_c * (_Y ** _i) + _x_c * (_X ** _i) for _i, (_x_c, _y_c) in enumerate(zip(_x_coefficients, _y_coefficients)))
 
     if color is None:
         axis.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False)
@@ -168,166 +153,45 @@ def _plot_surface(axis: pyplot.Axes.axes, _x_coefficients: Sequence[float], _y_c
         axis.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False, color=color)
 
 
-def test3d(size: int):
-    from mpl_toolkits.mplot3d import Axes3D
-    # https://stackoverflow.com/questions/48335279/given-general-3d-plane-equation-how-can-i-plot-this-in-python-matplotlib
-    # https://stackoverflow.com/questions/36060933/matplotlib-plot-a-plane-and-points-in-3d-simultaneously
-    x0 = -5.
-    x1 = +2.7
-    x2 = -1.7
-
-    f = lambda _x, _y: (x2 * _x + x1 * _y) + x0
-
-    d = 10
-    p_regressor = MultiplePolynomialRegressor([1, 1])
-    regressor = LinearRegressor(2, d)
-    fig = pyplot.figure()
-    ax = fig.add_subplot(111, projection='3d')
-
-    plot_surface(ax, x0, x1, x2, size, color="black")
-
-    X = []
-    Y = []
-    Z = []
-
-    shuffled_a = list(range(size))
-    shuffled_b = list(range(size))
-    random.shuffle(shuffled_a)
-    random.shuffle(shuffled_b)
-
-    for each_x in shuffled_a:
-        for each_y in shuffled_b:
-            each_z = f(each_x, each_y) + (random.random() * 2. - 1.) * 20.
-            X.append(each_x)
-            Y.append(each_y)
-            Z.append(each_z)
-
-            p = each_x, each_y
-            ax.scatter(each_x, each_y, each_z, antialiased=False, alpha=.5)
-            regressor.fit(p, each_z)
-            p_regressor.fit(p, each_z, d)
-
-    p2, p1, p0 = regressor._get_parameters()
-    plot_surface(ax, p0, p1, p2, size, color="blue")
-
-    p_para = p_regressor._get_parameters()
-    plot_surface(ax, (p_para[0][0] + p_para[1][0]) / 2., p_para[1][1], p_para[0][1], size, color="green")
-
-    dev = 0.
-    for each_x, each_y, each_z in zip(X, Y, Z):
-        p = each_x, each_y
-        each_o = regressor.output(p)
-        ax.scatter(each_x, each_y, each_o, antialiased=False, alpha=.2, color="black", marker=None)
-        dev += (each_z - each_o) ** 2.
-
-    print(dev)
-    pyplot.show()
-
-
-def test2d(s: float, o: float):
-        f = lambda _x: s * _x + o
-        X = range(20)
-        Y = [f(_x) + 4. * (random.random() - .5) for _x in X]
-
-        fig, ax = pyplot.subplots(1, sharex="all")
-        ax.scatter(X, Y, label="original")
-
-        r = LinearRegressor(1, 10)
-        for _x, _y in zip(X, Y):
-            r.fit((_x,),  _y)
-
-        (_a, ), t = r._get_parameters()
-        Yd = [_a * _x + t for _x in X]
-        ax.plot(X, Yd, label="fit")
-
-        var = sum((r.output((_x,)) - _t) ** 2. for (_x, _t) in zip(X, Y))
-        print("{:5.2f}".format(var))
-
-        pyplot.legend()
-        pyplot.tight_layout()
-        pyplot.show()
-
-
-def test_poly_regression():
-    # https://arachnoid.com/sage/polynomial.html
-    p = SinglePolynomialRegressor(3)
-    points = (-1., -1.), (0., 3.), (1., 2.5), (2., 5.), (3., 4.), (5., 2.), (7., 5.), (9., 4.)
-
-    for x, y in points:
-        p.fit(x, y, drag=len(points))
-
-    print(p._get_parameters())
-
-    pyplot.scatter(*zip(*points))
-    pyplot.plot([_x / 10. for _x in range(-10, 90)], [p.output(_x / 10.) for _x in range(-10, 90)])
-    pyplot.show()
-
-
-def test_random_poly_regression():
-    p = SinglePolynomialRegressor(2)
-    #pyplot.xlim([0., 10.])
-    #pyplot.ylim([0., 10.])
-
-    polynomial = lambda _x: .4 * _x ** .3 + .52 * _x ** .2 + - .17 * _x ** 1. - .9
-    while True:
-        x = random.random() * 10.
-        # y = random.random() * 10.
-        y = polynomial(x)
-        p.fit(x, y, drag=10)
-        pyplot.scatter([x], [y])
-        line, = pyplot.plot([_x / 10. for _x in range(-10, 110)], [p.output(_x / 10.) for _x in range(-10, 110)])
-        pyplot.draw()
-        pyplot.pause(.01)
-        time.sleep(.5)
-        line.remove()
-
-    pyplot.show()
-
-
 def sample(number: int, _x_coefficients: Tuple[float, ...], _y_coefficients: Tuple[float, ...], dim_range: Tuple[int, int]) -> Tuple[Tuple[float, float, float], ...]:
-    # TODO: x and y mixed up?
-    _f = lambda _x, _y: sum(_x_c * _y ** _i + _y_c * _x ** _i for _i, (_x_c, _y_c) in enumerate(zip(_x_coefficients, _y_coefficients)))
+    _f = lambda _x, _y: sum(_x_c * (_x ** _i) + _y_c * (_y ** _i) for _i, (_x_c, _y_c) in enumerate(zip(_x_coefficients, _y_coefficients)))
     _points = []
     for _ in range(number):
         _x = random.uniform(*dim_range)
         _y = random.uniform(*dim_range)
-        _z = _f(_x, _y)
-        _p = _x, _y, _z
+        _p = _x, _y, _f(_x, _y)
         _points.append(_p)
     return tuple(_points)
 
 
 if __name__ == "__main__":
-    #"""
     fig = pyplot.figure()
     ax = fig.add_subplot(111, projection='3d')
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    ax.set_zlabel("z")
 
-    x_coefficients = -10., -20., 70., #3.
-    y_coefficients = 40., 50., -10., #-2.
+    # x_coefficients = -10., -20., 70., #3.
+    # y_coefficients = 40., 50., -10., #-2.
+
+    x_coefficients = 0., 0.,
+    y_coefficients = 0., 10.,
 
     number_of_points = 1000
 
-    _plot_surface(ax, x_coefficients, y_coefficients, 10)
-
     points = sample(number_of_points, x_coefficients, y_coefficients, (0, 10))
+    plot_surface(ax, x_coefficients, y_coefficients, 10)
     ax.scatter(*zip(*points))
 
-    r = MultiplePolynomialRegressor([len(x_coefficients), len(y_coefficients)])
-    for _x, _y, _z in points:
-        r.fit((_x, _y), _z, number_of_points)
+    r = MultiplePolynomialRegressor([len(x_coefficients) - 1, len(y_coefficients) - 1])
+    for p_x, p_y, p_z in points:
+        r.fit((p_x, p_y), p_z, number_of_points)
 
-    _fit_x_co, _fit_y_co = r._get_parameters()
+    fit_x_co, fit_y_co = r.get_parameters()
 
-    print((_fit_x_co, _fit_y_co))
-    _plot_surface(ax, _fit_y_co, _fit_x_co, 10)
+    print((x_coefficients, y_coefficients))
+    print((fit_x_co, fit_y_co))
+    print()
+    plot_surface(ax, fit_y_co, fit_x_co, 10)
 
     pyplot.show()
-
-    exit()
-    
-    """
-    random.seed(8746587)
-
-    while True:
-        test3d(20)
-    """
