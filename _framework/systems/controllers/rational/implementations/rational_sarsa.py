@@ -30,10 +30,9 @@ class RationalSarsa(RationalController):
         self._critic_input_dim = len(motor_range) + len(sensor_range)
 
         # TODO: how to do?
-        self._critic = dict()
-        self._current_critic = None
-        # self._critic = MultiplePolynomialRegressor([3 for _ in range(len(motor_range) + len(sensor_range))])
-        self._actor = FullPolynomialRegressor([3 for _ in range(len(sensor_range))], len(motor_range))
+        self._critic = MultiplePolynomialRegressor([3 for _ in range(len(motor_range) + len(sensor_range))])  # semiotic predictor based
+        self._actor_dict = dict()   # one actor for each state
+        self._current_actor = FullPolynomialRegressor([3 for _ in range(len(sensor_range))], len(motor_range))
 
         self._iteration = 0
 
