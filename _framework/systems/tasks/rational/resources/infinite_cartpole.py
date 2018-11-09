@@ -102,8 +102,8 @@ class InfiniteCartPoleEnv(gym.Env):
 
         self.state = x_pos, x_vel, theta_ang, theta_vel
 
-        reward = ((abs(theta_ang + math.pi) / math.pi) * 2. - 1.) * (11. / 2.) + (9. / 2.)
-        # reward = 10. if (abs(theta_ang + math.pi) / math.pi) * 2. - 1. >= .9 else -1.
+        # reward = (abs(theta_ang + math.pi) / math.pi) - 1.
+        reward = abs(abs(theta_ang) - math.pi) / math.pi - 1.
         return np.array(self.state), reward, False, {}
 
     def reset(self):
