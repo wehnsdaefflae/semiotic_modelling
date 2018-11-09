@@ -39,7 +39,7 @@ def rational():
             # This will display the environment
             # Only display if you really want to see it.
             # Takes much longer to display it.
-            #env.render()
+            env.render()
 
             # This will just create a sample action in any environment.
             # In this environment, the action can be 0 or 1, which is left or right
