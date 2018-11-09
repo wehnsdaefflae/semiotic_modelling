@@ -7,54 +7,16 @@ permalink: https://perma.cc/C9ZM-652R
 
 import math
 import gym
-from gym import spaces, logger
+import numpy
+from gym import spaces
 from gym.utils import seeding
 import numpy as np
 
 
 class InfiniteCartPoleEnv(gym.Env):
-    """
-    Description:
-        A pole is attached by an un-actuated joint to a cart, which moves along a frictionless track.
-        The pendulum starts upright, and the goal is to prevent it from falling over by increasing and reducing the cart's velocity.
-
-    Source:
-        This environment corresponds to the version of the cart-pole problem described by Barto, Sutton, and Anderson
-
-    Observation:
-        Type: Box(4)
-        Num	Observation                 Min         Max
-        0	Cart Position             -4.8            4.8
-        1	Cart Velocity             -Inf            Inf
-        2	Pole Angle                 -24°           24°
-        3	Pole Velocity At Tip      -Inf            Inf
-
-    Actions:
-        Type: Discrete(2)
-        Num	Action
-        0	Push cart to the left
-        1	Push cart to the right
-
-        Note:   The amount the velocity is reduced or increased is not fixed as it depends on the angle the pole is pointing.
-                This is because the center of gravity of the pole increases the amount of energy needed to move the cart underneath it
-
-    Reward:
-        Reward is 1 for every step taken, including the termination step
-
-    Starting State:
-        All observations are assigned a uniform random value between ±0.05
-
-    Episode Termination:
-        Pole Angle is more than ±12°
-        Cart Position is more than ±2.4 (center of the cart reaches the edge of the display)
-        Episode length is greater than 200
-        Solved Requirements
-        Considered solved when the average reward is greater than or equal to 195.0 over 100 consecutive trials.
-    """
-
     metadata = {
-        'render.modes': ['human', 'rgb_array'],
-        'video.frames_per_second': 50
+        "render.modes": ["human", "rgb_array"],
+        "video.frames_per_second": 50
     }
 
     def __init__(self):
@@ -69,17 +31,20 @@ class InfiniteCartPoleEnv(gym.Env):
         self.kinematics_integrator = "euler"
 
         # Angle at which to fail the episode
-        self.theta_threshold_radians = 12 * 2 * math.pi / 360
+        self.theta_threshold_radians = 12. * 2. * math.pi / 360.
         self.x_threshold = 2.4
 
         # Angle limit set to 2 * theta_threshold_radians so failing observation is still within bounds
-        high = np.array([
-            self.x_threshold * 2,
-            np.finfo(np.float32).max,
-            self.theta_threshold_radians * 2,
-            np.finfo(np.float32).max])
+        high = np.array(
+            [
+                self.x_threshold * 2.,
+                np.finfo(np.float32).max,
+                self.theta_threshold_radians * 2.,
+                np.finfo(np.float32).max
+            ]
+        )
 
-        self.action_space = spaces.Discrete(2)
+        self.action_space = spaces.Box(low=-1., high=1., shape=(1,))
         self.observation_space = spaces.Box(-high, high, dtype=np.float32)
 
         self.np_random = None
@@ -93,77 +58,63 @@ class InfiniteCartPoleEnv(gym.Env):
         self.axle = None
         self.track = None
 
-        self.steps_beyond_done = None
-
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def step(self, action):
+    def step(self, action: numpy.ndarray):
         assert self.action_space.contains(action), f"{action.__repr__():s} ({str(type(action)):s}) invalid"
+
         state = self.state
-        x, x_dot, theta, theta_dot = state
-        force = self.force_mag if action == 1 else -self.force_mag
-        cos_theta = math.cos(theta)
-        sin_theta = math.sin(theta)
-        temp = (force + self.pole_mass_length * theta_dot * theta_dot * sin_theta) / self.total_mass
+        x_pos, x_vel, theta_ang, theta_vel = state
+        force = self.force_mag * action[0]
+        cos_theta = math.cos(theta_ang)
+        sin_theta = math.sin(theta_ang)
+        temp = (force + self.pole_mass_length * theta_vel * theta_vel * sin_theta) / self.total_mass
         theta_acc = (self.gravity * sin_theta - cos_theta * temp) / (self.length * (4. / 3. - self.mass_pole * cos_theta * cos_theta / self.total_mass))
         x_acc = temp - self.pole_mass_length * theta_acc * cos_theta / self.total_mass
 
         if self.kinematics_integrator == "euler":
-            x = x + self.tau * x_dot
-            x_dot = x_dot + self.tau * x_acc
-            theta = theta + self.tau * theta_dot
-            theta_dot = theta_dot + self.tau * theta_acc
+            x_pos += self.tau * x_vel
+            x_vel += self.tau * x_acc
+            theta_ang += self.tau * theta_vel
+            theta_vel += self.tau * theta_acc
 
         else:   # semi-implicit euler
-            x_dot = x_dot + self.tau * x_acc
-            x = x + self.tau * x_dot
-            theta_dot = theta_dot + self.tau * theta_acc
-            theta = theta + self.tau * theta_dot
+            x_vel += self.tau * x_acc
+            x_pos += self.tau * x_vel
+            theta_vel += self.tau * theta_acc
+            theta_ang += self.tau * theta_vel
 
-        if x < -self.x_threshold:
-            x += self.x_threshold + self.x_threshold
-        elif self.x_threshold < x:
-            x += -self.x_threshold - self.x_threshold
+        theta_vel *= .99    # friction
 
-        self.state = x, x_dot, theta, theta_dot
+        if x_vel < -10.:
+            x_vel = -10.
 
-        reward = 1.
+        elif 10 < x_vel:
+            x_vel = 10.
+
+        if x_pos < -self.x_threshold:
+            x_pos += self.x_threshold + self.x_threshold
+
+        elif self.x_threshold < x_pos:
+            x_pos += -self.x_threshold - self.x_threshold
+
+        self.state = x_pos, x_vel, theta_ang, theta_vel
+
+        reward = ((abs(theta_ang + math.pi) / math.pi) * 2. - 1.) * (11. / 2.) + (9. / 2.)
+        # reward = 10. if (abs(theta_ang + math.pi) / math.pi) * 2. - 1. >= .9 else -1.
         return np.array(self.state), reward, False, {}
-
-        done = x < -self.x_threshold or x > self.x_threshold or theta < -self.theta_threshold_radians or theta > self.theta_threshold_radians
-        done = bool(done)
-
-        if not done:
-            reward = 1.
-
-        elif self.steps_beyond_done is None:    # skip this
-            # Pole just fell!
-            self.steps_beyond_done = 0
-            reward = 1.
-
-        else:
-            if self.steps_beyond_done == 0:
-                logger.warn(
-                    "You are calling 'step()' even though this environment has already returned done = True. "
-                    "You should always call 'reset()' once you receive 'done = True' -- any further steps are undefined behavior."
-                )
-            self.steps_beyond_done += 1
-            reward = 0.
-
-        return np.array(self.state), reward, done, {}
 
     def reset(self):
         self.state = self.np_random.uniform(low=-.05, high=.05, size=(4,))
-        self.steps_beyond_done = None
         return np.array(self.state)
 
     def render(self, mode='human'):
         screen_width = 600
         screen_height = 400
 
-        world_width = self.x_threshold * 2
+        world_width = self.x_threshold * 2.
         scale = screen_width/world_width
         cart_y = 100                        # TOP OF CART
         pole_width = 10.

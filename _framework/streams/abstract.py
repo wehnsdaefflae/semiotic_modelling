@@ -57,6 +57,7 @@ class ExampleStream(Generic[INPUT_TYPE, OUTPUT_TYPE]):
         return self._reward
 
     def _single_error(self, data_output: OUTPUT_TYPE, data_target: OUTPUT_TYPE) -> float:
+        # TODO: integrate with content.get_probability()
         raise NotImplementedError()
 
     def total_error(self, data_outputs: Tuple[OUTPUT_TYPE, ...], data_targets: Tuple[OUTPUT_TYPE, ...]) -> float:
