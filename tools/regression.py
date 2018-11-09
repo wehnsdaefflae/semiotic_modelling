@@ -1,9 +1,9 @@
 # coding=utf-8
 import random
 import time
+from math import sqrt, sin
 from typing import Tuple, Sequence, Optional, Callable
-from matplotlib import pyplot
-
+from matplotlib import pyplot, cm
 
 # TODO: implement polynomial regressor for rational reinforcement learning
 from mpl_toolkits.mplot3d import Axes3D
@@ -151,20 +151,20 @@ class LinearRegressor:
         return sum(_x * _xn for _x, _xn in zip(x, xn[:-1])) + xn[-1]
 
 
-def plot_surface(axis: pyplot.Axes.axes, _x_coefficients: Sequence[float], _y_coefficients: Sequence[float], dim_range: Tuple[float, float], color: Optional[str] = None):
+def plot_surface(axis: pyplot.Axes.axes, _fun: Callable[[float, float], float], dim_range: Tuple[float, float], color: Optional[str] = None):
     _x = numpy.linspace(dim_range[0], dim_range[1], endpoint=True, num=int(dim_range[1] - dim_range[0]))
     _y = numpy.linspace(dim_range[0], dim_range[1], endpoint=True, num=int(dim_range[1] - dim_range[0]))
 
     _X, _Y = numpy.meshgrid(_x, _y)
-    _Z = sum(_y_c * (_Y ** _i) + _x_c * (_X ** _i) for _i, (_x_c, _y_c) in enumerate(zip(_x_coefficients, _y_coefficients)))
+    _Z = _fun(_X, _Y)
 
     if color is None:
-        axis.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False)
+        axis.plot_surface(_X, _Y, _Z, alpha=.4, antialiased=False, cmap=cm.coolwarm)
     else:
-        axis.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False, color=color)
+        axis.plot_surface(_X, _Y, _Z, alpha=.4, antialiased=False, color=color)
 
 
-def _plot_line(axis: pyplot.Axes.axes, _coefficients: Sequence[float], dim_range: Tuple[float, float], color: Optional[str] = None):
+def plot_line(axis: pyplot.Axes.axes, _coefficients: Sequence[float], dim_range: Tuple[float, float], color: Optional[str] = None):
     _X = numpy.linspace(dim_range[0], dim_range[1], endpoint=True, num=int(dim_range[1] - dim_range[0]))
     _Z = tuple(sum(_c * _x ** _i for _i, _c in enumerate(_coefficients)) for _x in _X)
 
@@ -174,8 +174,12 @@ def _plot_line(axis: pyplot.Axes.axes, _coefficients: Sequence[float], dim_range
         axis.plot(_X, _Z, color=color)
 
 
-def target_function(_x_coefficients: Tuple[float, ...], _y_coefficients: Tuple[float, ...]) -> Callable[[float, float], float]:
+def poly_function(_x_coefficients: Tuple[float, ...], _y_coefficients: Tuple[float, ...]) -> Callable[[float, float], float]:
     return lambda _x, _y: sum(_x_c * (_x ** _i) + _y_c * (_y ** _i) for _i, (_x_c, _y_c) in enumerate(zip(_x_coefficients, _y_coefficients)))
+
+
+def trig_function() -> Callable[[float, float], float]:
+    return lambda _x, _y: numpy.sin(numpy.sqrt(_y ** 2. + _x ** 2.))
 
 
 if __name__ == "__main__":
@@ -204,21 +208,23 @@ if __name__ == "__main__":
     x_coefficients = -375., 400., -140., 20., -1.,
     y_coefficients = 375., -400., 140., -20., 1.,
 
+    # fun = poly_function(x_coefficients, y_coefficients)
+    fun = trig_function()
+
     number_of_points = 1000
     drag_value = number_of_points
 
     value_range = 0., 10.
 
-    plot_surface(axis_3d, x_coefficients, y_coefficients, value_range, color="C0")
+    plot_surface(axis_3d, fun, value_range)  # , color="C0")
 
-    r = MultiplePolynomialRegressor([len(x_coefficients) - 1, len(y_coefficients) - 1])
+    r = MultiplePolynomialRegressor([3, 3])
     # r = LinearRegressor(2, number_of_points)
-
-    f = target_function(x_coefficients, y_coefficients)
 
     error = []
     tar_z = []
     out_z = []
+    z_min, z_max = .0, .0
     for _t in range(number_of_points):
         p_x = random.uniform(*value_range)
         p_y = random.uniform(*value_range)
@@ -228,7 +234,14 @@ if __name__ == "__main__":
 
         out_z.append((p_x, p_y, output_value))
 
-        p_z = f(p_x, p_y)
+        p_z = fun(p_x, p_y)
+        if _t < 1:
+            z_min = p_z
+            z_max = p_z
+        else:
+            z_min = min(z_min, p_z)
+            z_max = max(z_max, p_z)
+
         tar_z.append((p_x, p_y, p_z))
 
         e = abs(output_value - p_z)
@@ -237,8 +250,10 @@ if __name__ == "__main__":
 
         r.fit(input_values, p_z, drag_value)
 
+    margin = (z_max - z_min) * .1
+    axis_3d.set_zlim([z_min - margin, z_max + margin])
     print(error[-1])
-    axis_3d.scatter(*zip(*out_z), color="C1")
+    axis_3d.scatter(*zip(*out_z), alpha=.4, color="C1")
     # axis_3d.scatter(*zip(*tar_z), color="blue")
 
     # axis_3d.scatter(*zip(*points))
@@ -251,8 +266,8 @@ if __name__ == "__main__":
     # print((x_coefficients, y_coefficients))
     # print((fit_x_co, fit_y_co))
     # print()
-    _plot_line(axis_2d_xz, fit_x_co, value_range, color="C1")
-    _plot_line(axis_2d_yz, fit_y_co, value_range, color="C1")
+    plot_line(axis_2d_xz, fit_x_co, value_range, color="C1")
+    plot_line(axis_2d_yz, fit_y_co, value_range, color="C1")
 
     pyplot.tight_layout()
     pyplot.show()
