@@ -25,7 +25,7 @@ def rational():
     env = gym.make("CartPole-infinite-v0")
     env.reset()
 
-    controller = RationalSarsa(((-1., 1.),), 4, 100, .5, .25)
+    controller = RationalSarsa(((-1., 1.),), 4, 100, .5, .25, polynomial_degree=1)
     # controller = NominalSarsaController(("l", "r"), .1, .5, .1)
 
     def some_random_games_first():
@@ -39,7 +39,7 @@ def rational():
             # This will display the environment
             # Only display if you really want to see it.
             # Takes much longer to display it.
-            env.render()
+            # env.render()
 
             # This will just create a sample action in any environment.
             # In this environment, the action can be 0 or 1, which is left or right

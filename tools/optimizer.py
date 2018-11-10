@@ -63,6 +63,7 @@ def stateful_optimizer(ranges: Sequence[RANGE], limit: int = 1000) -> Generator[
         current_region = cache_list.pop()                               # type: AREA
         current_center = __center(current_region)                       # type: POINT
         current_value = yield current_center
+        assert current_value >= 0.
 
         __enqueue(current_value, current_center, current_region)
         while 0 < limit < len(priority_list):

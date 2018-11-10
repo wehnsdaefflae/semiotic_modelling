@@ -9,7 +9,7 @@ from tools.regression import MultiplePolynomialRegressor, FullPolynomialRegresso
 class RationalSarsa(RationalController):
     def __init__(self,
                  motor_range: Tuple[Tuple[float, float], ...], sensor_dimensionality: int,
-                 alpha: int, gamma: float, epsilon: float, polynomial_degree: int = 3):
+                 alpha: int, gamma: float, epsilon: float, polynomial_degree: int = 1):
         super().__init__(motor_range, epsilon)
         self._alpha = alpha
         self._gamma = gamma
@@ -34,14 +34,18 @@ class RationalSarsa(RationalController):
     def _integrate(self, sensor: RATIONAL_SENSOR, motor: RATIONAL_MOTOR, reward: float):
         if self._iteration >= 1:
             evaluation = self._critic.output(sensor + motor)
-            update_value = self._last_reward + self._gamma * evaluation
+            last_eval = self._last_reward + self._gamma * evaluation
 
-            self._critic.fit(self._last_sensor + self._last_motor, update_value, self._alpha)
+            self._critic.fit(self._last_sensor + self._last_motor, last_eval, self._alpha)
 
-            best_action = self._actor.output(self._last_sensor)                # _last_perception
-            best_eval = self._critic.output(self._last_sensor + best_action)
-            if best_eval < update_value:
-                self._actor.fit(self._last_sensor, self._last_motor, self._alpha)   # _last_perception
+            best_known = self._actor.output(self._last_sensor)
+            best_known_eval = self._critic.output(self._last_sensor + best_known)
+
+            delta_eval = last_eval - best_known_eval
+            delta_step = tuple((_l - _b) * delta_eval for _l, _b in zip(self._last_motor, best_known))
+            better_motor = tuple(_b + _d for _b, _d in zip(best_known, delta_step))
+
+            self._actor.fit(self._last_sensor, better_motor, self._alpha)
 
         self._last_sensor, self._last_motor = sensor, motor
         self._last_reward = reward

@@ -1,4 +1,5 @@
 # coding=utf-8
+import math
 import random
 import time
 from math import sqrt, sin
@@ -10,6 +11,38 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from tools.functionality import smear
 import numpy
+
+from tools.optimizer import stateful_optimizer
+
+
+class MyRegression:
+    def __init__(self, degree: int):
+        self._weights = [0. for _ in range(degree)]
+        self._alpha = .01
+        # self._optimizer = stateful_optimizer([(-100., 100.) for _ in range(degree)])
+        # self._weights = self._optimizer.send(None)
+
+    def output(self, input_data: float, weight_change: Optional[Sequence[float]] = None) -> float:
+        if weight_change is None:
+            return sum(_w * input_data ** _i for _i, _w in enumerate(self._weights))
+        return sum((_w + _w_d) * input_data ** _i for _i, (_w, _w_d) in enumerate(zip(self._weights, weight_change)))
+
+    def optimizer_fit(self, input_data: float, output_data: float, drag: int):
+        deviation = self.output(input_data) - output_data
+        self._weights = self._optimizer.send(1. / (1. + deviation ** 2.))
+
+    def fit(self, input_data: float, output_data: float, drag: int):
+        deviation = self.output(input_data) - output_data
+
+        all_changes = [0. for _ in self._weights]
+        for _i, _w in enumerate(self._weights):
+            changes = [0. if _i != _j else -deviation * self._alpha for _j in range(len(self._weights))]
+            temp_output = self.output(input_data, changes)
+            temp_dev = temp_output - output_data
+            all_changes[_i] = (-deviation * self._alpha) / (1. + temp_dev ** 2.)
+
+        for _i, _d in enumerate(all_changes):
+            self._weights[_i] += all_changes[_i]
 
 
 class SinglePolynomialRegressor:
@@ -182,7 +215,79 @@ def trig_function() -> Callable[[float, float], float]:
     return lambda _x, _y: numpy.sin(numpy.sqrt(_y ** 2. + _x ** 2.))
 
 
-if __name__ == "__main__":
+def test_2d():
+    fig = pyplot.figure()
+    plot_axis = fig.add_subplot(211)
+    plot_axis.set_xlabel("x")
+    plot_axis.set_ylabel("y")
+
+    error_axis = fig.add_subplot(212)
+    error_axis.set_xlabel("t")
+    error_axis.set_ylabel("error")
+
+    dim = -10., 10.
+    r = MyRegression(4)
+
+    # fun = lambda _x: ((_x*.35) ** 2. - 4.) * ((_x*.35) + 3.) * ((_x*.35) - 4.) ** 2.
+    # fun = lambda _x: 1. * _x ** 4. + -4. * _x ** 2. + 3 * _x ** 1.
+    fun = lambda _x: 2. * _x ** 3. + -5. * _x ** 2. + 23. * _x + -112.
+    # fun = lambda _x: sin(.5 * _x / math.pi)
+
+    X = tuple(_x / 10. for _x in range(int(dim[0] * 10.), int(dim[1] * 10.)))
+    Y = tuple(fun(_x) for _x in X)
+
+    x_max, x_min = max(X), min(X)
+    x_margin = (x_max - x_min) * .1
+
+    y_max, y_min = max(Y), min(Y)
+    y_margin = (y_max - y_min) * .1
+
+    plot_axis.set_xlim((x_min - x_margin, x_max + x_margin))
+    plot_axis.set_ylim((y_min - y_margin, y_max + y_margin))
+    plot_axis.plot(X, Y, color="C0")
+
+    number_of_points = 1000000
+    error_axis.set_xlim((0, number_of_points))
+    drag = number_of_points
+
+    predictions = []
+    training = []
+
+    E = []
+    error = 0
+    for _t in range(number_of_points):
+        x = random.uniform(*dim)
+        p = r.output(x)
+        predictions.append((x, p))
+
+        y = fun(x)
+        training.append((x, y))
+
+        r.fit(x, y, drag)
+
+        error = smear(error, abs(p - y), _t)
+
+        E.append(error)
+
+        fit_fun = lambda _x: sum(_c * _x ** _i for _i, _c in enumerate(r._weights))
+        P = [fit_fun(_x) for _x in X]
+
+        e_line, = error_axis.plot(E, color="black")
+        line, = plot_axis.plot(X, P, color="C1")
+        sc = plot_axis.scatter(*zip(*predictions), alpha=.2, color="black")
+
+        pyplot.pause(.001)
+        pyplot.draw()
+
+        if _t < number_of_points - 1:
+            line.remove()
+            sc.remove()
+            e_line.remove()
+
+    pyplot.show()
+
+
+def test_3d():
     fig = pyplot.figure()
     axis_3d = fig.add_subplot(221, projection='3d')
     axis_3d.set_xlabel("x")
@@ -271,3 +376,7 @@ if __name__ == "__main__":
 
     pyplot.tight_layout()
     pyplot.show()
+
+
+if __name__ == "__main__":
+    test_2d()
