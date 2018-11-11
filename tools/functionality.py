@@ -1,4 +1,5 @@
 # coding=utf-8
+import math
 from typing import Tuple, Hashable, Sequence, Collection, Dict, TypeVar, Generic, List, Type, Any, Optional
 
 from matplotlib import pyplot
@@ -170,6 +171,10 @@ def get_min_max(sequence: Collection[float]) -> Tuple[float, float]:
             max_value = each_value
 
     return min_value, max_value
+
+
+def combinations(drawn: int, total: int) -> int:
+    return math.factorial(total) // (math.factorial(drawn) * math.factorial(total - drawn))
 
 
 def smear(average: float, value: float, inertia: int) -> float:

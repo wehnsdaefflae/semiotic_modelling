@@ -1,6 +1,6 @@
 from typing import Hashable, Any, Dict, Tuple, Generic, TypeVar, Optional
 
-from tools.regression import LinearRegressor
+from tools.regression_experiments import LinearRegressor
 
 CONDITION = TypeVar("CONDITION")
 CONSEQUENCE = TypeVar("CONSEQUENCE")

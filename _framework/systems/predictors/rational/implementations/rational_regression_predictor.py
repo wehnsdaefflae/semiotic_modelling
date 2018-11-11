@@ -3,7 +3,7 @@ from typing import Tuple
 
 from _framework.data_types import RATIONAL_INPUT, RATIONAL_OUTPUT, PREDICTOR_STATE
 from _framework.systems.predictors.rational.abstract import RationalPredictor
-from tools.regression import LinearRegressor, FullPolynomialRegressor
+from tools.regression_experiments import LinearRegressor, FullPolynomialRegressor
 
 
 class RationalLinearRegression(RationalPredictor):

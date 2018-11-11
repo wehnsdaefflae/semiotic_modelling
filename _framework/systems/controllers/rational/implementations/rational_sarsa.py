@@ -3,7 +3,7 @@ from typing import Tuple
 
 from _framework.data_types import RATIONAL_SENSOR, RATIONAL_MOTOR
 from _framework.systems.controllers.rational.abstract import RationalController
-from tools.regression import MultiplePolynomialRegressor, FullPolynomialRegressor
+from tools.regression_experiments import MultiplePolynomialRegressor, FullPolynomialRegressor
 
 
 class RationalSarsa(RationalController):

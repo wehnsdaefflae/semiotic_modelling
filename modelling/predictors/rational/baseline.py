@@ -2,7 +2,7 @@
 from typing import Tuple, Sequence
 
 from modelling.predictors.abstract_predictor import Predictor
-from tools.regression import LinearRegressor
+from tools.regression_experiments import LinearRegressor
 
 
 RATIONAL_VECTOR = Tuple[float, ...]
