@@ -2,16 +2,17 @@
 import itertools
 import random
 from functools import reduce
-from typing import Sequence, Tuple, Callable, List
+from typing import Sequence, Tuple, List, Callable
 
+import numpy
 from matplotlib import pyplot
 
-from tools.functionality import combinations, smear
+from tools.functionality import combinations, smear, get_min_max
 from tools.timer import Timer
 
 
 class MultipleRegression:
-    def __init__(self, input_dimensionality: int, drag: int):
+    def __init__(self, input_dimensionality: int, drag: int = -1):
         self._in_dim = input_dimensionality
         self._drag = drag
 
@@ -33,7 +34,7 @@ class MultipleRegression:
 
 
 class SingleLinearRegression:
-    def __init__(self, drag: int):
+    def __init__(self, drag: int = -1):
         self._drag = drag
         self._mean_x = 0.
         self._mean_y = 0.
@@ -67,9 +68,23 @@ class SingleLinearRegression:
 
 
 class MultipleLinearRegression(MultipleRegression):
-    def __init__(self, input_dimensionality: int, drag: int):
+    def __init__(self, input_dimensionality: int, drag: int = -1):
         super().__init__(input_dimensionality, drag)
         self._regressions = tuple(SingleLinearRegression(drag) for _ in range(input_dimensionality))
+
+    def _output(self, input_values: Sequence[float]) -> float:
+        return sum(_regression.output(_x) for _regression, _x in zip(self._regressions, input_values)) # / self._in_dim
+
+    def _fit(self, input_values: Sequence[float], output_value: float, drag: int):
+        for _each_input, _each_regression in zip(input_values, self._regressions):
+            _each_regression.fit(_each_input, output_value, drag=drag)
+
+
+class MultiplePolynomialFromLinearRegression(MultipleLinearRegression):
+    def __init__(self, input_dimensionality: int, degree: int, drag: int = -1.):
+        no_polynomial_parameters = sum(combinations(_i + 1, _i + input_dimensionality) for _i in range(degree))
+        super().__init__(no_polynomial_parameters, drag)
+        self._degree = degree
 
     @staticmethod
     def _make_polynomial_inputs(input_values: Sequence[float], degree: int) -> Tuple[float, ...]:
@@ -89,26 +104,12 @@ class MultipleLinearRegression(MultipleRegression):
             for each_combination in itertools.combinations_with_replacement(input_values, _i + 1)
         )
 
-    def _output(self, input_values: Sequence[float]) -> float:
-        return sum(_regression.output(_x) for _regression, _x in zip(self._regressions, input_values)) / self._in_dim
-
-    def _fit(self, input_values: Sequence[float], output_value: float, drag: int):
-        for _each_input, _each_regression in zip(input_values, self._regressions):
-            _each_regression.fit(_each_input, output_value, drag=drag)
-
-
-class MultiplePolynomialFromLinearRegression(MultipleLinearRegression):
-    def __init__(self, input_dimensionality: int, degree: int, drag: int):
-        no_polynomial_parameters = sum(combinations(_i + 1, _i + input_dimensionality) for _i in range(degree))
-        super().__init__(no_polynomial_parameters, drag)
-        self._degree = degree
-
     def output(self, input_values: Sequence[float]):
-        poly_inputs = MultipleLinearRegression._make_polynomial_inputs(input_values, self._degree)
+        poly_inputs = MultiplePolynomialFromLinearRegression._make_polynomial_inputs(input_values, self._degree)
         return MultipleRegression.output(self, poly_inputs)
 
     def fit(self, input_values: Sequence[float], output_value: float, drag: int = -1):
-        poly_inputs = MultipleLinearRegression._make_polynomial_inputs(input_values, self._degree)
+        poly_inputs = MultiplePolynomialFromLinearRegression._make_polynomial_inputs(input_values, self._degree)
         MultipleRegression.fit(self, poly_inputs, output_value, drag=drag)
 
 
@@ -140,7 +141,7 @@ class MultiplePolynomialHillClimbingRegression(MultipleRegression):
             self._parameters[_i] += _s
 
     def _output(self, input_values: Sequence[float]) -> float:
-        poly_inputs = MultipleLinearRegression._make_polynomial_inputs(input_values, self._degree)
+        poly_inputs = MultiplePolynomialFromLinearRegression._make_polynomial_inputs(input_values, self._degree)
         return sum(_p * _x for _p, _x in zip(poly_inputs, self._parameters))
 
 
@@ -157,14 +158,14 @@ def setup_2d_axes():
 
 
 def test_2d():
-    dim_range = -10., 10.
+    dim_range = -4., 4.
 
     plot_axis, error_axis = setup_2d_axes()
 
-    # r = MultiplePolynomialFromLinearRegression(1, 4, -1)
-    r = MultiplePolynomialHillClimbingRegression(1, 4, -1, 4.)
+    r = MultiplePolynomialFromLinearRegression(1, 4, -1)
+    # r = MultiplePolynomialHillClimbingRegression(1, 4, -1, 4.)
 
-    fun = lambda _x: -11. + 4. * _x ** 1. + -7.2 * _x ** 2. + .4 * _x ** 3.
+    fun = lambda _x: 9. + 0. * _x ** 1. + -10. * _x ** 2. + 0. * _x ** 3. + 1. * _x ** 4.
     x_range = tuple(_x / 10. for _x in range(int(dim_range[0]) * 10, int(dim_range[1]) * 10))
     y_range = tuple(fun(_x) for _x in x_range)
     plot_axis.plot(x_range, y_range, color="C0")
@@ -195,8 +196,7 @@ def test_2d():
             l.remove()
             e.remove()
 
-        r.fit([x], y_t, drag=100000)
-        # r.fit([x], y_t, drag=iterations)
+        r.fit([x], y_t, drag=iterations)
 
         iterations += 1
 
@@ -205,10 +205,89 @@ def test_2d():
     pyplot.show()
 
 
+def plot_surface(axis: pyplot.Axes.axes, _fun: Callable[[float, float], float], dim_range: Tuple[float, float], colormap=None):
+    _x = numpy.linspace(dim_range[0], dim_range[1], endpoint=True, num=int(dim_range[1] - dim_range[0]))
+    _y = numpy.linspace(dim_range[0], dim_range[1], endpoint=True, num=int(dim_range[1] - dim_range[0]))
+    _z = tuple(_fun(__x, __y) for __x, __y in zip(_x, _y))
+
+    _X, _Y = numpy.meshgrid(_x, _y)
+    _Z = _fun(_X, _Y)
+
+    z_min, z_max = get_min_max(_z)
+    z_margin = (z_max - z_min) * .1
+    min_margin = z_min - z_margin
+    max_margin = z_max + z_margin
+
+    try:
+        axis.set_zlim((min_margin, max_margin))
+    except ValueError:
+        print("infinite axis value")
+
+    if colormap is None:
+        return axis.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False)
+    return axis.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False, cmap=colormap)
+
+
+def setup_3d_axes():
+    from mpl_toolkits.mplot3d import Axes3D
+
+    fig = pyplot.figure()
+    plot_axis = fig.add_subplot(211, projection='3d')
+    plot_axis.set_aspect('equal')
+    plot_axis.set_xlabel("x")
+    plot_axis.set_ylabel("y")
+    plot_axis.set_zlabel("z")
+
+    error_axis = fig.add_subplot(212)
+    error_axis.set_xlabel("t")
+    error_axis.set_ylabel("error")
+    return plot_axis, error_axis
+
+
 def test_3d():
-    # TODO: implement using function in regression_experiments.py
-    pass
+    dim_range = -10., 10.
+
+    plot_axis, error_axis = setup_3d_axes()
+
+    r = MultiplePolynomialFromLinearRegression(2, 1, -1)
+
+    fun = lambda _x, _y: 9. + 0. * _x ** 1. + -10. * _y  # + 4. * _x * _y + 1. * _x ** 2. + -2.6 * _y ** 2.
+    plot_surface(plot_axis, fun, dim_range)
+
+    iterations = 0
+    total_time = 1000000
+
+    error_development = []
+
+    for _ in range(total_time):
+        x = random.uniform(*dim_range)
+        y = random.uniform(*dim_range)
+        z_o = r.output([x, y])
+
+        z_t = fun(x, y)
+        error = 0 if iterations < 1 else smear(error_development[-1], abs(z_o - z_t), iterations)
+        error_development.append(error)
+
+        if Timer.time_passed(1000):
+            print(f"{iterations * 100. / total_time:05.2f}% finished")
+
+            l = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), dim_range)
+            e, = error_axis.plot(range(len(error_development)), error_development, color="black")
+
+            pyplot.pause(.001)
+            pyplot.draw()
+
+            l.remove()
+            e.remove()
+
+        r.fit([x, y], z_t, drag=iterations)
+
+        iterations += 1
+
+    l = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), dim_range)
+    e, = error_axis.plot(range(len(error_development)), error_development, color="black")
+    pyplot.show()
 
 
 if __name__ == "__main__":
-    test_2d()
+    test_3d()
