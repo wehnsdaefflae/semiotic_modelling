@@ -162,15 +162,7 @@ def generic_functionality(examples, iterations: int, rational: bool = False) -> 
 
 
 def get_min_max(sequence: Collection[float]) -> Tuple[float, float]:
-    min_value = float("inf")
-    max_value = -min_value
-    for each_value in sequence:
-        if each_value < min_value:
-            min_value = each_value
-        elif max_value < each_value:
-            max_value = each_value
-
-    return min_value, max_value
+    return min(sequence), max(sequence)
 
 
 def combinations(drawn: int, total: int) -> int:

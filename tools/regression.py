@@ -33,7 +33,8 @@ class MultipleRegression:
         return self._output(input_values)
 
 
-class SingleLinearRegression:
+class MySingleLinearRegression:
+    # https://towardsdatascience.com/implementation-linear-regression-in-python-in-5-minutes-from-scratch-f111c8cc5c99
     def __init__(self, drag: int = -1):
         self._drag = drag
         self._mean_x = 0.
@@ -67,24 +68,56 @@ class SingleLinearRegression:
         return a0 + a1 * input_values
 
 
+class NumpySingleLinearRegression:
+    def __init__(self, drag: int = -1):
+        degree = 1
+        assert degree >= 1
+        self._degree = degree
+        self._drag = drag
+        self._var_matrix = tuple([0. for _ in range(degree + 1)] for _ in range(degree + 1))
+        self._cov_matrix = [0. for _ in range(degree + 1)]
+
+    def fit(self, in_value: float, out_value: float, drag: int = -1):
+        assert self._drag >= 0 or drag >= 0
+        _drag = max(self._drag, drag)
+
+        for _r, _var_row in enumerate(self._var_matrix):
+            for _c in range(self._degree + 1):
+                _var_row[_c] = smear(_var_row[_c], in_value ** (_r + _c), _drag)
+            self._cov_matrix[_r] = smear(self._cov_matrix[_r], out_value * in_value ** _r, _drag)
+
+    def _get_parameters(self) -> Tuple[float, ...]:
+        try:
+            return tuple(numpy.linalg.solve(self._var_matrix, self._cov_matrix))
+        except numpy.linalg.linalg.LinAlgError:
+            return tuple(0. for _ in range(self._degree + 1))
+
+    def output(self, in_value: float) -> float:
+        parameters = self._get_parameters()
+        return sum(_c * in_value ** _i for _i, _c in enumerate(parameters))
+
+
 class MultipleLinearRegression(MultipleRegression):
     def __init__(self, input_dimensionality: int, drag: int = -1):
         super().__init__(input_dimensionality, drag)
-        self._regressions = tuple(SingleLinearRegression(drag) for _ in range(input_dimensionality))
+        # self._regressions = tuple(NumpySingleLinearRegression(drag) for _ in range(input_dimensionality))
+        self._regressions = tuple(MySingleLinearRegression(drag) for _ in range(input_dimensionality))
 
     def _output(self, input_values: Sequence[float]) -> float:
-        return sum(_regression.output(_x) for _regression, _x in zip(self._regressions, input_values)) # / self._in_dim
+        return sum(_regression.output(_x) for _regression, _x in zip(self._regressions, input_values))
 
     def _fit(self, input_values: Sequence[float], output_value: float, drag: int):
-        for _each_input, _each_regression in zip(input_values, self._regressions):
-            _each_regression.fit(_each_input, output_value, drag=drag)
+        _subtract = tuple(_each_regression.output(_each_input) for _each_regression, _each_input in zip(self._regressions, input_values))
+        for _i, (_each_input, _each_regression) in enumerate(zip(input_values, self._regressions)):
+            _each_regression.fit(_each_input, output_value - sum(_subtract[__i] for __i in range(self._in_dim) if _i != __i), drag=drag)
 
 
-class MultiplePolynomialFromLinearRegression(MultipleLinearRegression):
+class MultiplePolynomialFromLinearRegression(MultipleRegression):
     def __init__(self, input_dimensionality: int, degree: int, drag: int = -1.):
         no_polynomial_parameters = sum(combinations(_i + 1, _i + input_dimensionality) for _i in range(degree))
         super().__init__(no_polynomial_parameters, drag)
         self._degree = degree
+        self._regression = MultipleLinearRegression(no_polynomial_parameters, drag=drag)
 
     @staticmethod
     def _make_polynomial_inputs(input_values: Sequence[float], degree: int) -> Tuple[float, ...]:
@@ -104,13 +137,24 @@ class MultiplePolynomialFromLinearRegression(MultipleLinearRegression):
             for each_combination in itertools.combinations_with_replacement(input_values, _i + 1)
         )
 
-    def output(self, input_values: Sequence[float]):
+    def _output(self, input_values: Sequence[float]):
+        return self._regression._output(input_values)
+
+    def _fit(self, input_values: Sequence[float], output_value: float, drag: int = -1):
         poly_inputs = MultiplePolynomialFromLinearRegression._make_polynomial_inputs(input_values, self._degree)
-        return MultipleRegression.output(self, poly_inputs)
+        self._regression._fit(poly_inputs, output_value, drag=drag)
 
     def fit(self, input_values: Sequence[float], output_value: float, drag: int = -1):
+        assert drag >= 0 or self._drag >= 0
         poly_inputs = MultiplePolynomialFromLinearRegression._make_polynomial_inputs(input_values, self._degree)
-        MultipleRegression.fit(self, poly_inputs, output_value, drag=drag)
+        assert len(poly_inputs) == self._in_dim
+        _drag = max(drag, self._drag)
+        self._fit(poly_inputs, output_value, _drag)
+
+    def output(self, input_values: Sequence[float]) -> float:
+        poly_inputs = MultiplePolynomialFromLinearRegression._make_polynomial_inputs(input_values, self._degree)
+        assert len(poly_inputs) == self._in_dim
+        return self._output(poly_inputs)
 
 
 class MultiplePolynomialHillClimbingRegression(MultipleRegression):
@@ -158,14 +202,14 @@ def setup_2d_axes():
 
 
 def test_2d():
-    dim_range = -4., 4.
+    dim_range = -10., 10.
 
     plot_axis, error_axis = setup_2d_axes()
 
-    r = MultiplePolynomialFromLinearRegression(1, 4, -1)
+    r = MultiplePolynomialFromLinearRegression(1, 1, -1)
     # r = MultiplePolynomialHillClimbingRegression(1, 4, -1, 4.)
 
-    fun = lambda _x: 9. + 0. * _x ** 1. + -10. * _x ** 2. + 0. * _x ** 3. + 1. * _x ** 4.
+    fun = lambda _x: 900. + 1. * _x ** 1. # + -10. * _x ** 2. + 0. * _x ** 3. + 1. * _x ** 4.
     x_range = tuple(_x / 10. for _x in range(int(dim_range[0]) * 10, int(dim_range[1]) * 10))
     y_range = tuple(fun(_x) for _x in x_range)
     plot_axis.plot(x_range, y_range, color="C0")
@@ -176,7 +220,7 @@ def test_2d():
 
     error_development = []
 
-    for _ in range(total_time):
+    while True:
         x = random.uniform(*dim_range)
         y_o = r.output([x])
 
@@ -205,7 +249,7 @@ def test_2d():
     pyplot.show()
 
 
-def plot_surface(axis: pyplot.Axes.axes, _fun: Callable[[float, float], float], dim_range: Tuple[float, float], colormap=None):
+def plot_surface(axis: pyplot.Axes.axes, _fun: Callable[[float, float], float], dim_range: Tuple[float, float], colormap=None, resize: bool = False):
     _x = numpy.linspace(dim_range[0], dim_range[1], endpoint=True, num=int(dim_range[1] - dim_range[0]))
     _y = numpy.linspace(dim_range[0], dim_range[1], endpoint=True, num=int(dim_range[1] - dim_range[0]))
     _z = tuple(_fun(__x, __y) for __x, __y in zip(_x, _y))
@@ -213,15 +257,16 @@ def plot_surface(axis: pyplot.Axes.axes, _fun: Callable[[float, float], float], 
     _X, _Y = numpy.meshgrid(_x, _y)
     _Z = _fun(_X, _Y)
 
-    z_min, z_max = get_min_max(_z)
-    z_margin = (z_max - z_min) * .1
-    min_margin = z_min - z_margin
-    max_margin = z_max + z_margin
+    if resize:
+        z_min, z_max = get_min_max(_z)
+        z_margin = (z_max - z_min) * .1
+        min_margin = z_min - z_margin
+        max_margin = z_max + z_margin
 
-    try:
-        axis.set_zlim((min_margin, max_margin))
-    except ValueError:
-        print("infinite axis value")
+        try:
+            axis.set_zlim((min_margin, max_margin))
+        except ValueError:
+            print("infinite axis value")
 
     if colormap is None:
         return axis.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False)
@@ -249,10 +294,12 @@ def test_3d():
 
     plot_axis, error_axis = setup_3d_axes()
 
-    r = MultiplePolynomialFromLinearRegression(2, 1, -1)
+    r = MultiplePolynomialFromLinearRegression(2, 2, -1)
 
-    fun = lambda _x, _y: 9. + 0. * _x ** 1. + -10. * _y  # + 4. * _x * _y + 1. * _x ** 2. + -2.6 * _y ** 2.
-    plot_surface(plot_axis, fun, dim_range)
+    fun = lambda _x, _y: 10. + 1. * _x ** 1. + 1. * _y ** 1. + 4. * _x * _y + 1. * _x ** 2. + -2.6 * _y ** 2.
+    plot_surface(plot_axis, fun, dim_range, resize=True)
+    pyplot.pause(.001)
+    pyplot.draw()
 
     iterations = 0
     total_time = 1000000
@@ -268,7 +315,7 @@ def test_3d():
         error = 0 if iterations < 1 else smear(error_development[-1], abs(z_o - z_t), iterations)
         error_development.append(error)
 
-        if Timer.time_passed(1000):
+        if Timer.time_passed(10000):
             print(f"{iterations * 100. / total_time:05.2f}% finished")
 
             l = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), dim_range)
