@@ -25,7 +25,7 @@ def rational():
     env = gym.make("CartPole-infinite-v0")
     env.reset()
 
-    controller = RationalSarsa(((-1., 1.),), 4, 100, .5, .25, polynomial_degree=1)
+    controller = RationalSarsa(((-1., 1.),), 4, 1000, .5, .25, polynomial_degree=3)
     # controller = NominalSarsaController(("l", "r"), .1, .5, .1)
 
     def some_random_games_first():
@@ -46,19 +46,19 @@ def rational():
 
             if sensor is None:
                 # motor = env.action_space.sample()
-                motor = numpy.array((0.,))
+                motor = 0.,
             else:
-                motor = numpy.array(controller.react(sensor))
+                motor = controller.react(tuple(sensor))
 
             # this executes the environment with an action,
             # and returns the observation of the environment,
             # the reward, if the env is over, and other info.
-            state = env.step(motor)
+            state = env.step(numpy.array(motor))
             sensor, reward, done, info = state
 
             # (x_pos, x_vel, theta_ang, theta_vel)
 
-            controller.integrate(sensor, tuple(motor), reward)
+            controller.integrate(tuple(sensor), tuple(motor), reward)
 
             average_reward = smear(average_reward, reward, iterations)
             iterations += 1

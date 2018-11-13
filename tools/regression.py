@@ -2,7 +2,6 @@
 import itertools
 import random
 from functools import reduce
-from math import sin, sqrt
 from typing import Sequence, Tuple, Callable
 
 import numpy
@@ -12,29 +11,7 @@ from tools.functionality import combinations, smear, get_min_max
 from tools.timer import Timer
 
 
-class MultipleRegression:
-    def __init__(self, input_dimensionality: int, drag: int = -1):
-        self._in_dim = input_dimensionality
-        self._drag = drag
-
-    def _fit(self, input_values: Sequence[float], output_value: float, drag: int):
-        raise NotImplementedError()
-
-    def fit(self, input_values: Sequence[float], output_value: float, drag: int = -1):
-        assert len(input_values) == self._in_dim
-        assert drag >= 0 or self._drag >= 0
-        _drag = max(drag, self._drag)
-        self._fit(input_values, output_value, _drag)
-
-    def _output(self, input_values: Sequence[float]) -> float:
-        raise NotImplementedError()
-
-    def output(self, input_values: Sequence[float]) -> float:
-        assert len(input_values) == self._in_dim
-        return self._output(input_values)
-
-
-class MySingleLinearRegression:
+class SingleLinearRegression:
     # https://towardsdatascience.com/implementation-linear-regression-in-python-in-5-minutes-from-scratch-f111c8cc5c99
     def __init__(self, drag: int = -1):
         self._drag = drag
@@ -69,39 +46,58 @@ class MySingleLinearRegression:
         return a0 + a1 * input_values
 
 
-class NumpySingleLinearRegression:
-    def __init__(self, drag: int = -1):
-        degree = 1
-        assert degree >= 1
-        self._degree = degree
+class MultipleRegression:
+    def __init__(self, input_dimensionality: int, drag: int = -1):
+        self._in_dim = input_dimensionality
         self._drag = drag
-        self._var_matrix = tuple([0. for _ in range(degree + 1)] for _ in range(degree + 1))
-        self._cov_matrix = [0. for _ in range(degree + 1)]
 
-    def fit(self, in_value: float, out_value: float, drag: int = -1):
-        assert self._drag >= 0 or drag >= 0
-        _drag = max(self._drag, drag)
+    def _fit(self, input_values: Sequence[float], output_value: float, drag: int):
+        raise NotImplementedError()
 
-        for _r, _var_row in enumerate(self._var_matrix):
-            for _c in range(self._degree + 1):
-                _var_row[_c] = smear(_var_row[_c], in_value ** (_r + _c), _drag)
-            self._cov_matrix[_r] = smear(self._cov_matrix[_r], out_value * in_value ** _r, _drag)
+    def fit(self, input_values: Sequence[float], output_value: float, drag: int = -1):
+        assert len(input_values) == self._in_dim
+        assert drag >= 0 or self._drag >= 0
+        _drag = max(drag, self._drag)
+        self._fit(input_values, output_value, _drag)
 
-    def _get_parameters(self) -> Tuple[float, ...]:
-        try:
-            return tuple(numpy.linalg.solve(self._var_matrix, self._cov_matrix))
-        except numpy.linalg.linalg.LinAlgError:
-            return tuple(0. for _ in range(self._degree + 1))
+    def _output(self, input_values: Sequence[float]) -> float:
+        raise NotImplementedError()
 
-    def output(self, in_value: float) -> float:
-        parameters = self._get_parameters()
-        return sum(_c * in_value ** _i for _i, _c in enumerate(parameters))
+    def output(self, input_values: Sequence[float]) -> float:
+        assert len(input_values) == self._in_dim
+        return self._output(input_values)
+
+
+class MultivariateRegression:
+    def __init__(self, input_dimensionality: int, output_dimensionality: int, drag: int = -1):
+        self._in_dim = input_dimensionality
+        self._out_dim = output_dimensionality
+        self._drag = drag
+
+    def _fit(self, input_values: Sequence[float], output_values: Sequence[float], drag: int):
+        raise NotImplementedError()
+
+    def fit(self, input_values: Sequence[float], output_values: Sequence[float], drag: int = -1):
+        assert len(input_values) == self._in_dim
+        assert len(output_values) == self._out_dim
+        assert drag >= 0 or self._drag >= 0
+        _drag = max(drag, self._drag)
+        self._fit(input_values, output_values, _drag)
+
+    def _output(self, input_values: Sequence[float]) -> Tuple[float, ...]:
+        raise NotImplementedError()
+
+    def output(self, input_values: Sequence[float]) -> Tuple[float]:
+        assert len(input_values) == self._in_dim
+        output_values = self._output(input_values)
+        assert len(output_values) == self._out_dim
+        return output_values
 
 
 class MultipleLinearRegression(MultipleRegression):
     def __init__(self, input_dimensionality: int, drag: int = -1):
         super().__init__(input_dimensionality, drag)
-        self._regressions = tuple(MySingleLinearRegression(drag) for _ in range(input_dimensionality))
+        self._regressions = tuple(SingleLinearRegression(drag) for _ in range(input_dimensionality))
 
     def _output(self, input_values: Sequence[float]) -> float:
         return sum(_regression.output(_x) for _regression, _x in zip(self._regressions, input_values))
@@ -116,6 +112,7 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
     def __init__(self, input_dimensionality: int, degree: int, drag: int = -1.):
         no_polynomial_parameters = sum(combinations(_i + 1, _i + input_dimensionality) for _i in range(degree))
         super().__init__(no_polynomial_parameters, drag)
+        self._raw_in_dim = input_dimensionality
         self._degree = degree
         self._regression = MultipleLinearRegression(no_polynomial_parameters, drag=drag)
 
@@ -146,15 +143,30 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
 
     def fit(self, input_values: Sequence[float], output_value: float, drag: int = -1):
         assert drag >= 0 or self._drag >= 0
+        assert len(input_values) == self._raw_in_dim
         poly_inputs = MultiplePolynomialFromLinearRegression._make_polynomial_inputs(input_values, self._degree)
         assert len(poly_inputs) == self._in_dim
         _drag = max(drag, self._drag)
         self._fit(poly_inputs, output_value, _drag)
 
     def output(self, input_values: Sequence[float]) -> float:
+        assert len(input_values) == self._raw_in_dim
         poly_inputs = MultiplePolynomialFromLinearRegression._make_polynomial_inputs(input_values, self._degree)
         assert len(poly_inputs) == self._in_dim
         return self._output(poly_inputs)
+
+
+class MultivariatePolynomialRegression(MultivariateRegression):
+    def __init__(self, input_dimensionality: int, output_dimensionality: int, degree: int, drag: int = -1):
+        super().__init__(input_dimensionality, output_dimensionality)
+        self._regressions = tuple(MultiplePolynomialFromLinearRegression(input_dimensionality, degree, drag=drag) for _ in range(output_dimensionality))
+
+    def _fit(self, input_values: Sequence[float], output_values: Sequence[float], drag: int):
+        for _each_regression, _each_output in zip(self._regressions, output_values):
+            _each_regression.fit(input_values, _each_output)
+
+    def _output(self, input_values: Sequence[float]) -> Tuple[float, ...]:
+        return tuple(_each_regression.output(input_values) for _each_regression in self._regressions)
 
 
 def setup_2d_axes():
@@ -262,7 +274,7 @@ def test_3d():
 
     plot_axis, error_axis = setup_3d_axes()
 
-    r = MultiplePolynomialFromLinearRegression(2, 5, -1)
+    r = MultiplePolynomialFromLinearRegression(2, 3, -1)
 
     # fun = lambda _x, _y: 10. + 1. * _x ** 1. + 1. * _y ** 1. + 4. * _x * _y + 1. * _x ** 2. + -2.6 * _y ** 2.
     fun = lambda _x, _y: numpy.sin(numpy.sqrt(_y ** 2. + _x ** 2.))
