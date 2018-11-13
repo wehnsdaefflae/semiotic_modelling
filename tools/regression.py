@@ -2,7 +2,8 @@
 import itertools
 import random
 from functools import reduce
-from typing import Sequence, Tuple, List, Callable
+from math import sin, sqrt
+from typing import Sequence, Tuple, Callable
 
 import numpy
 from matplotlib import pyplot
@@ -100,7 +101,6 @@ class NumpySingleLinearRegression:
 class MultipleLinearRegression(MultipleRegression):
     def __init__(self, input_dimensionality: int, drag: int = -1):
         super().__init__(input_dimensionality, drag)
-        # self._regressions = tuple(NumpySingleLinearRegression(drag) for _ in range(input_dimensionality))
         self._regressions = tuple(MySingleLinearRegression(drag) for _ in range(input_dimensionality))
 
     def _output(self, input_values: Sequence[float]) -> float:
@@ -155,38 +155,6 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
         poly_inputs = MultiplePolynomialFromLinearRegression._make_polynomial_inputs(input_values, self._degree)
         assert len(poly_inputs) == self._in_dim
         return self._output(poly_inputs)
-
-
-class MultiplePolynomialHillClimbingRegression(MultipleRegression):
-    def __init__(self, input_dimensionality: int, degree: int, drag: int, epsilon: float):
-        super().__init__(input_dimensionality, drag)
-        self._no_polynomial_parameters = sum(combinations(_i + 1, _i + input_dimensionality) for _i in range(degree))
-        self._last_step = [0. for _ in range(self._no_polynomial_parameters)]
-        self._parameters = [0. for _ in range(self._no_polynomial_parameters)]
-        self._epsilon = epsilon
-        self._degree = degree
-
-    @staticmethod
-    def _randomize(vector: List[float], mean: float, deviance: float):
-        for _i in range(len(vector)):
-            vector[_i] += random.gauss(mean, deviance)
-
-    def _fit(self, input_values: Sequence[float], output_value: float, drag: int):
-        _prediction = self._output(input_values)
-        _error = _prediction - output_value
-        for _i, _s in enumerate(self._last_step):
-            self._last_step[_i] = smear(_s, _s - _error, drag)
-            # self._last_step[_i] -= _error
-
-        MultiplePolynomialHillClimbingRegression._randomize(self._last_step, 0., self._epsilon)
-
-        for _i, (_p, _s) in enumerate(zip(self._parameters, self._last_step)):
-            # self._parameters[_i] = smear(_p, _p + _s, drag)
-            self._parameters[_i] += _s
-
-    def _output(self, input_values: Sequence[float]) -> float:
-        poly_inputs = MultiplePolynomialFromLinearRegression._make_polynomial_inputs(input_values, self._degree)
-        return sum(_p * _x for _p, _x in zip(poly_inputs, self._parameters))
 
 
 def setup_2d_axes():
@@ -294,9 +262,10 @@ def test_3d():
 
     plot_axis, error_axis = setup_3d_axes()
 
-    r = MultiplePolynomialFromLinearRegression(2, 2, -1)
+    r = MultiplePolynomialFromLinearRegression(2, 5, -1)
 
-    fun = lambda _x, _y: 10. + 1. * _x ** 1. + 1. * _y ** 1. + 4. * _x * _y + 1. * _x ** 2. + -2.6 * _y ** 2.
+    # fun = lambda _x, _y: 10. + 1. * _x ** 1. + 1. * _y ** 1. + 4. * _x * _y + 1. * _x ** 2. + -2.6 * _y ** 2.
+    fun = lambda _x, _y: numpy.sin(numpy.sqrt(_y ** 2. + _x ** 2.))
     plot_surface(plot_axis, fun, dim_range, resize=True)
     pyplot.pause(.001)
     pyplot.draw()
@@ -315,7 +284,7 @@ def test_3d():
         error = 0 if iterations < 1 else smear(error_development[-1], abs(z_o - z_t), iterations)
         error_development.append(error)
 
-        if Timer.time_passed(10000):
+        if Timer.time_passed(1000):
             print(f"{iterations * 100. / total_time:05.2f}% finished")
 
             l = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), dim_range)
