@@ -173,6 +173,10 @@ def smear(average: float, value: float, inertia: int) -> float:
     return (inertia * average + value) / (inertia + 1.)
 
 
+def signum(number: float) -> int:
+    return 1 if 0. < number else -1 if number < 0 else 0.
+
+
 OBJECT_CLASS = TypeVar("OBJECT_CLASS")
 
 

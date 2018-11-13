@@ -2,6 +2,7 @@
 
 # TODO: implement!
 # https://pythonprogramming.net/openai-cartpole-neural-network-example-machine-learning-tutorial/
+import os
 import time
 
 import gym
@@ -10,6 +11,7 @@ import numpy
 from _framework.systems.controllers.nominal.implementations.nominal_sarsa_controller import NominalSarsaController
 from _framework.systems.controllers.rational.implementations.rational_sarsa import RationalSarsa
 from tools.functionality import smear
+from tools.timer import Timer
 
 gym.envs.register(
     id="CartPole-infinite-v0",
@@ -25,7 +27,10 @@ def rational():
     env = gym.make("CartPole-infinite-v0")
     env.reset()
 
-    controller = RationalSarsa(((-1., 1.),), 4, 1000, .5, .25, polynomial_degree=3)
+    if os.path.isfile("controller.sys"):
+        controller = RationalSarsa.load_from("controller.sys")
+    else:
+        controller = RationalSarsa(((-1., 1.),), 4, 100, .5, 1., polynomial_degree=3)
     # controller = NominalSarsaController(("l", "r"), .1, .5, .1)
 
     def some_random_games_first():
@@ -35,11 +40,15 @@ def rational():
         average_reward = 0.
         iterations = 0
         sensor = None
+        visualize = False
         while True:
             # This will display the environment
             # Only display if you really want to see it.
             # Takes much longer to display it.
-            # env.render()
+            if average_reward >= .9:
+                visualize = True
+            if visualize:
+                env.render()
 
             # This will just create a sample action in any environment.
             # In this environment, the action can be 0 or 1, which is left or right
@@ -63,8 +72,9 @@ def rational():
             average_reward = smear(average_reward, reward, iterations)
             iterations += 1
 
-            if iterations % 1000 == 0:
-                print(average_reward)
+            if Timer.time_passed(2000):
+                print(f"{iterations:010d} iterations, average reward: {average_reward:.2f}")
+                # controller.save_as("controller.sys")
 
     some_random_games_first()
     env.close()

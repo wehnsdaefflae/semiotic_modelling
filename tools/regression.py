@@ -17,9 +17,9 @@ class SingleLinearRegression:
         self._drag = drag
         self._mean_x = 0.
         self._mean_y = 0.
-        self._var_x = 0.
-        self._var_y = 0.
-        self._cov_xy = 0.
+        self._variance_x = 0.
+        self._variance_y = 0.
+        self._cross_variance_xy = 0.
         self._initial = True
 
     def fit(self, input_value: float, output_value: float, drag: int = -1):
@@ -28,9 +28,9 @@ class SingleLinearRegression:
 
         dy = output_value - self._mean_y
         dx = input_value - self._mean_x
-        self._var_x = smear(self._var_x, dx ** 2., _drag)
-        self._cov_xy = smear(self._cov_xy, dx * dy, _drag)
-        self._var_y = smear(self._var_y, dy ** 2., _drag)
+        self._variance_x = smear(self._variance_x, dx ** 2., _drag)
+        self._cross_variance_xy = smear(self._cross_variance_xy, dx * dy, _drag)
+        self._variance_y = smear(self._variance_y, dy ** 2., _drag)
 
         if self._initial:
             self._mean_x = input_value
@@ -41,7 +41,7 @@ class SingleLinearRegression:
         self._mean_y = smear(self._mean_y, output_value, _drag)
 
     def output(self, input_values: float) -> float:
-        a1 = 0. if self._var_x == 0. else self._cov_xy / self._var_x
+        a1 = 0. if self._variance_x == 0. else self._cross_variance_xy / self._variance_x
         a0 = self._mean_y - a1 * self._mean_x
         return a0 + a1 * input_values
 
@@ -110,14 +110,15 @@ class MultipleLinearRegression(MultipleRegression):
 
 class MultiplePolynomialFromLinearRegression(MultipleRegression):
     def __init__(self, input_dimensionality: int, degree: int, drag: int = -1.):
-        no_polynomial_parameters = sum(combinations(_i + 1, _i + input_dimensionality) for _i in range(degree))
+        no_polynomial_parameters = len(MultiplePolynomialFromLinearRegression._full_polynomial_features(tuple(0. for _ in range(input_dimensionality)), degree))
+        # no_polynomial_parameters = sum(combinations(_i + 1, _i + input_dimensionality) for _i in range(degree))
         super().__init__(no_polynomial_parameters, drag)
         self._raw_in_dim = input_dimensionality
         self._degree = degree
         self._regression = MultipleLinearRegression(no_polynomial_parameters, drag=drag)
 
     @staticmethod
-    def _make_polynomial_inputs(input_values: Sequence[float], degree: int) -> Tuple[float, ...]:
+    def _full_polynomial_features(input_values: Sequence[float], degree: int) -> Tuple[float, ...]:
         """
         generates exhaustive polynomial combinations up to defined degree
         for example input values (x, y, z) and degree 2:
@@ -138,20 +139,20 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
         return self._regression._output(input_values)
 
     def _fit(self, input_values: Sequence[float], output_value: float, drag: int = -1):
-        poly_inputs = MultiplePolynomialFromLinearRegression._make_polynomial_inputs(input_values, self._degree)
+        poly_inputs = MultiplePolynomialFromLinearRegression._full_polynomial_features(input_values, self._degree)
         self._regression._fit(poly_inputs, output_value, drag=drag)
 
     def fit(self, input_values: Sequence[float], output_value: float, drag: int = -1):
         assert drag >= 0 or self._drag >= 0
         assert len(input_values) == self._raw_in_dim
-        poly_inputs = MultiplePolynomialFromLinearRegression._make_polynomial_inputs(input_values, self._degree)
+        poly_inputs = MultiplePolynomialFromLinearRegression._full_polynomial_features(input_values, self._degree)
         assert len(poly_inputs) == self._in_dim
         _drag = max(drag, self._drag)
         self._fit(poly_inputs, output_value, _drag)
 
     def output(self, input_values: Sequence[float]) -> float:
         assert len(input_values) == self._raw_in_dim
-        poly_inputs = MultiplePolynomialFromLinearRegression._make_polynomial_inputs(input_values, self._degree)
+        poly_inputs = MultiplePolynomialFromLinearRegression._full_polynomial_features(input_values, self._degree)
         assert len(poly_inputs) == self._in_dim
         return self._output(poly_inputs)
 
@@ -274,10 +275,10 @@ def test_3d():
 
     plot_axis, error_axis = setup_3d_axes()
 
-    r = MultiplePolynomialFromLinearRegression(2, 3, -1)
+    r = MultiplePolynomialFromLinearRegression(2, 2, -1)
 
-    # fun = lambda _x, _y: 10. + 1. * _x ** 1. + 1. * _y ** 1. + 4. * _x * _y + 1. * _x ** 2. + -2.6 * _y ** 2.
-    fun = lambda _x, _y: numpy.sin(numpy.sqrt(_y ** 2. + _x ** 2.))
+    fun = lambda _x, _y: 10. + 1. * _x ** 1. + 1. * _y ** 1. + 4. * _x * _y + 1. * _x ** 2. + -2.6 * _y ** 2.
+    # fun = lambda _x, _y: numpy.sin(numpy.sqrt(_y ** 2. + _x ** 2.))
     plot_surface(plot_axis, fun, dim_range, resize=True)
     pyplot.pause(.001)
     pyplot.draw()
@@ -296,13 +297,13 @@ def test_3d():
         error = 0 if iterations < 1 else smear(error_development[-1], abs(z_o - z_t), iterations)
         error_development.append(error)
 
-        if Timer.time_passed(1000):
+        if Timer.time_passed(1):
             print(f"{iterations * 100. / total_time:05.2f}% finished")
 
             l = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), dim_range)
             e, = error_axis.plot(range(len(error_development)), error_development, color="black")
 
-            pyplot.pause(.001)
+            pyplot.pause(.1)
             pyplot.draw()
 
             l.remove()
