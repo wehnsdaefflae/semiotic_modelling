@@ -3,7 +3,7 @@ from typing import Tuple
 
 from _framework.data_types import RATIONAL_SENSOR, RATIONAL_MOTOR
 from _framework.systems.controllers.rational.abstract import RationalController
-from tools.functionality import signum, clip
+from tools.functionality import signum, clip, smear
 from tools.regression import MultiplePolynomialFromLinearRegression, MultivariatePolynomialRegression
 
 
@@ -46,8 +46,10 @@ class RationalSarsa(RationalController):
             best_known_eval = self._critic.output(self._last_sensor + best_known)
 
             delta_eval = last_eval - best_known_eval
-            delta_step = tuple(_l - _b for _l, _b in zip(self._last_motor, best_known))        # TODO: test fixed step size
-            better_motor = tuple(clip(_b + _d * delta_eval * .01, *_ranges) for _b, _d, _ranges in zip(best_known, delta_step, self._motor_range))
+            delta_step = tuple(_l - _b for _l, _b in zip(self._last_motor, best_known))
+            # better_motor = tuple(clip(_b + signum(_d * delta_eval) * .01, *_ranges) for _b, _d, _ranges in zip(best_known, delta_step, self._motor_range))
+            # better_motor = tuple(clip(_b + _d * delta_eval * .01, *_ranges) for _b, _d, _ranges in zip(best_known, delta_step, self._motor_range))
+            better_motor = tuple(clip(smear(_b, _b + _d * delta_eval, self._drag), *_ranges) for _b, _d, _ranges in zip(best_known, delta_step, self._motor_range))
 
             self._actor.fit(self._last_sensor, better_motor, drag=self._drag)
 

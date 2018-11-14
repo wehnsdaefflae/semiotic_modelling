@@ -30,7 +30,7 @@ def rational():
     if os.path.isfile("controller.sys"):
         controller = RationalSarsa.load_from("controller.sys")
     else:
-        controller = RationalSarsa(((-1., 1.),), 4, 100, .5, 1., polynomial_degree=3)
+        controller = RationalSarsa(((-1., 1.),), 4, 100, .9, .002, polynomial_degree=3)
     # controller = NominalSarsaController(("l", "r"), .1, .5, .1)
 
     def some_random_games_first():
