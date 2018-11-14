@@ -4,6 +4,7 @@ from typing import Tuple, Optional
 
 from _framework.systems.controllers.abstract import Controller, MOTOR_TYPE
 from _framework.data_types import RATIONAL_SENSOR, RATIONAL_MOTOR
+from tools.functionality import clip
 
 
 class RationalController(Controller[RATIONAL_SENSOR, RATIONAL_MOTOR]):
@@ -18,8 +19,8 @@ class RationalController(Controller[RATIONAL_SENSOR, RATIONAL_MOTOR]):
     def decide(self, perception: RATIONAL_SENSOR) -> RATIONAL_MOTOR:
         target = self._decide(perception)
         return tuple(
-            min(max(_t + random.normalvariate(0., self._epsilon), _r[0]), _r[1])
-            for _r, _t in zip(self._motor_range, target)
+            clip(_t + random.normalvariate(0., self._epsilon), *_ranges)
+            for _t, _ranges in zip(target, self._motor_range)
         )
 
     def _integrate(self, perception: RATIONAL_SENSOR, action: RATIONAL_MOTOR, reward: float):

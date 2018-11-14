@@ -20,7 +20,6 @@ class SingleLinearRegression:
         self._variance_x = 0.
         self._variance_y = 0.
         self._cross_variance_xy = 0.
-        self._initial = True
 
     def fit(self, input_value: float, output_value: float, drag: int = -1):
         assert self._drag >= 0 or drag >= 0
@@ -31,11 +30,6 @@ class SingleLinearRegression:
         self._variance_x = smear(self._variance_x, dx ** 2., _drag)
         self._cross_variance_xy = smear(self._cross_variance_xy, dx * dy, _drag)
         self._variance_y = smear(self._variance_y, dy ** 2., _drag)
-
-        if self._initial:
-            self._mean_x = input_value
-            self._mean_y = output_value
-            self._initial = False
 
         self._mean_x = smear(self._mean_x, input_value, _drag)
         self._mean_y = smear(self._mean_y, output_value, _drag)
@@ -138,9 +132,9 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
     def _output(self, input_values: Sequence[float]):
         return self._regression._output(input_values)
 
-    def _fit(self, input_values: Sequence[float], output_value: float, drag: int = -1):
+    def _fit(self, input_values: Sequence[float], output_value: float, drag: int):
         poly_inputs = MultiplePolynomialFromLinearRegression._full_polynomial_features(input_values, self._degree)
-        self._regression._fit(poly_inputs, output_value, drag=drag)
+        self._regression._fit(poly_inputs, output_value, drag)
 
     def fit(self, input_values: Sequence[float], output_value: float, drag: int = -1):
         assert drag >= 0 or self._drag >= 0
@@ -300,23 +294,23 @@ def test_3d():
         if Timer.time_passed(1):
             print(f"{iterations * 100. / total_time:05.2f}% finished")
 
-            l = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), dim_range)
+            ln = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), dim_range)
             e, = error_axis.plot(range(len(error_development)), error_development, color="black")
 
             pyplot.pause(.1)
             pyplot.draw()
 
-            l.remove()
+            ln.remove()
             e.remove()
 
         r.fit([x, y], z_t, drag=iterations)
 
         iterations += 1
 
-    l = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), dim_range)
+    ln = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), dim_range)
     e, = error_axis.plot(range(len(error_development)), error_development, color="black")
     pyplot.show()
 
 
 if __name__ == "__main__":
-    test_3d()
+    test_2d()

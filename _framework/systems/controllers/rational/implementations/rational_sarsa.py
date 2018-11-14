@@ -3,7 +3,7 @@ from typing import Tuple
 
 from _framework.data_types import RATIONAL_SENSOR, RATIONAL_MOTOR
 from _framework.systems.controllers.rational.abstract import RationalController
-from tools.functionality import signum
+from tools.functionality import signum, clip
 from tools.regression import MultiplePolynomialFromLinearRegression, MultivariatePolynomialRegression
 
 
@@ -31,22 +31,23 @@ class RationalSarsa(RationalController):
         self._iteration = 0
 
     def _decide(self, sensor: RATIONAL_SENSOR) -> RATIONAL_MOTOR:
-        action = self._actor.output(sensor)
+        action = tuple(clip(_m, *_ranges) for _m, _ranges in zip(self._actor.output(sensor), self._motor_range))
         return action
 
     def _integrate(self, sensor: RATIONAL_SENSOR, motor: RATIONAL_MOTOR, reward: float):
+        # https://mpatacchiola.github.io/blog/2017/02/11/dissecting-reinforcement-learning-4.html
         if self._iteration >= 1:
             evaluation = self._critic.output(sensor + motor)
             last_eval = self._last_reward + self._gamma * evaluation
 
             self._critic.fit(self._last_sensor + self._last_motor, last_eval, drag=self._drag)
 
-            best_known = self._actor.output(self._last_sensor)
+            best_known = tuple(clip(_m, *_ranges) for _m, _ranges in zip(self._actor.output(self._last_sensor), self._motor_range))
             best_known_eval = self._critic.output(self._last_sensor + best_known)
 
-            delta_eval = last_eval - best_known_eval    # negative if new is worse
-            delta_step = tuple(signum((_l - _b) * delta_eval) * .01 for _l, _b in zip(self._last_motor, best_known))        # TODO: test fixed step size
-            better_motor = tuple(min(max(_min, _b + _d), _max) for _b, _d, (_min, _max) in zip(best_known, delta_step, self._motor_range))
+            delta_eval = last_eval - best_known_eval
+            delta_step = tuple(_l - _b for _l, _b in zip(self._last_motor, best_known))        # TODO: test fixed step size
+            better_motor = tuple(clip(_b + _d * delta_eval * .01, *_ranges) for _b, _d, _ranges in zip(best_known, delta_step, self._motor_range))
 
             self._actor.fit(self._last_sensor, better_motor, drag=self._drag)
 

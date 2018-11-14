@@ -165,6 +165,15 @@ def get_min_max(sequence: Collection[float]) -> Tuple[float, float]:
     return min(sequence), max(sequence)
 
 
+def clip(value: float, min_cap: float, max_cap: float) -> float:
+    assert min_cap < max_cap
+    if value < min_cap:
+        return min_cap
+    if max_cap < value:
+        return max_cap
+    return value
+
+
 def combinations(drawn: int, total: int) -> int:
     return math.factorial(total) // (math.factorial(drawn) * math.factorial(total - drawn))
 
