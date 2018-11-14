@@ -2,13 +2,20 @@
 
 # TODO: implement!
 # https://pythonprogramming.net/openai-cartpole-neural-network-example-machine-learning-tutorial/
+import math
+import random
 import time
+from math import cos
+from typing import Tuple, Optional
 
 import gym
 import numpy
 
+from _framework.data_types import RATIONAL_MOTOR, RATIONAL_SENSOR
 from _framework.systems.controllers.rational.implementations.rational_sarsa import RationalSarsa
-from tools.functionality import smear
+from _framework.systems.tasks.rational.abstract import RationalTask
+from data_generation.data_sources.systems.controller_nominal import SarsaController
+from tools.functionality import smear, signum
 
 gym.envs.register(
     id="MountainCar-infinite-v0",
@@ -16,6 +23,48 @@ gym.envs.register(
     max_episode_steps=10,       # ignore?
     reward_threshold=-110.0,    # ignore?
 )
+
+
+class MountainCar(RationalTask):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._mass = 100.
+        self._at_top = False
+        self._location = 0.
+        self._velocity = 0.
+        self._hill = lambda _x: (-cos(_x) + 1.) / 2.
+        self._hill_force = lambda _x: -signum(_x) * (-cos(_x * 2.) + 1.) / 2.
+
+    def react(self, data_in: Optional[RATIONAL_MOTOR]) -> RATIONAL_SENSOR:
+        force = data_in * .5 + self._hill_force(self._location)
+        acceleration = force / self._mass
+        self._velocity += acceleration
+        self._location += self._velocity
+
+        if self._location >= math.pi:
+            self._at_top = True
+            self._location = 0.
+            self._velocity = 0.
+
+        elif -math.pi >= self._location:
+            self._at_top = True
+            self._location = 0.
+            self._velocity = 0.
+
+        elif self._at_top:
+            self._at_top = False
+
+        return self._location, self._velocity
+
+    @staticmethod
+    def motor_range() -> Tuple[Tuple[float, float], ...]:
+        return (-1., 1.),
+
+    def _get_height(self, location: float) -> float:
+        return self._hill(location)
+
+    def _get_reward(self) -> float:
+        return 10. if self._at_top else -1.
 
 
 def rational():
@@ -57,4 +106,12 @@ def rational():
 
 
 if __name__ == "__main__":
-    rational()
+    mc = MountainCar()
+    sc = SarsaController()
+    while True:
+        # motor = random.uniform(-1., 1.)
+        motor = -1.
+        print(mc.respond(motor))
+        time.sleep(.1)
+
+    # rational()

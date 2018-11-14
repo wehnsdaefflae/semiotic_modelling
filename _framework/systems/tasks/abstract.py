@@ -9,13 +9,13 @@ MOTOR_TYPE = TypeVar("MOTOR_TYPE")
 
 class Task(System[MOTOR_TYPE, SENSOR_TYPE], Generic[MOTOR_TYPE, SENSOR_TYPE]):
     def __init__(self, *args, **kwargs):
-        pass
+        super().__init__(*args, **kwargs)
 
     def react(self, data_in: Optional[MOTOR_TYPE]) -> SENSOR_TYPE:
         raise NotImplementedError()
 
-    def _evaluate_action(self, data_in: MOTOR_TYPE) -> float:
+    def _get_reward(self) -> float:
         raise NotImplementedError()
 
     def respond(self, data_in: Optional[MOTOR_TYPE]) -> Tuple[SENSOR_TYPE, float]:
-        return self.react(data_in), self._evaluate_action(data_in)
+        return self.react(data_in), self._get_reward()

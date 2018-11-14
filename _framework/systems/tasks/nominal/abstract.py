@@ -12,11 +12,9 @@ class NominalTask(Task[NOMINAL_MOTOR, NOMINAL_SENSOR]):
     def react(self, data_in: Optional[NOMINAL_MOTOR]) -> NOMINAL_SENSOR:
         raise NotImplementedError()
 
-    def _evaluate_action(self, data_in: Optional[NOMINAL_MOTOR]) -> float:
-        raise NotImplementedError()
-
     @staticmethod
     def motor_space() -> Collection[NOMINAL_MOTOR]:
         raise NotImplementedError()
 
-
+    def _get_reward(self) -> float:
+        raise NotImplementedError()

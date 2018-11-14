@@ -80,7 +80,7 @@ class CryptoInvestFour(RationalTask):
         self._total_value = self._portfolio.total_base_value(to_base_rates)
         return to_base_rates
 
-    def _evaluate_action(self, data_in: RATIONAL_MOTOR) -> float:
+    def _get_reward(self) -> float:
         if self._last_total_value < 0.:
             return 0.
 

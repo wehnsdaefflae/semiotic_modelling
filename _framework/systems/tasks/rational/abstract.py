@@ -12,9 +12,9 @@ class RationalTask(Task[RATIONAL_MOTOR, RATIONAL_SENSOR]):
     def react(self, data_in: Optional[RATIONAL_MOTOR]) -> RATIONAL_SENSOR:
         raise NotImplementedError()
 
-    def _evaluate_action(self, data_in: RATIONAL_MOTOR) -> float:
-        raise NotImplementedError()
-
     @staticmethod
     def motor_range() -> Tuple[Tuple[float, float], ...]:
+        raise NotImplementedError()
+
+    def _get_reward(self) -> float:
         raise NotImplementedError()

@@ -10,7 +10,8 @@ GRID_MOTOR = str
 
 
 class GridWorld(System[GRID_MOTOR, GRID_SENSOR]):
-    def __init__(self, rotational: bool):
+    def __init__(self, rotational: bool, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.actions = "f", "b", "l", "r" if rotational else "n", "e", "s", "w"
 
     def get_motor_range(self) -> Generic[MOTOR_TYPE]:

@@ -14,5 +14,5 @@ class GridWorld:
         output, self._reward = self._grid_wold.react_to(data_in)
         return output
 
-    def _evaluate_action(self, data_in: Optional[str]) -> float:
-        return self._reward
+    def _get_reward(self) -> float:
+        return self._get_reward()
