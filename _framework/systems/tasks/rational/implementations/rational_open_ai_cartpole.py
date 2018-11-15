@@ -3,12 +3,10 @@
 # TODO: implement!
 # https://pythonprogramming.net/openai-cartpole-neural-network-example-machine-learning-tutorial/
 import os
-import time
 
 import gym
 import numpy
 
-from _framework.systems.controllers.nominal.implementations.nominal_sarsa_controller import NominalSarsaController
 from _framework.systems.controllers.rational.implementations.rational_sarsa import RationalSarsa
 from tools.functionality import smear
 from tools.timer import Timer
@@ -22,7 +20,6 @@ gym.envs.register(
 
 
 def rational():
-
     # https://github.com/openai/gym/blob/master/gym/envs/__init__.py
     env = gym.make("CartPole-infinite-v0")
     env.reset()
@@ -75,41 +72,6 @@ def rational():
             if Timer.time_passed(2000):
                 print(f"{iterations:010d} iterations, average reward: {average_reward:.2f}")
                 # controller.save_as("controller.sys")
-
-    some_random_games_first()
-    env.close()
-
-
-def nominal():
-
-    env = gym.make("CartPole-infinite-v0")
-    env.reset()
-
-    controller = NominalSarsaController(("l", "r"), .1, .5, .1)
-
-    def some_random_games_first():
-        average_reward = 0.
-        iterations = 0
-        sensor = None
-        while True:
-            #env.render()
-
-            if sensor is None:
-                # motor = env.action_space.sample()
-                motor = "l"
-            else:
-                motor = numpy.array(controller.react(sensor))
-
-            state = env.step(motor)
-            (x_pos, x_vel, theta_ang, theta_vel), reward, done, info = state
-
-            controller.integrate(sensor, tuple(motor), reward)
-
-            average_reward = smear(average_reward, reward, iterations)
-            iterations += 1
-
-            if iterations % 1000 == 0:
-                print(average_reward)
 
     some_random_games_first()
     env.close()

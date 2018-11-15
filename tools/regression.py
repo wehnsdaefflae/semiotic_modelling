@@ -224,13 +224,15 @@ def test_2d():
     pyplot.show()
 
 
-def plot_surface(axis: pyplot.Axes.axes, _fun: Callable[[float, float], float], dim_range: Tuple[float, float], colormap=None, resize: bool = False):
-    _x = numpy.linspace(dim_range[0], dim_range[1], endpoint=True, num=int(dim_range[1] - dim_range[0]))
-    _y = numpy.linspace(dim_range[0], dim_range[1], endpoint=True, num=int(dim_range[1] - dim_range[0]))
-    _z = tuple(_fun(__x, __y) for __x, __y in zip(_x, _y))
+def plot_surface(axis: pyplot.Axes.axes, _fun: Callable[[float, float], float], dim_ranges: Tuple[Tuple[float, float], Tuple[float, float]], colormap=None, resize: bool = False):
+    _x = numpy.linspace(dim_ranges[0][0], dim_ranges[0][1], endpoint=True, num=15)
+    _y = numpy.linspace(dim_ranges[1][0], dim_ranges[1][1], endpoint=True, num=15)
 
     _X, _Y = numpy.meshgrid(_x, _y)
-    _Z = _fun(_X, _Y)
+
+    _z = numpy.array(tuple(_fun(__x, __y) for __x, __y in zip(numpy.ravel(_X), numpy.ravel(_Y))))
+
+    _Z = _z.reshape(_X.shape)
 
     if resize:
         z_min, z_max = get_min_max(_z)
@@ -273,7 +275,7 @@ def test_3d():
 
     fun = lambda _x, _y: 10. + 1. * _x ** 1. + 1. * _y ** 1. + 4. * _x * _y + 1. * _x ** 2. + -2.6 * _y ** 2.
     # fun = lambda _x, _y: numpy.sin(numpy.sqrt(_y ** 2. + _x ** 2.))
-    plot_surface(plot_axis, fun, dim_range, resize=True)
+    plot_surface(plot_axis, fun, (dim_range, dim_range), resize=True)
     pyplot.pause(.001)
     pyplot.draw()
 
@@ -294,7 +296,7 @@ def test_3d():
         if Timer.time_passed(1):
             print(f"{iterations * 100. / total_time:05.2f}% finished")
 
-            ln = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), dim_range)
+            ln = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), (dim_range, dim_range))
             e, = error_axis.plot(range(len(error_development)), error_development, color="black")
 
             pyplot.pause(.1)
@@ -307,7 +309,7 @@ def test_3d():
 
         iterations += 1
 
-    ln = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), dim_range)
+    ln = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), (dim_range, dim_range))
     e, = error_axis.plot(range(len(error_development)), error_development, color="black")
     pyplot.show()
 

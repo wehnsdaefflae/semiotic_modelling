@@ -6,6 +6,8 @@ permalink: https://perma.cc/C9ZM-652R
 """
 
 import math
+from typing import Tuple, Any, Dict
+
 import gym
 import numpy
 from gym import spaces
@@ -62,7 +64,7 @@ class InfiniteCartPoleEnv(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    def step(self, action: numpy.ndarray):
+    def step(self, action: numpy.ndarray) -> Tuple[numpy.ndarray, float, bool, Dict[str, Any]]:
         assert self.action_space.contains(action), f"{action.__repr__():s} ({str(type(action)):s}) invalid"
 
         state = self.state
@@ -108,7 +110,7 @@ class InfiniteCartPoleEnv(gym.Env):
         return np.array(self.state), reward, False, {}
 
     def reset(self):
-        self.state = self.np_random.uniform(low=-.05, high=.05, size=(4,))
+        self.state = 0., 0., math.pi, 0.
         return np.array(self.state)
 
     def render(self, mode='human'):
