@@ -40,9 +40,9 @@ class MountainCar(RationalTask, gym.Env):
         return self._location, self._velocity
 
     def react(self, data_in: Optional[RATIONAL_MOTOR]) -> RATIONAL_SENSOR:
-        force = data_in[0] * .15 + self._hill_force(self._location)
+        force = data_in[0] * .2 + self._hill_force(self._location)
         acceleration = force / self._mass
-        self._velocity = clip((self._velocity + acceleration) * .99, -.02, .02)
+        self._velocity = (self._velocity + acceleration) * .99
         self._location += self._velocity
 
         if self._location >= math.pi:

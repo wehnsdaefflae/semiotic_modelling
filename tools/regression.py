@@ -20,6 +20,8 @@ class SingleLinearRegression:
         self._variance_x = 0.
         self._variance_y = 0.
         self._cross_variance_xy = 0.
+        self._a0 = 0.
+        self._a1 = 0.
 
     def fit(self, input_value: float, output_value: float, drag: int = -1):
         assert self._drag >= 0 or drag >= 0
@@ -27,17 +29,19 @@ class SingleLinearRegression:
 
         dy = output_value - self._mean_y
         dx = input_value - self._mean_x
-        self._variance_x = smear(self._variance_x, dx ** 2., _drag)
+        self._variance_x = smear(self._variance_x, dx ** 2., _drag)                                 # remove smear?
         self._cross_variance_xy = smear(self._cross_variance_xy, dx * dy, _drag)
-        self._variance_y = smear(self._variance_y, dy ** 2., _drag)
+        self._variance_y = smear(self._variance_y, dy ** 2., _drag)                                 # remove smear?
 
         self._mean_x = smear(self._mean_x, input_value, _drag)
         self._mean_y = smear(self._mean_y, output_value, _drag)
 
+        self._a1 = 0. if self._variance_x == 0. else self._cross_variance_xy / self._variance_x     # apply different smear factor?
+        self._a0 = self._mean_y - self._a1 * self._mean_x                                           # apply different smear factor?
+
     def output(self, input_values: float) -> float:
-        a1 = 0. if self._variance_x == 0. else self._cross_variance_xy / self._variance_x
-        a0 = self._mean_y - a1 * self._mean_x
-        return a0 + a1 * input_values
+        # todo: fix regression drag
+        return self._a0 + self._a1 * input_values
 
 
 class MultipleRegression:
@@ -315,4 +319,4 @@ def test_3d():
 
 
 if __name__ == "__main__":
-    test_2d()
+    test_3d()

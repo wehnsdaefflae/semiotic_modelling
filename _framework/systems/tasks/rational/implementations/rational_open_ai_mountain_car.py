@@ -65,7 +65,7 @@ def rational():
     # env = gym.make("VanillaMountainCar-infinite-v0")
     env.reset()
 
-    controller = RationalSarsa(((-1., 1.),), 2, 100, .9, .002, polynomial_degree=3)
+    controller = RationalSarsa(((-1., 1.),), 2, 100, .9, .002, polynomial_degree=4)
     # controller = NominalSarsaController(("l", "r"), .1, .5, .1)
 
     def some_random_games_first():
@@ -77,7 +77,7 @@ def rational():
         sensor = None
         visualize = False
 
-        sensor_range = (-math.pi, math.pi), (-.02, .02)
+        sensor_range = (-math.pi, math.pi), (-.04, .04)
         axis = setup_3d_axis()
         last_points = deque(maxlen=100)
 
