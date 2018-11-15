@@ -18,7 +18,6 @@ class SingleLinearRegression:
         self._mean_x = 0.
         self._mean_y = 0.
         self._variance_x = 0.
-        self._variance_y = 0.
         self._cross_variance_xy = 0.
         self._a0 = 0.
         self._a1 = 0.
@@ -31,17 +30,16 @@ class SingleLinearRegression:
         dx = input_value - self._mean_x
         self._variance_x = smear(self._variance_x, dx ** 2., _drag)                                 # remove smear?
         self._cross_variance_xy = smear(self._cross_variance_xy, dx * dy, _drag)
-        self._variance_y = smear(self._variance_y, dy ** 2., _drag)                                 # remove smear?
 
         self._mean_x = smear(self._mean_x, input_value, _drag)
         self._mean_y = smear(self._mean_y, output_value, _drag)
 
-        self._a1 = 0. if self._variance_x == 0. else self._cross_variance_xy / self._variance_x     # apply different smear factor?
-        self._a0 = self._mean_y - self._a1 * self._mean_x                                           # apply different smear factor?
+        self._a1 = 0. if self._variance_x == 0. else self._cross_variance_xy / self._variance_x
+        self._a0 = self._mean_y - self._a1 * self._mean_x
 
-    def output(self, input_values: float) -> float:
+    def output(self, input_value: float) -> float:
         # todo: fix regression drag
-        return self._a0 + self._a1 * input_values
+        return self._a0 + self._a1 * input_value
 
 
 class MultipleRegression:
@@ -95,7 +93,7 @@ class MultivariateRegression:
 class MultipleLinearRegression(MultipleRegression):
     def __init__(self, input_dimensionality: int, drag: int = -1):
         super().__init__(input_dimensionality, drag)
-        self._regressions = tuple(SingleLinearRegression(drag) for _ in range(input_dimensionality))
+        self._regressions = tuple(SingleLinearRegression(drag=drag) for _ in range(input_dimensionality))
 
     def _output(self, input_values: Sequence[float]) -> float:
         return sum(_regression.output(_x) for _regression, _x in zip(self._regressions, input_values))
@@ -110,7 +108,7 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
     def __init__(self, input_dimensionality: int, degree: int, drag: int = -1.):
         no_polynomial_parameters = len(MultiplePolynomialFromLinearRegression._full_polynomial_features(tuple(0. for _ in range(input_dimensionality)), degree))
         # no_polynomial_parameters = sum(combinations(_i + 1, _i + input_dimensionality) for _i in range(degree))
-        super().__init__(no_polynomial_parameters, drag)
+        super().__init__(no_polynomial_parameters, drag=drag)
         self._raw_in_dim = input_dimensionality
         self._degree = degree
         self._regression = MultipleLinearRegression(no_polynomial_parameters, drag=drag)
