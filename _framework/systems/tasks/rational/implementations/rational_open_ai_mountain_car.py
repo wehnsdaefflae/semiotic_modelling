@@ -80,8 +80,7 @@ def rational():
     # env = gym.make("VanillaMountainCar-infinite-v0")
     env.reset()
 
-    controller = RationalSarsa(((-1., 1.),), 2, 100, 10, .9, .002, polynomial_degree=2)
-    # controller = NominalSarsaController(("l", "r"), .1, .5, .1)
+    controller = RationalSarsa(((-2., 2.),), 2, 500, 5, .5, .2, polynomial_degree=2)
 
     def some_random_games_first():
         # Each of these is its own game.
@@ -89,6 +88,7 @@ def rational():
 
         sensor = None
         visualize = False
+        plot = True
 
         window_size = 100000
 
@@ -116,7 +116,7 @@ def rational():
             critic_data.append(controller.average_critic_error)
             reward_data.append(controller.average_reward)
 
-            if Timer.time_passed(2000):
+            if Timer.time_passed(500) and plot:
                 if actor_plot is not None:
                     actor_plot.remove()
                 if critic_plot is not None:

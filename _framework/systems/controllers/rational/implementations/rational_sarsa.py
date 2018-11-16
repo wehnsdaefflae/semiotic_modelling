@@ -49,6 +49,7 @@ class RationalSarsa(RationalController):
 
     def _decide(self, sensor: RATIONAL_SENSOR) -> RATIONAL_MOTOR:
         action = tuple(clip(_m, *_ranges) for _m, _ranges in zip(self._actor.output(sensor), self._motor_range))
+        # action = tuple(0. for _ in self._motor_range)
         return action
 
     def _integrate(self, sensor: RATIONAL_SENSOR, motor: RATIONAL_MOTOR, reward: float):
