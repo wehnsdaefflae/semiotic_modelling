@@ -1,7 +1,9 @@
 # coding=utf-8
 import itertools
+import math
 import random
 from functools import reduce
+from math import cos
 from typing import Sequence, Tuple, Callable
 
 import numpy
@@ -13,8 +15,9 @@ from tools.timer import Timer
 
 class SingleLinearRegression:
     # https://towardsdatascience.com/implementation-linear-regression-in-python-in-5-minutes-from-scratch-f111c8cc5c99
-    def __init__(self, drag: int = -1):
-        self._drag = drag
+    def __init__(self, past_scope: int = -1, learning_drag: int = -1):
+        self._past_scope = past_scope
+        self._learning_drag = learning_drag
         self._mean_x = 0.
         self._mean_y = 0.
         self._variance_x = 0.
@@ -22,20 +25,26 @@ class SingleLinearRegression:
         self._a0 = 0.
         self._a1 = 0.
 
-    def fit(self, input_value: float, output_value: float, drag: int = -1):
-        assert self._drag >= 0 or drag >= 0
-        _drag = max(self._drag, drag)
+    def fit(self, input_value: float, output_value: float, past_scope: int = -1, learning_drag: int = -1) -> float:
+        assert self._past_scope >= 0 or past_scope >= 0
+        assert self._learning_drag >= 0 or learning_drag >= 0
+        _past_scope = max(self._past_scope, past_scope)
+        _learning_drag = max(self._learning_drag, learning_drag)
+
+        error = abs(self.output(input_value) - output_value)
 
         dy = output_value - self._mean_y
         dx = input_value - self._mean_x
-        self._variance_x = smear(self._variance_x, dx ** 2., _drag)                                 # remove smear?
-        self._cross_variance_xy = smear(self._cross_variance_xy, dx * dy, _drag)
+        self._variance_x = smear(self._variance_x, dx ** 2., _past_scope)                                 # remove smear?
+        self._cross_variance_xy = smear(self._cross_variance_xy, dx * dy, _past_scope)
 
-        self._mean_x = smear(self._mean_x, input_value, _drag)
-        self._mean_y = smear(self._mean_y, output_value, _drag)
+        self._mean_x = smear(self._mean_x, input_value, _past_scope)
+        self._mean_y = smear(self._mean_y, output_value, _past_scope)
 
-        self._a1 = 0. if self._variance_x == 0. else self._cross_variance_xy / self._variance_x
-        self._a0 = self._mean_y - self._a1 * self._mean_x
+        self._a1 = smear(self._a1, 0. if self._variance_x == 0. else self._cross_variance_xy / self._variance_x, _learning_drag)
+        self._a0 = smear(self._a0, self._mean_y - self._a1 * self._mean_x, _learning_drag)
+
+        return error
 
     def output(self, input_value: float) -> float:
         # todo: fix regression drag
@@ -43,18 +52,15 @@ class SingleLinearRegression:
 
 
 class MultipleRegression:
-    def __init__(self, input_dimensionality: int, drag: int = -1):
+    def __init__(self, input_dimensionality: int):
         self._in_dim = input_dimensionality
-        self._drag = drag
 
-    def _fit(self, input_values: Sequence[float], output_value: float, drag: int):
+    def _fit(self, input_values: Sequence[float], output_value: float, past_scope: int, learning_drag: int) -> float:
         raise NotImplementedError()
 
-    def fit(self, input_values: Sequence[float], output_value: float, drag: int = -1):
+    def fit(self, input_values: Sequence[float], output_value: float, past_scope: int = -1, learning_drag: int = -1) -> float:
         assert len(input_values) == self._in_dim
-        assert drag >= 0 or self._drag >= 0
-        _drag = max(drag, self._drag)
-        self._fit(input_values, output_value, _drag)
+        return self._fit(input_values, output_value, past_scope, learning_drag)
 
     def _output(self, input_values: Sequence[float]) -> float:
         raise NotImplementedError()
@@ -64,54 +70,33 @@ class MultipleRegression:
         return self._output(input_values)
 
 
-class MultivariateRegression:
-    def __init__(self, input_dimensionality: int, output_dimensionality: int, drag: int = -1):
-        self._in_dim = input_dimensionality
-        self._out_dim = output_dimensionality
-        self._drag = drag
-
-    def _fit(self, input_values: Sequence[float], output_values: Sequence[float], drag: int):
-        raise NotImplementedError()
-
-    def fit(self, input_values: Sequence[float], output_values: Sequence[float], drag: int = -1):
-        assert len(input_values) == self._in_dim
-        assert len(output_values) == self._out_dim
-        assert drag >= 0 or self._drag >= 0
-        _drag = max(drag, self._drag)
-        self._fit(input_values, output_values, _drag)
-
-    def _output(self, input_values: Sequence[float]) -> Tuple[float, ...]:
-        raise NotImplementedError()
-
-    def output(self, input_values: Sequence[float]) -> Tuple[float]:
-        assert len(input_values) == self._in_dim
-        output_values = self._output(input_values)
-        assert len(output_values) == self._out_dim
-        return output_values
-
-
 class MultipleLinearRegression(MultipleRegression):
-    def __init__(self, input_dimensionality: int, drag: int = -1):
-        super().__init__(input_dimensionality, drag)
-        self._regressions = tuple(SingleLinearRegression(drag=drag) for _ in range(input_dimensionality))
+    def __init__(self, input_dimensionality: int, past_scope: int = -1, learning_drag: int = -1):
+        super().__init__(input_dimensionality)
+        self._regressions = tuple(SingleLinearRegression(past_scope=past_scope, learning_drag=learning_drag) for _ in range(input_dimensionality))
 
     def _output(self, input_values: Sequence[float]) -> float:
         return sum(_regression.output(_x) for _regression, _x in zip(self._regressions, input_values))
 
-    def _fit(self, input_values: Sequence[float], output_value: float, drag: int):
+    def _fit(self, input_values: Sequence[float], output_value: float, past_scope: int, learning_drag: int) -> float:
         _subtract = tuple(_each_regression.output(_each_input) for _each_regression, _each_input in zip(self._regressions, input_values))
+        error = 0.
         for _i, (_each_input, _each_regression) in enumerate(zip(input_values, self._regressions)):
-            _each_regression.fit(_each_input, output_value - sum(_subtract[__i] for __i in range(self._in_dim) if _i != __i), drag=drag)
+            _each_output = output_value - sum(_subtract[__i] for __i in range(self._in_dim) if _i != __i)
+            error += _each_regression.fit(_each_input, _each_output, past_scope=past_scope, learning_drag=learning_drag)
+        return error
 
 
 class MultiplePolynomialFromLinearRegression(MultipleRegression):
-    def __init__(self, input_dimensionality: int, degree: int, drag: int = -1.):
+    def __init__(self, input_dimensionality: int, degree: int, past_scope: int = -1., learning_drag: int = -1):
         no_polynomial_parameters = len(MultiplePolynomialFromLinearRegression._full_polynomial_features(tuple(0. for _ in range(input_dimensionality)), degree))
         # no_polynomial_parameters = sum(combinations(_i + 1, _i + input_dimensionality) for _i in range(degree))
-        super().__init__(no_polynomial_parameters, drag=drag)
+        super().__init__(no_polynomial_parameters)
         self._raw_in_dim = input_dimensionality
         self._degree = degree
-        self._regression = MultipleLinearRegression(no_polynomial_parameters, drag=drag)
+        self._regression = MultipleLinearRegression(no_polynomial_parameters, past_scope=past_scope, learning_drag=learning_drag)
+        self._past_scope = past_scope
+        self._learning_drag = learning_drag
 
     @staticmethod
     def _full_polynomial_features(input_values: Sequence[float], degree: int) -> Tuple[float, ...]:
@@ -134,17 +119,19 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
     def _output(self, input_values: Sequence[float]):
         return self._regression._output(input_values)
 
-    def _fit(self, input_values: Sequence[float], output_value: float, drag: int):
+    def _fit(self, input_values: Sequence[float], output_value: float, past_scope: int, learning_drag: int) -> float:
         poly_inputs = MultiplePolynomialFromLinearRegression._full_polynomial_features(input_values, self._degree)
-        self._regression._fit(poly_inputs, output_value, drag)
+        return self._regression._fit(poly_inputs, output_value, past_scope, learning_drag)
 
-    def fit(self, input_values: Sequence[float], output_value: float, drag: int = -1):
-        assert drag >= 0 or self._drag >= 0
+    def fit(self, input_values: Sequence[float], output_value: float, past_scope: int = -1, learning_drag: int = -1) -> float:
+        assert past_scope >= 0 or self._past_scope >= 0
+        assert learning_drag >= 0 or self._learning_drag >= 0
         assert len(input_values) == self._raw_in_dim
         poly_inputs = MultiplePolynomialFromLinearRegression._full_polynomial_features(input_values, self._degree)
         assert len(poly_inputs) == self._in_dim
-        _drag = max(drag, self._drag)
-        self._fit(poly_inputs, output_value, _drag)
+        _past_scope = max(past_scope, self._past_scope)
+        _learning_drag = max(learning_drag, self._learning_drag)
+        return self._fit(poly_inputs, output_value, _past_scope, _learning_drag)
 
     def output(self, input_values: Sequence[float]) -> float:
         assert len(input_values) == self._raw_in_dim
@@ -153,14 +140,48 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
         return self._output(poly_inputs)
 
 
-class MultivariatePolynomialRegression(MultivariateRegression):
-    def __init__(self, input_dimensionality: int, output_dimensionality: int, degree: int, drag: int = -1):
-        super().__init__(input_dimensionality, output_dimensionality)
-        self._regressions = tuple(MultiplePolynomialFromLinearRegression(input_dimensionality, degree, drag=drag) for _ in range(output_dimensionality))
+class MultivariateRegression:
+    def __init__(self, input_dimensionality: int, output_dimensionality: int, past_scope: int = -1, learning_drag: int = -1):
+        self._in_dim = input_dimensionality
+        self._out_dim = output_dimensionality
+        self._past_scope = past_scope
+        self._learning_drag = learning_drag
 
-    def _fit(self, input_values: Sequence[float], output_values: Sequence[float], drag: int):
-        for _each_regression, _each_output in zip(self._regressions, output_values):
-            _each_regression.fit(input_values, _each_output)
+    def _fit(self, input_values: Sequence[float], output_values: Sequence[float], past_scope: int, learning_drag: int) -> Tuple[float, ...]:
+        raise NotImplementedError()
+
+    def fit(self, input_values: Sequence[float], output_values: Sequence[float], past_scope: int = -1, learning_drag: int = -1) -> Tuple[float, ...]:
+        assert len(input_values) == self._in_dim
+        assert len(output_values) == self._out_dim
+        assert past_scope >= 0 or self._past_scope >= 0
+        _past_scope = max(past_scope, self._past_scope)
+        assert learning_drag >= 0 or self._learning_drag >= 0
+        _learning_drag = max(learning_drag, self._learning_drag)
+        return self._fit(input_values, output_values, _past_scope, _learning_drag)
+
+    def _output(self, input_values: Sequence[float]) -> Tuple[float, ...]:
+        raise NotImplementedError()
+
+    def output(self, input_values: Sequence[float]) -> Tuple[float, ...]:
+        assert len(input_values) == self._in_dim
+        output_values = self._output(input_values)
+        assert len(output_values) == self._out_dim
+        return output_values
+
+
+class MultivariatePolynomialRegression(MultivariateRegression):
+    def __init__(self, input_dimensionality: int, output_dimensionality: int, degree: int, past_scope: int = -1, learning_drag: int = -1):
+        super().__init__(input_dimensionality, output_dimensionality, past_scope=past_scope, learning_drag=learning_drag)
+        self._regressions = tuple(
+            MultiplePolynomialFromLinearRegression(input_dimensionality, degree, past_scope=past_scope, learning_drag=learning_drag)
+            for _ in range(output_dimensionality)
+        )
+
+    def _fit(self, input_values: Sequence[float], output_values: Sequence[float], past_scope: int, learning_drag: int) -> Tuple[float, ...]:
+        return tuple(
+            _each_regression.fit(input_values, _each_output, past_scope=past_scope, learning_drag=learning_drag)
+            for _each_regression, _each_output in zip(self._regressions, output_values)
+        )
 
     def _output(self, input_values: Sequence[float]) -> Tuple[float, ...]:
         return tuple(_each_regression.output(input_values) for _each_regression in self._regressions)
@@ -183,17 +204,16 @@ def test_2d():
 
     plot_axis, error_axis = setup_2d_axes()
 
-    r = MultiplePolynomialFromLinearRegression(1, 1, -1)
-    # r = MultiplePolynomialHillClimbingRegression(1, 4, -1, 4.)
+    r = MultiplePolynomialFromLinearRegression(1, 3, -1)
 
-    fun = lambda _x: 900. + 1. * _x ** 1. # + -10. * _x ** 2. + 0. * _x ** 3. + 1. * _x ** 4.
+    fun = lambda _x: -cos(_x / (1. * math.pi))
+    # fun = lambda _x: 900. + 1. * _x ** 1. # + -10. * _x ** 2. + 0. * _x ** 3. + 1. * _x ** 4.
     x_range = tuple(_x / 10. for _x in range(int(dim_range[0]) * 10, int(dim_range[1]) * 10))
     y_range = tuple(fun(_x) for _x in x_range)
     plot_axis.plot(x_range, y_range, color="C0")
     plot_axis.set_xlim(*dim_range)
 
     iterations = 0
-    total_time = 1000000
 
     error_development = []
 
@@ -206,7 +226,7 @@ def test_2d():
         error_development.append(error)
 
         if Timer.time_passed(1000):
-            print(f"{iterations * 100. / total_time:05.2f}% finished")
+            print(f"{iterations:d} iterations finished")
 
             l, = plot_axis.plot(x_range, tuple(r.output([_x]) for _x in x_range), color="C1")
             e, = error_axis.plot(range(len(error_development)), error_development, color="black")
@@ -217,18 +237,16 @@ def test_2d():
             l.remove()
             e.remove()
 
-        r.fit([x], y_t, drag=iterations)
+        r.fit([x], y_t, past_scope=1000, learning_drag=0)
 
         iterations += 1
 
-    l, = plot_axis.plot(x_range, tuple(r.output([_x]) for _x in x_range), color="C1")
-    e, = error_axis.plot(range(len(error_development)), error_development, color="black")
     pyplot.show()
 
 
 def plot_surface(axis: pyplot.Axes.axes, _fun: Callable[[float, float], float], dim_ranges: Tuple[Tuple[float, float], Tuple[float, float]], colormap=None, resize: bool = False):
-    _x = numpy.linspace(dim_ranges[0][0], dim_ranges[0][1], endpoint=True, num=15)
-    _y = numpy.linspace(dim_ranges[1][0], dim_ranges[1][1], endpoint=True, num=15)
+    _x = numpy.linspace(dim_ranges[0][0], dim_ranges[0][1], endpoint=True, num=100)
+    _y = numpy.linspace(dim_ranges[1][0], dim_ranges[1][1], endpoint=True, num=100)
 
     _X, _Y = numpy.meshgrid(_x, _y)
 
@@ -252,6 +270,29 @@ def plot_surface(axis: pyplot.Axes.axes, _fun: Callable[[float, float], float], 
     return axis.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False, cmap=colormap)
 
 
+def plot_4d(axis: pyplot.Axes.axes, _fun: Callable[[float, float, float], float], dim_ranges: Tuple[Tuple[float, float], ...]):
+    resolution = 10
+    _X, _Y, _Z = tuple(numpy.linspace(*_range, endpoint=True, num=resolution) for _range in dim_ranges)
+
+    _X = []
+    _Y = []
+    _Z = []
+    _V = []
+
+    cm = pyplot.cm.get_cmap("rainbow")
+
+    for _x in numpy.linspace(*dim_ranges[0], num=resolution, endpoint=True):
+        for _y in numpy.linspace(*dim_ranges[1], num=resolution, endpoint=True):
+            for _z in numpy.linspace(*dim_ranges[2], num=resolution, endpoint=True):
+                _X.append(_x)
+                _Y.append(_y)
+                _Z.append(_z)
+                _v = _fun(_x, _y, _z)
+                _V.append(_v)
+    print(f"evaluation range: {min(_V):.2f}, {max(_V):.2f}")
+    return axis.scatter(_X, _Y, _Z, c=_V, cmap=cm, alpha=.2)
+
+
 def setup_3d_axes():
     from mpl_toolkits.mplot3d import Axes3D
 
@@ -273,10 +314,10 @@ def test_3d():
 
     plot_axis, error_axis = setup_3d_axes()
 
-    r = MultiplePolynomialFromLinearRegression(2, 2, -1)
+    r = MultiplePolynomialFromLinearRegression(2, 4, past_scope=1000, learning_drag=0)
 
-    fun = lambda _x, _y: 10. + 1. * _x ** 1. + 1. * _y ** 1. + 4. * _x * _y + 1. * _x ** 2. + -2.6 * _y ** 2.
-    # fun = lambda _x, _y: numpy.sin(numpy.sqrt(_y ** 2. + _x ** 2.))
+    # fun = lambda _x, _y: 10. + 1. * _x ** 1. + 1. * _y ** 1. + 4. * _x * _y + 1. * _x ** 2. + -2.6 * _y ** 2.
+    fun = lambda _x, _y: -cos(_x / (1. * math.pi)) + -cos(_y / (1. * math.pi))
     plot_surface(plot_axis, fun, (dim_range, dim_range), resize=True)
     pyplot.pause(.001)
     pyplot.draw()
@@ -307,7 +348,7 @@ def test_3d():
             ln.remove()
             e.remove()
 
-        r.fit([x, y], z_t, drag=iterations)
+        r.fit([x, y], z_t)  # , past_scope=iterations)
 
         iterations += 1
 

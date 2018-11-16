@@ -174,6 +174,10 @@ def clip(value: float, min_cap: float, max_cap: float) -> float:
     return value
 
 
+def cartesian_distance(vector: Sequence[float]) -> float:
+    return math.sqrt(sum(_x ** 2. for _x in vector))
+
+
 def combinations(drawn: int, total: int) -> int:
     return math.factorial(total) // (math.factorial(drawn) * math.factorial(total - drawn))
 

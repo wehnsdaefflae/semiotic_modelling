@@ -4,6 +4,7 @@
 # https://pythonprogramming.net/openai-cartpole-neural-network-example-machine-learning-tutorial/
 import math
 import os
+import random
 from collections import deque
 
 import gym
@@ -13,7 +14,7 @@ from matplotlib import pyplot
 from _framework.systems.controllers.rational.implementations.rational_sarsa import RationalSarsa
 from _framework.systems.tasks.rational.resources.custom_infinite_mountain_car import MountainCar
 from tools.functionality import smear, clip
-from tools.regression import plot_surface
+from tools.regression import plot_surface, plot_4d
 from tools.timer import Timer
 
 gym.envs.register(
@@ -45,18 +46,32 @@ def basic():
     mc.close()
 
 
-def setup_3d_axis():
-    from mpl_toolkits.mplot3d import Axes3D
+def setup_axes():
+    # from mpl_toolkits.mplot3d import Axes3D
 
     fig = pyplot.figure()
-    plot_axis = fig.add_subplot(111, projection="3d")
-    # plot_axis.set_aspect("equal")
+
+    """
+    plot_axis = fig.add_subplot(211, projection="3d")
     plot_axis.set_xlabel("location")
     plot_axis.set_ylabel("velocity")
     plot_axis.set_zlabel("action")
     plot_axis.set_zlim((-1., 1.))
+    """
 
-    return plot_axis
+    actor_axis, critic_axis, reward_axis = fig.subplots(nrows=3, sharex="all")
+
+    actor_axis.set_ylabel("actor error")
+    actor_axis.yaxis.set_label_position("right")
+
+    critic_axis.set_ylabel("critic error")
+    critic_axis.yaxis.set_label_position("right")
+
+    reward_axis.set_ylabel("average reward")
+    reward_axis.yaxis.set_label_position("right")
+    reward_axis.set_xlabel("iteration")
+
+    return actor_axis, critic_axis, reward_axis
 
 
 def rational():
@@ -65,70 +80,68 @@ def rational():
     # env = gym.make("VanillaMountainCar-infinite-v0")
     env.reset()
 
-    controller = RationalSarsa(((-1., 1.),), 2, 100, .9, .002, polynomial_degree=4)
+    controller = RationalSarsa(((-1., 1.),), 2, 100, 10, .9, .002, polynomial_degree=2)
     # controller = NominalSarsaController(("l", "r"), .1, .5, .1)
 
     def some_random_games_first():
         # Each of these is its own game.
         # this is each frame, up to 200...but we wont make it that far.
 
-        average_reward = 0.
-        iterations = 0
         sensor = None
         visualize = False
 
-        sensor_range = (-math.pi, math.pi), (-.04, .04)
-        axis = setup_3d_axis()
-        last_points = deque(maxlen=100)
+        window_size = 100000
 
-        policy = None
-        scatter = None
+        actor_axis, critic_axis, reward_axis = setup_axes()
+        actor_plot, critic_plot, reward_plot = None, None, None
+        actor_data, critic_data, reward_data = deque(maxlen=window_size), deque(maxlen=window_size), deque(maxlen=window_size)
 
         while True:
-            # This will display the environment
-            # Only display if you really want to see it.
-            # Takes much longer to display it.
-            if average_reward >= .9:
-                visualize = True
             if visualize:
                 env.render()
 
-            # This will just create a sample action in any environment.
-            # In this environment, the action can be 0 or 1, which is left or right
-
             if sensor is None:
-                # motor = env.action_space.sample()
+                # motor = tuple(random.uniform(*_range) for _range in MountainCar.motor_range())
                 motor = .0,
             else:
                 motor = controller.react(tuple(sensor))
 
-            # this executes the environment with an action,
-            # and returns the observation of the environment,
-            # the reward, if the env is over, and other info.
             state = env.step(numpy.array(motor))
             sensor, reward, done, info = state
 
             # (x_loc, x_vel)
 
             controller.integrate(tuple(sensor), tuple(motor), reward)
-
-            last_points.append((*sensor, motor))
-
-            average_reward = smear(average_reward, reward, iterations)
-            iterations += 1
+            actor_data.append(controller.average_actor_error)
+            critic_data.append(controller.average_critic_error)
+            reward_data.append(controller.average_reward)
 
             if Timer.time_passed(2000):
-                print(f"{iterations:010d} iterations, average reward: {average_reward:.2f}")
-                print(sensor)
-                if policy is not None:
-                    policy.remove()
-                if scatter is not None:
-                    scatter.remove()
-                policy = plot_surface(axis, lambda _x, _y: controller._decide((_x, _y))[0], sensor_range)
-                scatter = axis.scatter(*zip(*last_points))
+                if actor_plot is not None:
+                    actor_plot.remove()
+                if critic_plot is not None:
+                    critic_plot.remove()
+                if reward_plot is not None:
+                    reward_plot.remove()
+
+                x_min = max(controller._iteration - window_size, 0)
+                x_max = x_min + min(window_size, controller._iteration)
+
+                actor_plot, = actor_axis.plot(range(x_min, x_max), actor_data, color="black")
+                actor_axis.set_xlim((x_min, x_min + window_size))
+                actor_axis.set_ylim((min(actor_data), max(actor_data)))
+
+                critic_plot, = critic_axis.plot(range(x_min, x_max), critic_data, color="black")
+                critic_axis.set_xlim((x_min, x_min + window_size))
+                critic_axis.set_ylim((min(critic_data), max(critic_data)))
+
+                reward_plot, = reward_axis.plot(range(x_min, x_max), reward_data, color="black")
+                reward_axis.set_xlim((x_min, x_min + window_size))
+                reward_axis.set_ylim((min(reward_data), max(reward_data)))
+
+                pyplot.tight_layout()
                 pyplot.draw()
                 pyplot.pause(.001)
-                # controller.save_as("controller.sys")
 
     some_random_games_first()
     env.close()
