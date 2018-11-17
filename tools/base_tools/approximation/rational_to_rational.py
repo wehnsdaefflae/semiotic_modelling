@@ -2,12 +2,15 @@
 import itertools
 import math
 import random
+from collections import deque
 from functools import reduce
 from math import cos
 from typing import Sequence, Tuple, Callable
 
 import numpy
 from matplotlib import pyplot
+
+from tools.base_tools.optimization import stateful_optimizer
 
 from tools.functionality import combinations, smear, get_min_max
 from tools.timer import Timer
@@ -89,7 +92,7 @@ class MultipleLinearRegression(MultipleRegression):
 
 class MultiplePolynomialFromLinearRegression(MultipleRegression):
     def __init__(self, input_dimensionality: int, degree: int, past_scope: int = -1., learning_drag: int = -1):
-        no_polynomial_parameters = len(MultiplePolynomialFromLinearRegression._full_polynomial_features(tuple(0. for _ in range(input_dimensionality)), degree))
+        no_polynomial_parameters = len(MultiplePolynomialFromLinearRegression.full_polynomial_features(tuple(0. for _ in range(input_dimensionality)), degree))
         # no_polynomial_parameters = sum(combinations(_i + 1, _i + input_dimensionality) for _i in range(degree))
         super().__init__(no_polynomial_parameters)
         self._raw_in_dim = input_dimensionality
@@ -99,7 +102,7 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
         self._learning_drag = learning_drag
 
     @staticmethod
-    def _full_polynomial_features(input_values: Sequence[float], degree: int) -> Tuple[float, ...]:
+    def full_polynomial_features(input_values: Sequence[float], degree: int) -> Tuple[float, ...]:
         """
         generates exhaustive polynomial combinations up to defined degree
         for example input values (x, y, z) and degree 2:
@@ -120,14 +123,14 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
         return self._regression._output(input_values)
 
     def _fit(self, input_values: Sequence[float], output_value: float, past_scope: int, learning_drag: int) -> float:
-        poly_inputs = MultiplePolynomialFromLinearRegression._full_polynomial_features(input_values, self._degree)
+        poly_inputs = MultiplePolynomialFromLinearRegression.full_polynomial_features(input_values, self._degree)
         return self._regression._fit(poly_inputs, output_value, past_scope, learning_drag)
 
     def fit(self, input_values: Sequence[float], output_value: float, past_scope: int = -1, learning_drag: int = -1) -> float:
         assert past_scope >= 0 or self._past_scope >= 0
         assert learning_drag >= 0 or self._learning_drag >= 0
         assert len(input_values) == self._raw_in_dim
-        poly_inputs = MultiplePolynomialFromLinearRegression._full_polynomial_features(input_values, self._degree)
+        poly_inputs = MultiplePolynomialFromLinearRegression.full_polynomial_features(input_values, self._degree)
         assert len(poly_inputs) == self._in_dim
         _past_scope = max(past_scope, self._past_scope)
         _learning_drag = max(learning_drag, self._learning_drag)
@@ -135,9 +138,59 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
 
     def output(self, input_values: Sequence[float]) -> float:
         assert len(input_values) == self._raw_in_dim
-        poly_inputs = MultiplePolynomialFromLinearRegression._full_polynomial_features(input_values, self._degree)
+        poly_inputs = MultiplePolynomialFromLinearRegression.full_polynomial_features(input_values, self._degree)
         assert len(poly_inputs) == self._in_dim
         return self._output(poly_inputs)
+
+
+class PolynomialFunction:
+    def __init__(self, input_dimensionality: int, degree: int):
+        self._in_dim = input_dimensionality
+        self._degree = degree
+        self._no_parameters = sum(combinations(_i + 1, _i + input_dimensionality) for _i in range(degree))
+        self._parameters = [0. for _ in range(self._no_parameters)]
+
+    def __str__(self):
+        polynomial_features = [f"x{_i:d}" for _i in range(self._no_parameters)]
+        assert len(polynomial_features) == self._no_parameters
+        _pf = ", ".join(polynomial_features)
+        left_hand = f"f({_pf:s})"
+        right_hand = " + ".join([f"{_p:.4} * {_x:s} ** {str(_i):s}" for _i, (_p, _x) in enumerate(zip(self._parameters, polynomial_features))])
+        return left_hand + " = " + right_hand
+
+    def output(self, input_values: Sequence[float]) -> float:
+        assert len(input_values) == self._in_dim
+        polynomial_features = MultiplePolynomialFromLinearRegression.full_polynomial_features(input_values, self._degree)
+        assert len(polynomial_features) == self._no_parameters
+        return sum(_p * _x ** _i for _i, (_p, _x) in enumerate(zip(self._parameters, polynomial_features)))
+
+    def get_parameters(self) -> Tuple[float, ...]:
+        return tuple(self._parameters)
+
+    def set_parameters(self, parameters: Sequence[float]):
+        assert(len(parameters) == self._no_parameters)
+        for _i, _p in enumerate(parameters):
+            self._parameters[_i] = _p
+
+
+class MultiplePolynomialOptimizationRegression(MultipleRegression):
+    def __init__(self, input_dimensionality: int, degree: int):
+        super().__init__(input_dimensionality)
+        self._no_parameters = sum(combinations(_i + 1, _i + input_dimensionality) for _i in range(degree))
+        self._optimizer = stateful_optimizer([(-100., 100.) for _ in range(self._no_parameters)])
+        self._polynomial_function = PolynomialFunction(input_dimensionality, degree)
+        parameters = self._optimizer.send(None)
+        self._polynomial_function.set_parameters(parameters)
+
+    def _fit(self, input_values: Sequence[float], output_value: float, past_scope: int = -1, learning_drag: int = -1) -> float:
+        predicted = self.output(input_values)
+        error = abs(predicted - output_value)
+        new_parameters = self._optimizer.send(1. / (1. + error))
+        self._polynomial_function.set_parameters(new_parameters)
+        return error
+
+    def _output(self, input_values: Sequence[float]) -> float:
+        return self._polynomial_function.output(input_values)
 
 
 class MultivariateRegression:
@@ -205,9 +258,10 @@ def test_2d():
     plot_axis, error_axis = setup_2d_axes()
 
     r = MultiplePolynomialFromLinearRegression(1, 3, -1)
+    # r = MultiplePolynomialOptimizationRegression(1, 3)
 
-    fun = lambda _x: -cos(_x / (1. * math.pi))
-    # fun = lambda _x: 900. + 1. * _x ** 1. # + -10. * _x ** 2. + 0. * _x ** 3. + 1. * _x ** 4.
+    # fun = lambda _x: -cos(_x / (1. * math.pi))
+    fun = lambda _x: 900. + 1. * _x ** 1. + -10. * _x ** 2. + 0. * _x ** 3. + 1. * _x ** 4.
     x_range = tuple(_x / 10. for _x in range(int(dim_range[0]) * 10, int(dim_range[1]) * 10))
     y_range = tuple(fun(_x) for _x in x_range)
     plot_axis.plot(x_range, y_range, color="C0")
@@ -215,7 +269,8 @@ def test_2d():
 
     iterations = 0
 
-    error_development = []
+    window_size = 100000
+    error_development = deque(maxlen=window_size)
 
     while True:
         x = random.uniform(*dim_range)
@@ -228,8 +283,17 @@ def test_2d():
         if Timer.time_passed(1000):
             print(f"{iterations:d} iterations finished")
 
-            l, = plot_axis.plot(x_range, tuple(r.output([_x]) for _x in x_range), color="C1")
-            e, = error_axis.plot(range(len(error_development)), error_development, color="black")
+            values = tuple(r.output([_x]) for _x in x_range)
+            l, = plot_axis.plot(x_range, values, color="C1")
+            plot_axis.set_ylim((min(values), max(values)))
+
+            x_min = max(0, iterations - window_size)
+            x_max = x_min + window_size
+            error_axis.set_xlim((x_min, x_max))
+
+            x_min_limit = max(0, iterations - len(error_development))
+            e, = error_axis.plot(range(x_min_limit, x_min_limit + len(error_development)), error_development, color="black")
+            error_axis.set_ylim((min(error_development), max(error_development)))
 
             pyplot.pause(.001)
             pyplot.draw()
@@ -358,4 +422,4 @@ def test_3d():
 
 
 if __name__ == "__main__":
-    test_3d()
+    test_2d()
