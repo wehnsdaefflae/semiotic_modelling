@@ -3,8 +3,8 @@ from typing import Tuple
 
 from _framework.data_types import RATIONAL_SENSOR, RATIONAL_MOTOR
 from _framework.systems.controllers.rational.abstract import RationalController
-from tools.functionality import signum, clip, smear, cartesian_distance
-from tools.regression import MultiplePolynomialFromLinearRegression, MultivariatePolynomialRegression
+from tools.base_tools.approximation.rational_to_rational import MultiplePolynomialFromLinearRegression, MultivariatePolynomialRegression
+from tools.functionality import clip, smear, cartesian_distance
 
 
 class RationalSarsa(RationalController):
@@ -43,9 +43,6 @@ class RationalSarsa(RationalController):
 
         self.average_critic_error = 0.
         self.average_actor_error = 0.
-        self.average_reward = 0.
-
-        self._iteration = 0
 
     def _decide(self, sensor: RATIONAL_SENSOR) -> RATIONAL_MOTOR:
         action = tuple(clip(_m, *_ranges) for _m, _ranges in zip(self._actor.output(sensor), self._motor_range))
@@ -54,6 +51,10 @@ class RationalSarsa(RationalController):
 
     def _integrate(self, sensor: RATIONAL_SENSOR, motor: RATIONAL_MOTOR, reward: float):
         # https://mpatacchiola.github.io/blog/2017/02/11/dissecting-reinforcement-learning-4.html
+        # todo: check out actor only policy optimization
+        # todo: check out sensor-only evaluation
+        # todo: check out advantage: https://medium.freecodecamp.org/an-intro-to-advantage-actor-critic-methods-lets-play-sonic-the-hedgehog-86d6240171d
+
         if self._iteration >= 1:
             this_input = sensor + motor
             evaluation = self._critic.output(this_input)
@@ -78,6 +79,5 @@ class RationalSarsa(RationalController):
 
         self._last_sensor, self._last_motor = sensor, motor
         self._last_reward = reward
-        self.average_reward = smear(self.average_reward, reward, self._iteration)
 
         self._iteration += 1

@@ -1,8 +1,8 @@
 # coding=utf-8
-from typing import Optional, Tuple, TypeVar, Generic
+from typing import Optional, TypeVar, Generic
 
 from _framework.systems.abstract import System
-
+from tools.functionality import smear
 
 SENSOR_TYPE = TypeVar("SENSOR_TYPE")
 MOTOR_TYPE = TypeVar("MOTOR_TYPE")
@@ -10,15 +10,19 @@ MOTOR_TYPE = TypeVar("MOTOR_TYPE")
 
 class Controller(System[SENSOR_TYPE, MOTOR_TYPE], Generic[SENSOR_TYPE, MOTOR_TYPE]):
     def __init__(self, *args, **kwargs):
-        pass
+        self._iteration = 0
+        self.average_reward = 0.
 
     def react(self, perception: SENSOR_TYPE) -> MOTOR_TYPE:
-        return self.decide(perception)
+        motor = self.decide(perception)
+        self._iteration += 1
+        return motor
 
     def _integrate(self, perception: SENSOR_TYPE, action: MOTOR_TYPE, reward: float):
         raise NotImplementedError()
 
     def integrate(self, perception: Optional[SENSOR_TYPE], action: MOTOR_TYPE, reward: float):
+        self.average_reward = smear(self.average_reward, reward, self._iteration)
         if perception is None:
             return
         self._integrate(perception, action, reward)

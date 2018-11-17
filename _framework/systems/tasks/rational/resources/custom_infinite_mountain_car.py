@@ -1,7 +1,7 @@
 # coding=utf-8
 import math
 from math import cos
-from typing import Optional, Tuple, Dict, Any
+from typing import Optional, Tuple, Dict, Any, Callable
 
 import gym
 import numpy
@@ -32,6 +32,8 @@ class MountainCar(RationalTask, gym.Env):
         self._car = None
         self._car_green = 0.
 
+        self._friction = .1
+
         self.reset()
 
     def reset(self):
@@ -42,7 +44,7 @@ class MountainCar(RationalTask, gym.Env):
     def react(self, data_in: Optional[RATIONAL_MOTOR]) -> RATIONAL_SENSOR:
         force = data_in[0] + self._hill_force(self._location)
         acceleration = force / self._mass
-        self._velocity = (self._velocity + acceleration) * .99
+        self._velocity = (self._velocity + acceleration) * .999
         self._location += self._velocity
 
         if self._location >= math.pi:
@@ -85,17 +87,20 @@ class MountainCar(RationalTask, gym.Env):
         def v_y(real_y: float) -> float:
             return real_y * screen_height / 25.
 
-        if self._viewer is None:
-            from gym.envs.classic_control import rendering
-            self._viewer = rendering.Viewer(screen_width, screen_height)
-
-            x_range = numpy.linspace(-math.pi, math.pi, 100)
-            y_values = numpy.array(tuple(v_y(self._hill(_y)) for _y in x_range))
+        def render_track(fun: Callable[[float], float], value_range: Tuple[float, float]):
+            x_range = numpy.linspace(*value_range, 100)
+            y_values = numpy.array(tuple(v_y(fun(_y)) for _y in x_range))
             track_data = list(zip((v_x(_x) for _x in x_range), (v_y(_y) for _y in y_values)))
 
             self._track = rendering.make_polyline(track_data)
             self._track.set_linewidth(4)
             self._viewer.add_geom(self._track)
+
+        if self._viewer is None:
+            from gym.envs.classic_control import rendering
+            self._viewer = rendering.Viewer(screen_width, screen_height)
+
+            render_track(self._hill, (-math.pi, math.pi))
 
             clearance = 10
 

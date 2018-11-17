@@ -58,7 +58,6 @@ def stateful_optimizer(ranges: Sequence[RANGE], limit: int = 1000) -> Generator[
             _, center, region = priority_list.pop(0)                    # type: float, POINT, AREA
             sub_regions = _divide(region, center)                       # type: Tuple[AREA, ...]
             cache_list.extend(sub_regions)
-            # cache_list = list(sub_regions) + cache_list
 
         current_region = cache_list.pop()                               # type: AREA
         current_center = __center(current_region)                       # type: POINT
@@ -66,20 +65,10 @@ def stateful_optimizer(ranges: Sequence[RANGE], limit: int = 1000) -> Generator[
         assert current_value >= 0.
 
         __enqueue(current_value, current_center, current_region)
-        while 0 < limit < len(priority_list):
-            priority_list.pop()
+        del(priority_list[limit:])
 
 
 def test_optimizer():
-    with open("../configs/config.json", mode="r") as file:
-        config = json.load(file)
-
-    time_series = series_generator(config["data_dir"] + "binance/QTUMETH.csv")
-    y_values = [_x[1] for _x in time_series]
-    length = len(y_values)
-    x_values = list(range(length))
-    f = lambda _x: y_values[round(_x)]
-
     length = 1000
     x_values = list(range(length))
     f = lambda _x: sin(_x * .07) + cos(_x * .03) + 5.

@@ -2,19 +2,14 @@
 
 # TODO: implement!
 # https://pythonprogramming.net/openai-cartpole-neural-network-example-machine-learning-tutorial/
-import math
-import os
-import random
 from collections import deque
 
 import gym
 import numpy
 from matplotlib import pyplot
 
-from _framework.systems.controllers.rational.implementations.rational_sarsa import RationalSarsa
+from _framework.systems.controllers.rational.implementations.random_controller import RandomRational
 from _framework.systems.tasks.rational.resources.custom_infinite_mountain_car import MountainCar
-from tools.functionality import smear, clip
-from tools.regression import plot_surface, plot_4d
 from tools.timer import Timer
 
 gym.envs.register(
@@ -80,15 +75,16 @@ def rational():
     # env = gym.make("VanillaMountainCar-infinite-v0")
     env.reset()
 
-    controller = RationalSarsa(((-2., 2.),), 2, 500, 5, .5, .2, polynomial_degree=2)
+    # controller = RationalSarsa(((-.5, .5),), 2, 500, 5, .5, .1, polynomial_degree=2)
+    controller = RandomRational(((-.5, .5),))
 
     def some_random_games_first():
         # Each of these is its own game.
         # this is each frame, up to 200...but we wont make it that far.
 
         sensor = None
-        visualize = False
-        plot = True
+        visualize = True
+        plot = False
 
         window_size = 100000
 
@@ -112,8 +108,10 @@ def rational():
             # (x_loc, x_vel)
 
             controller.integrate(tuple(sensor), tuple(motor), reward)
+            """
             actor_data.append(controller.average_actor_error)
             critic_data.append(controller.average_critic_error)
+            """
             reward_data.append(controller.average_reward)
 
             if Timer.time_passed(500) and plot:
