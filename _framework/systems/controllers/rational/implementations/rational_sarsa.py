@@ -41,8 +41,26 @@ class RationalSarsa(RationalController):
             past_scope=past_scope,
             learning_drag=learning_drag)
 
+        # S -> float
+        self._evaluation = MultiplePolynomialFromLinearRegression(
+            sensor_dimensionality,
+            polynomial_degree,
+            past_scope=past_scope,
+            learning_drag=learning_drag
+        )
+
+        # S x M -> float
+        self._advantage = MultiplePolynomialFromLinearRegression(
+            sensor_dimensionality + len(motor_range),
+            polynomial_degree,
+            past_scope=past_scope,
+            learning_drag=learning_drag
+        )
+
         self.average_critic_error = 0.
         self.average_actor_error = 0.
+        self.average_evaluation_error = 0.
+        self.average_advantage_error = 0.
 
     def _decide(self, sensor: RATIONAL_SENSOR) -> RATIONAL_MOTOR:
         action = tuple(clip(_m, *_ranges) for _m, _ranges in zip(self._actor.output(sensor), self._motor_range))
@@ -56,24 +74,32 @@ class RationalSarsa(RationalController):
         # todo: check out advantage: https://medium.freecodecamp.org/an-intro-to-advantage-actor-critic-methods-lets-play-sonic-the-hedgehog-86d6240171d
 
         if self._iteration >= 1:
-            this_input = sensor + motor
-            evaluation = self._critic.output(this_input)
-            last_evaluation_target = self._last_reward + self._gamma * evaluation
+            # evaluation S -> float
+            evaluation = self._evaluation.output(sensor)
+            evaluation_error = self._evaluation.fit(self._last_sensor, self._gamma * evaluation)
+            self.average_evaluation_error = smear(self.average_evaluation_error, evaluation_error, self._iteration - 1)
 
+            # advantage S x M -> float
             last_input = self._last_sensor + self._last_motor
+            advantage = self._last_reward + self._gamma * evaluation - self._evaluation.output(self._last_sensor)
+            advantage_error = self._advantage.fit(last_input, advantage)
+            self.average_advantage_error = smear(self.average_advantage_error, advantage_error, self._iteration - 1)
 
+            # critic S x M -> float
+            this_input = sensor + motor
+            critic_evaluation = self._critic.output(this_input)
+            last_evaluation_target = self._last_reward + self._gamma * critic_evaluation
             critic_error = self._critic.fit(last_input, last_evaluation_target)
             self.average_critic_error = smear(self.average_critic_error, critic_error, self._iteration - 1)
 
+            # actor S -> M (consider advantage instead of critic value)
             best_known = tuple(clip(_m, *_ranges) for _m, _ranges in zip(self._actor.output(self._last_sensor), self._motor_range))
             best_known_eval = self._critic.output(self._last_sensor + best_known)
-
             delta_eval = last_evaluation_target - best_known_eval
             delta_step = tuple(_l - _b for _l, _b in zip(self._last_motor, best_known))
             # better_motor = tuple(clip(_b + signum(_d * delta_eval) * .01, *_ranges) for _b, _d, _ranges in zip(best_known, delta_step, self._motor_range))
             # better_motor = tuple(clip(_b + _d * delta_eval * .01, *_ranges) for _b, _d, _ranges in zip(best_known, delta_step, self._motor_range))
             better_motor = tuple(clip(smear(_b, _b + _d * delta_eval, self._past_scope), *_ranges) for _b, _d, _ranges in zip(best_known, delta_step, self._motor_range))
-
             actor_errors = self._actor.fit(self._last_sensor, better_motor)
             self.average_actor_error = smear(self.average_actor_error, cartesian_distance(actor_errors), self._iteration - 1)
 
