@@ -15,6 +15,7 @@ class NominalSemioticModel(Predictor[NOMINAL_INPUT, NOMINAL_OUTPUT]):
     def __init__(self, no_examples: int, alpha: int, sigma: float, trace_length: int = 1,
                  fix_level_size_at: Callable[[int], int] = lambda _level: -1):
         super().__init__(no_examples)
+        # TODO: implement predictor with external model and _one_ external state -> combine into multi-state predictor
         self.base_content_factory = ContentFactory(1, 1, 1, alpha)
         self.alpha = alpha
         self.sigma = sigma

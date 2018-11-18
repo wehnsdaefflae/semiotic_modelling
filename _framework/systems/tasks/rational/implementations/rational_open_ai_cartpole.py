@@ -7,7 +7,7 @@ import os
 import gym
 import numpy
 
-from _framework.systems.controllers.rational.implementations.rational_sarsa import RationalSarsa
+from _framework.systems.controllers.rational.implementations.actor_critic import RationalSarsa
 from tools.functionality import smear
 from tools.timer import Timer
 

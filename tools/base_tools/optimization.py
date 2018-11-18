@@ -2,18 +2,51 @@
 # coding=utf-8
 import itertools
 import json
+import math
+import random
 from math import sqrt, sin, cos
 from typing import Sequence, Tuple, List, Generator, Optional
 
 from matplotlib import pyplot
 
 from data_generation.data_processing import series_generator
+from tools.functionality import normalize_vector, signum, cartesian_distance
 
 RANGE = Tuple[float, float]
 POINT = Tuple[float, ...]
 SAMPLE = Tuple[POINT, float]
 AREA = Tuple[POINT, POINT]
 PRIORITY_ELEMENT = Tuple[float, POINT, AREA]
+
+
+def gradient_optimizer(ranges: Sequence[RANGE], step_size: float) -> Generator[POINT, Optional[float], None]:
+    assert 0. < step_size
+
+    next_parameters = [sum(_range) / 2. for _range in ranges]
+    length = cartesian_distance(tuple(1. for _ in ranges))
+    direction = [step_size / length for _range in ranges]
+
+    yield next_parameters
+
+    last_value = yield next_parameters
+
+    for _i, _p in enumerate(next_parameters):
+        next_parameters[_i] += direction[_i]
+
+    this_value = yield next_parameters
+
+    while True:
+        difference = this_value - last_value
+
+        _ = 0
+        for _i, _d in enumerate(direction):
+            _c = _d - step_size * _d * signum(difference)
+            direction[_i] = _c
+            next_parameters[_i] += _c
+
+        this_value = yield tuple(next_parameters)
+
+        last_value = this_value
 
 
 def stateful_optimizer(ranges: Sequence[RANGE], limit: int = 1000) -> Generator[POINT, Optional[float], None]:
@@ -74,9 +107,12 @@ def test_optimizer():
     f = lambda _x: sin(_x * .07) + cos(_x * .03) + 5.
     y_values = [f(x) for x in x_values]
 
+    pyplot.plot(x_values, y_values, color="C0")
+
     max_value = max(y_values)
     parameter_ranges = (0., length),
-    optimizer = stateful_optimizer(parameter_ranges)
+    # optimizer = stateful_optimizer(parameter_ranges)
+    optimizer = gradient_optimizer(parameter_ranges, .5)
 
     pyplot.plot(x_values, y_values, color="white")
 
