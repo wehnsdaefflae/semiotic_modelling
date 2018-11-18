@@ -19,36 +19,6 @@ AREA = Tuple[POINT, POINT]
 PRIORITY_ELEMENT = Tuple[float, POINT, AREA]
 
 
-def gradient_optimizer(ranges: Sequence[RANGE], step_size: float) -> Generator[POINT, Optional[float], None]:
-    assert 0. < step_size
-
-    next_parameters = [sum(_range) / 2. for _range in ranges]
-    length = cartesian_distance(tuple(1. for _ in ranges))
-    direction = [step_size / length for _range in ranges]
-
-    yield next_parameters
-
-    last_value = yield next_parameters
-
-    for _i, _p in enumerate(next_parameters):
-        next_parameters[_i] += direction[_i]
-
-    this_value = yield next_parameters
-
-    while True:
-        difference = this_value - last_value
-
-        _ = 0
-        for _i, _d in enumerate(direction):
-            _c = _d - step_size * _d * signum(difference)
-            direction[_i] = _c
-            next_parameters[_i] += _c
-
-        this_value = yield tuple(next_parameters)
-
-        last_value = this_value
-
-
 def stateful_optimizer(ranges: Sequence[RANGE], limit: int = 1000) -> Generator[POINT, Optional[float], None]:
     dimensionality = len(ranges)                                        # type: int
     origin = tuple(min(_x) for _x in ranges)                            # type: POINT
@@ -99,6 +69,38 @@ def stateful_optimizer(ranges: Sequence[RANGE], limit: int = 1000) -> Generator[
 
         __enqueue(current_value, current_center, current_region)
         del(priority_list[limit:])
+
+
+class GradientOptimizer:
+    def __init__(self, ranges: Sequence[RANGE], step_size: float):
+        self._ranges = ranges
+        self._step_size = step_size
+        self._last_value = 0.
+        self._this_parameters = tuple(1. for _ in ranges)
+        self._last_parameters = tuple(0. for _ in ranges)
+
+    def optimize(self, this_value: float) -> POINT:
+        value_difference = this_value - self._last_value
+        parameter_difference = tuple(_p - _lp for _p, _lp in zip(self._this_parameters, self._last_parameters))
+
+        target_change = tuple(
+            signum(value_difference) * self._step_size  # * _d * self._last_parameters[_i]
+            for _i, _d in enumerate(parameter_difference)
+        )
+
+        self._last_value = this_value
+        self._last_parameters = self._this_parameters
+        self._this_parameters = tuple(_p + _c for _p, _c in zip(self._this_parameters, target_change))
+        return self._this_parameters
+
+
+def gradient_optimizer(ranges: Sequence[RANGE], step_size: float) -> Generator[POINT, Optional[float], None]:
+    assert 0. < step_size
+    go = GradientOptimizer(ranges, step_size)
+    value = 0.
+
+    while True:
+        value = yield go.optimize(value)
 
 
 def test_optimizer():
