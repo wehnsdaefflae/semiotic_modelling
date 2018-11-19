@@ -5,12 +5,13 @@ import json
 import math
 import random
 from math import sqrt, sin, cos
-from typing import Sequence, Tuple, List, Generator, Optional
+from typing import Sequence, Tuple, List, Generator, Optional, Callable
 
+import numpy
 from matplotlib import pyplot
 
 from data_generation.data_processing import series_generator
-from tools.functionality import normalize_vector, signum, cartesian_distance
+from tools.functionality import normalize_vector, signum, cartesian_distance, get_min_max
 
 RANGE = Tuple[float, float]
 POINT = Tuple[float, ...]
@@ -76,21 +77,23 @@ class GradientOptimizer:
         self._ranges = ranges
         self._step_size = step_size
         self._last_value = 0.
-        self._this_parameters = tuple(1. for _ in ranges)
-        self._last_parameters = tuple(0. for _ in ranges)
+        self._this_parameters = tuple(sum(_range) / 2. for _range in ranges)
+        self._last_step = tuple(_i + 1. for _i in range(len(ranges)))
+        self._initial = True
 
     def optimize(self, this_value: float) -> POINT:
-        value_difference = this_value - self._last_value
-        parameter_difference = tuple(_p - _lp for _p, _lp in zip(self._this_parameters, self._last_parameters))
+        if self._initial:
+            self._initial = False
 
-        target_change = tuple(
-            signum(value_difference) * self._step_size  # * _d * self._last_parameters[_i]
-            for _i, _d in enumerate(parameter_difference)
-        )
+        else:
+            value_difference = this_value - self._last_value
+            for _i, _s in enumerate(self._last_step):
+                self._last_step[_i] = value_difference * _s
 
+        self._last_step = [_x for _x in normalize_vector(self._last_step, target_length=self._step_size)]
+        print(self._last_step)
+        self._this_parameters = tuple(_p + _c for _p, _c in zip(self._this_parameters, self._last_step))
         self._last_value = this_value
-        self._last_parameters = self._this_parameters
-        self._this_parameters = tuple(_p + _c for _p, _c in zip(self._this_parameters, target_change))
         return self._this_parameters
 
 
@@ -103,7 +106,7 @@ def gradient_optimizer(ranges: Sequence[RANGE], step_size: float) -> Generator[P
         value = yield go.optimize(value)
 
 
-def test_optimizer():
+def test_optimizer_2d():
     length = 1000
     x_values = list(range(length))
     f = lambda _x: sin(_x * .07) + cos(_x * .03) + 5.
@@ -114,7 +117,7 @@ def test_optimizer():
     max_value = max(y_values)
     parameter_ranges = (0., length),
     # optimizer = stateful_optimizer(parameter_ranges)
-    optimizer = gradient_optimizer(parameter_ranges, .5)
+    optimizer = gradient_optimizer(parameter_ranges, 1.)
 
     pyplot.plot(x_values, y_values, color="white")
 
@@ -138,6 +141,65 @@ def test_optimizer():
     pyplot.show()
 
 
+def plot_surface(axis: pyplot.Axes.axes, _fun: Callable[[float, float], float], dim_ranges: Tuple[Tuple[float, float], Tuple[float, float]], colormap=None, resize: bool = False):
+    _x = numpy.linspace(dim_ranges[0][0], dim_ranges[0][1], endpoint=True, num=100)
+    _y = numpy.linspace(dim_ranges[1][0], dim_ranges[1][1], endpoint=True, num=100)
+
+    _X, _Y = numpy.meshgrid(_x, _y)
+
+    _z = numpy.array(tuple(_fun(__x, __y) for __x, __y in zip(numpy.ravel(_X), numpy.ravel(_Y))))
+
+    _Z = _z.reshape(_X.shape)
+
+    if resize:
+        z_min, z_max = get_min_max(_z)
+        z_margin = (z_max - z_min) * .1
+        min_margin = z_min - z_margin
+        max_margin = z_max + z_margin
+
+        try:
+            axis.set_zlim((min_margin, max_margin))
+        except ValueError:
+            print("infinite axis value")
+
+    if colormap is None:
+        return axis.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False)
+    return axis.plot_surface(_X, _Y, _Z, alpha=.2, antialiased=False, cmap=colormap)
+
+
+def test_optimizer_3d():
+    dim_range = -10., 10.
+
+    from mpl_toolkits.mplot3d import Axes3D
+
+    fig = pyplot.figure()
+    plot_axis = fig.add_subplot(111, projection='3d')
+
+    go = gradient_optimizer([dim_range, dim_range], .1)
+
+    # fun = lambda _x, _y: 10. + 1. * _x ** 1. + 1. * _y ** 1. + 4. * _x * _y + 1. * _x ** 2. + -2.6 * _y ** 2.
+    fun = lambda _x, _y: cos((_x + 0.) / (1. * math.pi)) + cos((_y + 0.) / (1. * math.pi)) - cos((_x + 0.) / (.5 * math.pi)) - cos((_y + 0.) / (.5 * math.pi)) - _x
+    plot_surface(plot_axis, fun, (dim_range, dim_range))
+    pyplot.pause(.001)
+    pyplot.draw()
+
+    iterations = 0
+
+    x, y = go.send(None)
+    while True:
+        z = fun(x, y)
+        plot_axis.scatter([x], [y], [z], alpha=.5, color="black")
+
+        x, y = go.send(z)
+
+        pyplot.pause(.25)
+        pyplot.draw()
+
+        iterations += 1
+
+    pyplot.show()
+
+
 if __name__ == "__main__":
-    test_optimizer()
+    test_optimizer_3d()
 

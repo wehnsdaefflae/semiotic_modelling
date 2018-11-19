@@ -16,6 +16,11 @@ from tools.functionality import combinations, smear, get_min_max
 from tools.timer import Timer
 
 
+class FulcrumApproximation:
+    pass
+    # TODO: implement
+
+
 class SingleLinearRegression:
     # https://towardsdatascience.com/implementation-linear-regression-in-python-in-5-minutes-from-scratch-f111c8cc5c99
     def __init__(self, past_scope: int = -1, learning_drag: int = -1):

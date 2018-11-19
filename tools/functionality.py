@@ -182,11 +182,11 @@ def combinations(drawn: int, total: int) -> int:
     return math.factorial(total) // (math.factorial(drawn) * math.factorial(total - drawn))
 
 
-def normalize_vector(vector: Sequence[float]) -> Tuple[float, ...]:
+def normalize_vector(vector: Sequence[float], target_length: float = 1.) -> Tuple[float, ...]:
     length = cartesian_distance(vector)
     if length == 0.:
-        return vector
-    return tuple(_x / length for _x in vector)
+        return tuple(0. for _ in vector)
+    return tuple(target_length * _x / length for _x in vector)
 
 
 def smear(average: float, value: float, inertia: int) -> float:
