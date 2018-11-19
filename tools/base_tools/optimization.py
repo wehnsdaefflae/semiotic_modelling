@@ -174,11 +174,12 @@ def test_optimizer_3d():
 
     fig = pyplot.figure()
     plot_axis = fig.add_subplot(111, projection='3d')
+    plot_axis.set_aspect("equal")
 
     go = gradient_optimizer([dim_range, dim_range], .1)
 
     # fun = lambda _x, _y: 10. + 1. * _x ** 1. + 1. * _y ** 1. + 4. * _x * _y + 1. * _x ** 2. + -2.6 * _y ** 2.
-    fun = lambda _x, _y: cos((_x + 0.) / (1. * math.pi)) + cos((_y + 0.) / (1. * math.pi)) - cos((_x + 0.) / (.5 * math.pi)) - cos((_y + 0.) / (.5 * math.pi)) - _x
+    fun = lambda _x, _y: cos((_x + 0.) / (1. * math.pi)) + cos((_y + 0.) / (1. * math.pi)) - cos((_x + 0.) / (.5 * math.pi)) - cos((_y + 0.) / (.5 * math.pi)) - .5 * _x
     plot_surface(plot_axis, fun, (dim_range, dim_range))
     pyplot.pause(.001)
     pyplot.draw()
@@ -192,7 +193,7 @@ def test_optimizer_3d():
 
         x, y = go.send(z)
 
-        pyplot.pause(.25)
+        pyplot.pause(.1)
         pyplot.draw()
 
         iterations += 1

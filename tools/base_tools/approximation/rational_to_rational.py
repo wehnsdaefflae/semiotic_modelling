@@ -21,6 +21,11 @@ class FulcrumApproximation:
     # TODO: implement
 
 
+class GradientDescentApproximation:
+    pass
+    # https://machinelearningmastery.com/implement-linear-regression-stochastic-gradient-descent-scratch-python/
+
+
 class SingleLinearRegression:
     # https://towardsdatascience.com/implementation-linear-regression-in-python-in-5-minutes-from-scratch-f111c8cc5c99
     def __init__(self, past_scope: int = -1, learning_drag: int = -1):
@@ -162,6 +167,9 @@ class PolynomialFunction:
         left_hand = f"f({_pf:s})"
         right_hand = " + ".join([f"{_p:.4} * {_x:s} ** {str(_i):s}" for _i, (_p, _x) in enumerate(zip(self._parameters, polynomial_features))])
         return left_hand + " = " + right_hand
+
+    def derived_parameters(self) -> Tuple[float, ...]:
+        return tuple(_x + _i for _i, _x in enumerate(self._parameters[1:]))
 
     def output(self, input_values: Sequence[float]) -> float:
         assert len(input_values) == self._in_dim
