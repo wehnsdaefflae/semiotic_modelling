@@ -159,6 +159,31 @@ class PolynomialFunction:
         self._degree = degree
         self._no_parameters = sum(combinations(_i + 1, _i + input_dimensionality) for _i in range(degree))
         self._parameters = [0. for _ in range(self._no_parameters)]
+        self._new_parameters = tuple(
+            [0. for _ in range(combinations(_i + 1, _i + input_dimensionality))]  # every in_dim plus input_index-th value contains input_index
+            for _i in range(degree)
+        )
+
+    @staticmethod
+    def full_polynomial_features(input_values: Sequence[float], degree: int) -> Tuple[Tuple[float, ...], ...]:
+        """
+        generates exhaustive polynomial combinations up to defined degree
+        for example input values (x, y, z) and degree 2:
+        (
+            (x, y, z),
+            (x*y, x*z, y*z, x^2, y^2, z^2),
+            (x*y*z, x^2 * y, x^2 * z, y^2 * x, y^2 * z, z^2 * x, z^2 * y, x^3, y^3, z^3),
+        )
+        """
+        assert degree >= 1
+        for _i in range(degree):
+            for _c in itertools.combinations_with_replacement(input_values, _i + 1)
+                reduce(lambda _x, _y: _x * _y, _c)
+        return tuple(
+            reduce(lambda _x, _y: _x * _y, _c)
+            for _i in range(degree)
+            for _c in itertools.combinations_with_replacement(input_values, _i + 1)
+        )
 
     def __str__(self):
         polynomial_features = [f"x{_i:d}" for _i in range(self._no_parameters)]
@@ -168,8 +193,12 @@ class PolynomialFunction:
         right_hand = " + ".join([f"{_p:.4} * {_x:s} ** {str(_i):s}" for _i, (_p, _x) in enumerate(zip(self._parameters, polynomial_features))])
         return left_hand + " = " + right_hand
 
-    def derived_parameters(self) -> Tuple[float, ...]:
-        return tuple(_x + _i for _i, _x in enumerate(self._parameters[1:]))
+    def derived_parameters(self, derive_by: int = 0) -> "PolynomialFunction":
+        assert self._degree >= 1
+        assert derive_by < self._in_dim
+        derivative = PolynomialFunction(self._in_dim, self._degree - 1)
+        derivative.set_parameters(tuple(_x + _i for _i, _x in enumerate(self._parameters[1:])))
+        return derivative
 
     def output(self, input_values: Sequence[float]) -> float:
         assert len(input_values) == self._in_dim
