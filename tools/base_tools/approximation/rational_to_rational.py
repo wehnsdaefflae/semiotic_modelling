@@ -164,6 +164,13 @@ class PolynomialFunction:
             for _i in range(degree)
         )
 
+    def get_input_indices(self, degree):
+        assert degree >= 1
+        return tuple(
+            tuple(itertools.combinations_with_replacement(range(self._in_dim), _i + 1))
+            for _i in range(degree)
+        )
+
     @staticmethod
     def full_polynomial_features(input_values: Sequence[float], degree: int) -> Tuple[Tuple[float, ...], ...]:
         """
@@ -176,13 +183,17 @@ class PolynomialFunction:
         )
         """
         assert degree >= 1
-        for _i in range(degree):
-            for _c in itertools.combinations_with_replacement(input_values, _i + 1)
-                reduce(lambda _x, _y: _x * _y, _c)
+        # PolynomialFunction.full_polynomial_features((2., 1.2), 2)
+        # (((0,), (1,)), ((0, 0), (0, 1), (1, 1)))
+        # PolynomialFunction.full_polynomial_features((2., 1.2, 3.), 2)
+        # (((0,), (1,), (2,)), ((0, 0), (0, 1), (0, 2), (1, 1), (1, 2), (2, 2)))
         return tuple(
-            reduce(lambda _x, _y: _x * _y, _c)
+            tuple(
+                _c
+                # reduce(lambda _x, _y: _x * _y, _c)
+                for _c in itertools.combinations_with_replacement(range(len(input_values)), _i + 1)
+            )
             for _i in range(degree)
-            for _c in itertools.combinations_with_replacement(input_values, _i + 1)
         )
 
     def __str__(self):
