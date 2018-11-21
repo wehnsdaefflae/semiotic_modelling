@@ -190,11 +190,14 @@ class PolynomialFunction:
         )
 
     def __str__(self):
-        polynomial_features = [f"x{_i:d}" for _i in range(self._no_parameters)]
-        assert len(polynomial_features) == self._no_parameters
+        polynomial_features = [f"x{_i:d}" for _i in range(self._in_dim)]
         _pf = ", ".join(polynomial_features)
         left_hand = f"f({_pf:s})"
-        right_hand = " + ".join([f"{_p:.4} * {_x:s} ** {str(_i):s}" for _i, (_p, _x) in enumerate(zip(self._parameters, polynomial_features))])
+        right_hand_lst = ""
+        for _i, (_d, _indices) in enumerate(self._coefficients, self._input_indices):
+            each_deg = []
+            for _c in
+        # right_hand = " + ".join([f"{_p:.4} * {_x:s} ** {str(_i):s}" for _i, (_p, _x) in enumerate(zip(self._parameters, polynomial_features))])
         return left_hand + " = " + right_hand
 
     def derived_parameters(self, derive_by: int = 0) -> "PolynomialFunction":
