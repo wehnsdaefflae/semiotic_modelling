@@ -157,12 +157,10 @@ class PolynomialFunction:
     def __init__(self, input_dimensionality: int, degree: int):
         self._in_dim = input_dimensionality
         self._degree = degree
-        #self._no_parameters = sum(combinations(_i + 1, _i + input_dimensionality) for _i in range(degree))
-        #self._parameters = [0. for _ in range(self._no_parameters)]
 
         # 2, 2 -> (((0,), (1,)), ((0, 0), (0, 1), (1, 1)))
         # 3, 2 -> (((0,), (1,), (2,)), ((0, 0), (0, 1), (0, 2), (1, 1), (1, 2), (2, 2)))
-        self._input_indices = tuple(
+        self._input_indices = (((-1,),),) + tuple(
             tuple(itertools.combinations_with_replacement(range(self._in_dim), _i + 1))
             for _i in range(degree)
         )
@@ -190,17 +188,23 @@ class PolynomialFunction:
         )
 
     def __str__(self):
+        lst = []
+        for _j, (_c, _i) in enumerate(zip(self._coefficients, self._input_indices)):
+            if _j < 1:
+                assert len(_c) == 1
+                lst.append(f"{_c[0]:.1f}")
+            else:
+                for __c, __i in zip(_c, _i):
+                    i = " ".join([f"x{_j:d}" for _j in __i])
+                    s = f"{__c:.1f} {i:s}"
+                    lst.append(s)
         polynomial_features = [f"x{_i:d}" for _i in range(self._in_dim)]
         _pf = ", ".join(polynomial_features)
         left_hand = f"f({_pf:s})"
-        right_hand_lst = ""
-        for _i, (_d, _indices) in enumerate(self._coefficients, self._input_indices):
-            each_deg = []
-            for _c in
-        # right_hand = " + ".join([f"{_p:.4} * {_x:s} ** {str(_i):s}" for _i, (_p, _x) in enumerate(zip(self._parameters, polynomial_features))])
+        right_hand = " + ".join(lst)
         return left_hand + " = " + right_hand
 
-    def derived_parameters(self, derive_by: int = 0) -> "PolynomialFunction":
+    def derive(self, derive_by: int = 0) -> "PolynomialFunction":
         assert self._degree >= 1
         assert derive_by < self._in_dim
         derivative = PolynomialFunction(self._in_dim, self._degree - 1)
@@ -212,6 +216,25 @@ class PolynomialFunction:
             )
             for _i, (_in, _x) in enumerate(zip(self._input_indices, self._coefficients)) if 0 < _i
         )
+
+        derived_coefficients = []
+        for _i, (_in, _x) in enumerate(zip(self._input_indices, self._coefficients)):
+            if 0 < _i:
+                l = []
+                for __i, __x in enumerate(_x):
+                    v = __x + (_i if _in[__i] == derive_by else 0.)
+                    l.append(v)
+                derived_coefficients.append(tuple(l))
+
+        """
+        derived_coefficients = tuple(
+            tuple(
+                __x + (_i if _in[__i] == derive_by else 0.)
+                for __i, __x in enumerate(_x)
+            )
+            for _i, (_in, _x) in enumerate(zip(self._input_indices, self._coefficients)) if 0 < _i
+        )
+        """
 
         derivative.set_coefficients(derived_coefficients)
         return derivative
@@ -484,4 +507,15 @@ def test_3d():
 
 
 if __name__ == "__main__":
+    p = PolynomialFunction(3, 2)
+    print(p)
+    d = p.derive(derive_by=0)
+    print(d)
+    d = p.derive(derive_by=1)
+    print(d)
+    d = p.derive(derive_by=2)
+    print(d)
+
+
+    exit()
     test_2d()
