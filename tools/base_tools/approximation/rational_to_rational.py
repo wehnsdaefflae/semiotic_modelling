@@ -157,43 +157,36 @@ class PolynomialFunction:
     def __init__(self, input_dimensionality: int, degree: int):
         self._in_dim = input_dimensionality
         self._degree = degree
-        self._no_parameters = sum(combinations(_i + 1, _i + input_dimensionality) for _i in range(degree))
-        self._parameters = [0. for _ in range(self._no_parameters)]
-        self._new_parameters = tuple(
-            [0. for _ in range(combinations(_i + 1, _i + input_dimensionality))]  # every in_dim plus input_index-th value contains input_index
-            for _i in range(degree)
-        )
+        #self._no_parameters = sum(combinations(_i + 1, _i + input_dimensionality) for _i in range(degree))
+        #self._parameters = [0. for _ in range(self._no_parameters)]
 
-    def get_input_indices(self, degree):
-        assert degree >= 1
-        return tuple(
+        # 2, 2 -> (((0,), (1,)), ((0, 0), (0, 1), (1, 1)))
+        # 3, 2 -> (((0,), (1,), (2,)), ((0, 0), (0, 1), (0, 2), (1, 1), (1, 2), (2, 2)))
+        self._input_indices = tuple(
             tuple(itertools.combinations_with_replacement(range(self._in_dim), _i + 1))
             for _i in range(degree)
         )
+        self._coefficients = tuple([0. for _ in _d] for _d in self._input_indices)
 
     @staticmethod
-    def full_polynomial_features(input_values: Sequence[float], degree: int) -> Tuple[Tuple[float, ...], ...]:
+    def polynomial_values(input_values: Sequence[float], degree: int) -> Tuple[Tuple[float, ...], ...]:
         """
         generates exhaustive polynomial combinations up to defined degree
         for example input values (x, y, z) and degree 2:
         (
             (x, y, z),
             (x*y, x*z, y*z, x^2, y^2, z^2),
-            (x*y*z, x^2 * y, x^2 * z, y^2 * x, y^2 * z, z^2 * x, z^2 * y, x^3, y^3, z^3),
+            (x*y*z, x^2 * y, x^2 * z, y^2 * x, y^2 * z, z^2 * x, z^2 * y, x^3, y^3, z^3)
         )
         """
         assert degree >= 1
-        # PolynomialFunction.full_polynomial_features((2., 1.2), 2)
-        # (((0,), (1,)), ((0, 0), (0, 1), (1, 1)))
-        # PolynomialFunction.full_polynomial_features((2., 1.2, 3.), 2)
-        # (((0,), (1,), (2,)), ((0, 0), (0, 1), (0, 2), (1, 1), (1, 2), (2, 2)))
         return tuple(
             tuple(
-                _c
-                # reduce(lambda _x, _y: _x * _y, _c)
-                for _c in itertools.combinations_with_replacement(range(len(input_values)), _i + 1)
+                reduce(lambda _x, _y: _x * _y, each_combination)
+                for each_combination in itertools.combinations_with_replacement(input_values, _i + 1)
             )
             for _i in range(degree)
+
         )
 
     def __str__(self):
@@ -208,22 +201,35 @@ class PolynomialFunction:
         assert self._degree >= 1
         assert derive_by < self._in_dim
         derivative = PolynomialFunction(self._in_dim, self._degree - 1)
-        derivative.set_parameters(tuple(_x + _i for _i, _x in enumerate(self._parameters[1:])))
+
+        derived_coefficients = tuple(
+            tuple(
+                __x + (_i if _in[__i] == derive_by else 0.)
+                for __i, __x in enumerate(_x)
+            )
+            for _i, (_in, _x) in enumerate(zip(self._input_indices, self._coefficients)) if 0 < _i
+        )
+
+        derivative.set_coefficients(derived_coefficients)
         return derivative
 
     def output(self, input_values: Sequence[float]) -> float:
         assert len(input_values) == self._in_dim
-        polynomial_features = MultiplePolynomialFromLinearRegression.full_polynomial_features(input_values, self._degree)
-        assert len(polynomial_features) == self._no_parameters
-        return sum(_p * _x ** _i for _i, (_p, _x) in enumerate(zip(self._parameters, polynomial_features)))
+        polynomial_values = PolynomialFunction.polynomial_values(input_values, self._degree)
+        assert len(polynomial_values) == self._degree
+        s = 0.
+        for _i, (_v, _c) in enumerate(zip(polynomial_values, self._coefficients)):
+            s += sum(__c * __v ** _i for __c, __v in zip(_c, _v))
+        return s
 
-    def get_parameters(self) -> Tuple[float, ...]:
-        return tuple(self._parameters)
+    def get_coefficients(self) -> Tuple[Tuple[float, ...], ...]:
+        return tuple(tuple(_d) for _d in self._coefficients)
 
-    def set_parameters(self, parameters: Sequence[float]):
-        assert(len(parameters) == self._no_parameters)
-        for _i, _p in enumerate(parameters):
-            self._parameters[_i] = _p
+    def set_coefficients(self, coefficients: Sequence[Sequence[float]]):
+        assert(len(coefficients) == self._degree)
+        for _s, _d in zip(self._coefficients, coefficients):
+            for _i, _c in enumerate(_d):
+                _s[_i] = _c
 
 
 class MultiplePolynomialOptimizationRegression(MultipleRegression):
