@@ -10,9 +10,9 @@ from typing import Sequence, Tuple, Callable
 import numpy
 from matplotlib import pyplot
 
-from tools.base_tools.optimization import stateful_optimizer
+from tools.base_tools.approximation.functions import PolynomialFunction
 
-from tools.functionality import combinations, smear, get_min_max
+from tools.functionality import smear, get_min_max
 from tools.timer import Timer
 
 
@@ -37,6 +37,11 @@ class SingleLinearRegression:
         self._cross_variance_xy = 0.
         self._a0 = 0.
         self._a1 = 0.
+
+    def get_function(self) -> PolynomialFunction:
+        fun = PolynomialFunction(1, 1)
+        fun.coefficients = (self._a0,), (self._a1,)
+        return fun
 
     def fit(self, input_value: float, output_value: float, past_scope: int = -1, learning_drag: int = -1) -> float:
         assert self._past_scope >= 0 or past_scope >= 0
@@ -68,6 +73,9 @@ class MultipleRegression:
     def __init__(self, input_dimensionality: int):
         self._in_dim = input_dimensionality
 
+    def get_function(self) -> PolynomialFunction:
+        raise NotImplementedError()
+
     def _fit(self, input_values: Sequence[float], output_value: float, past_scope: int, learning_drag: int) -> float:
         raise NotImplementedError()
 
@@ -87,6 +95,11 @@ class MultipleLinearRegression(MultipleRegression):
     def __init__(self, input_dimensionality: int, past_scope: int = -1, learning_drag: int = -1):
         super().__init__(input_dimensionality)
         self._regressions = tuple(SingleLinearRegression(past_scope=past_scope, learning_drag=learning_drag) for _ in range(input_dimensionality))
+
+    def get_function(self) -> PolynomialFunction:
+        fun = PolynomialFunction(self._in_dim, 1)
+        raise NotImplementedError()
+        return fun
 
     def _output(self, input_values: Sequence[float]) -> float:
         return sum(_regression.output(_x) for _regression, _x in zip(self._regressions, input_values))
@@ -110,6 +123,11 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
         self._regression = MultipleLinearRegression(no_polynomial_parameters, past_scope=past_scope, learning_drag=learning_drag)
         self._past_scope = past_scope
         self._learning_drag = learning_drag
+
+    def get_function(self) -> PolynomialFunction:
+        fun = PolynomialFunction(self._in_dim, self._degree)
+        raise NotImplementedError()
+        return fun
 
     @staticmethod
     def full_polynomial_features(input_values: Sequence[float], degree: int) -> Tuple[float, ...]:
@@ -153,137 +171,15 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
         return self._output(poly_inputs)
 
 
-class PolynomialFunction:
-    def __init__(self, input_dimensionality: int, degree: int):
-        self._in_dim = input_dimensionality
-        self._degree = degree
-
-        # 2, 2 -> (((0,), (1,)), ((0, 0), (0, 1), (1, 1)))
-        # 3, 2 -> (((0,), (1,), (2,)), ((0, 0), (0, 1), (0, 2), (1, 1), (1, 2), (2, 2)))
-        self._input_indices = (((-1,),),) + tuple(
-            tuple(itertools.combinations_with_replacement(range(self._in_dim), _i + 1))
-            for _i in range(degree)
-        )
-        self._coefficients = tuple([0. for _ in _d] for _d in self._input_indices)
-
-    @staticmethod
-    def polynomial_values(input_values: Sequence[float], degree: int) -> Tuple[Tuple[float, ...], ...]:
-        """
-        generates exhaustive polynomial combinations up to defined degree
-        for example input values (x, y, z) and degree 2:
-        (
-            (x, y, z),
-            (x*y, x*z, y*z, x^2, y^2, z^2),
-            (x*y*z, x^2 * y, x^2 * z, y^2 * x, y^2 * z, z^2 * x, z^2 * y, x^3, y^3, z^3)
-        )
-        """
-        assert degree >= 1
-        return tuple(
-            tuple(
-                reduce(lambda _x, _y: _x * _y, each_combination)
-                for each_combination in itertools.combinations_with_replacement(input_values, _i + 1)
-            )
-            for _i in range(degree)
-
-        )
-
-    def __str__(self):
-        lst = []
-        for _j, (_c, _i) in enumerate(zip(self._coefficients, self._input_indices)):
-            if _j < 1:
-                assert len(_c) == 1
-                lst.append(f"{_c[0]:.1f}")
-            else:
-                for __c, __i in zip(_c, _i):
-                    i = " ".join([f"x{_j:d}" for _j in __i])
-                    s = f"{__c:.1f} {i:s}"
-                    lst.append(s)
-        polynomial_features = [f"x{_i:d}" for _i in range(self._in_dim)]
-        _pf = ", ".join(polynomial_features)
-        left_hand = f"f({_pf:s})"
-        right_hand = " + ".join(lst)
-        return left_hand + " = " + right_hand
-
-    def derive(self, derive_by: int = 0) -> "PolynomialFunction":
-        assert self._degree >= 1
-        assert derive_by < self._in_dim
-        derivative = PolynomialFunction(self._in_dim, self._degree - 1)
-
-        derived_coefficients = tuple(
-            tuple(
-                __x + (_i if _in[__i] == derive_by else 0.)
-                for __i, __x in enumerate(_x)
-            )
-            for _i, (_in, _x) in enumerate(zip(self._input_indices, self._coefficients)) if 0 < _i
-        )
-
-        derived_coefficients = []
-        for _i, (_in, _x) in enumerate(zip(self._input_indices, self._coefficients)):
-            if 0 < _i:
-                l = []
-                for __i, __x in enumerate(_x):
-                    v = __x + (_i if _in[__i] == derive_by else 0.)
-                    l.append(v)
-                derived_coefficients.append(tuple(l))
-
-        """
-        derived_coefficients = tuple(
-            tuple(
-                __x + (_i if _in[__i] == derive_by else 0.)
-                for __i, __x in enumerate(_x)
-            )
-            for _i, (_in, _x) in enumerate(zip(self._input_indices, self._coefficients)) if 0 < _i
-        )
-        """
-
-        derivative.set_coefficients(derived_coefficients)
-        return derivative
-
-    def output(self, input_values: Sequence[float]) -> float:
-        assert len(input_values) == self._in_dim
-        polynomial_values = PolynomialFunction.polynomial_values(input_values, self._degree)
-        assert len(polynomial_values) == self._degree
-        s = 0.
-        for _i, (_v, _c) in enumerate(zip(polynomial_values, self._coefficients)):
-            s += sum(__c * __v ** _i for __c, __v in zip(_c, _v))
-        return s
-
-    def get_coefficients(self) -> Tuple[Tuple[float, ...], ...]:
-        return tuple(tuple(_d) for _d in self._coefficients)
-
-    def set_coefficients(self, coefficients: Sequence[Sequence[float]]):
-        assert(len(coefficients) == self._degree)
-        for _s, _d in zip(self._coefficients, coefficients):
-            for _i, _c in enumerate(_d):
-                _s[_i] = _c
-
-
-class MultiplePolynomialOptimizationRegression(MultipleRegression):
-    def __init__(self, input_dimensionality: int, degree: int):
-        super().__init__(input_dimensionality)
-        self._no_parameters = sum(combinations(_i + 1, _i + input_dimensionality) for _i in range(degree))
-        self._optimizer = stateful_optimizer([(-100., 100.) for _ in range(self._no_parameters)])
-        self._polynomial_function = PolynomialFunction(input_dimensionality, degree)
-        parameters = self._optimizer.send(None)
-        self._polynomial_function.set_parameters(parameters)
-
-    def _fit(self, input_values: Sequence[float], output_value: float, past_scope: int = -1, learning_drag: int = -1) -> float:
-        predicted = self.output(input_values)
-        error = abs(predicted - output_value)
-        new_parameters = self._optimizer.send(1. / (1. + error))
-        self._polynomial_function.set_parameters(new_parameters)
-        return error
-
-    def _output(self, input_values: Sequence[float]) -> float:
-        return self._polynomial_function.output(input_values)
-
-
 class MultivariateRegression:
     def __init__(self, input_dimensionality: int, output_dimensionality: int, past_scope: int = -1, learning_drag: int = -1):
         self._in_dim = input_dimensionality
         self._out_dim = output_dimensionality
         self._past_scope = past_scope
         self._learning_drag = learning_drag
+
+    def get_functions(self) -> Tuple[PolynomialFunction, ...]:
+        raise NotImplementedError()
 
     def _fit(self, input_values: Sequence[float], output_values: Sequence[float], past_scope: int, learning_drag: int) -> Tuple[float, ...]:
         raise NotImplementedError()
@@ -314,6 +210,12 @@ class MultivariatePolynomialRegression(MultivariateRegression):
             MultiplePolynomialFromLinearRegression(input_dimensionality, degree, past_scope=past_scope, learning_drag=learning_drag)
             for _ in range(output_dimensionality)
         )
+        self._degree = degree
+
+    def get_functions(self) -> Tuple[PolynomialFunction, ...]:
+        funs = tuple(PolynomialFunction(self._in_dim, self._degree) for _ in self._regressions)
+        raise NotImplementedError()
+        return funs
 
     def _fit(self, input_values: Sequence[float], output_values: Sequence[float], past_scope: int, learning_drag: int) -> Tuple[float, ...]:
         return tuple(
@@ -443,8 +345,6 @@ def plot_4d(axis: pyplot.Axes.axes, _fun: Callable[[float, float, float], float]
 
 
 def setup_3d_axes():
-    from mpl_toolkits.mplot3d import Axes3D
-
     fig = pyplot.figure()
     plot_axis = fig.add_subplot(211, projection='3d')
     plot_axis.set_aspect('equal')
@@ -459,11 +359,13 @@ def setup_3d_axes():
 
 
 def test_3d():
+    from mpl_toolkits.mplot3d import Axes3D
+
     dim_range = -10., 10.
 
     plot_axis, error_axis = setup_3d_axes()
 
-    r = MultiplePolynomialFromLinearRegression(2, 4, past_scope=1000, learning_drag=0)
+    r = MultiplePolynomialFromLinearRegression(2, 4, past_scope=100, learning_drag=0)
 
     # fun = lambda _x, _y: 10. + 1. * _x ** 1. + 1. * _y ** 1. + 4. * _x * _y + 1. * _x ** 2. + -2.6 * _y ** 2.
     fun = lambda _x, _y: -cos(_x / (1. * math.pi)) + -cos(_y / (1. * math.pi))
@@ -472,11 +374,10 @@ def test_3d():
     pyplot.draw()
 
     iterations = 0
-    total_time = 1000000
 
     error_development = []
 
-    for _ in range(total_time):
+    while True:
         x = random.uniform(*dim_range)
         y = random.uniform(*dim_range)
         z_o = r.output([x, y])
@@ -485,8 +386,8 @@ def test_3d():
         error = 0 if iterations < 1 else smear(error_development[-1], abs(z_o - z_t), iterations)
         error_development.append(error)
 
-        if Timer.time_passed(1):
-            print(f"{iterations * 100. / total_time:05.2f}% finished")
+        if Timer.time_passed(2000):
+            print(f"{iterations:d} finished")
 
             ln = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), (dim_range, dim_range))
             e, = error_axis.plot(range(len(error_development)), error_development, color="black")
@@ -498,24 +399,8 @@ def test_3d():
             e.remove()
 
         r.fit([x, y], z_t)  # , past_scope=iterations)
-
         iterations += 1
-
-    ln = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), (dim_range, dim_range))
-    e, = error_axis.plot(range(len(error_development)), error_development, color="black")
-    pyplot.show()
 
 
 if __name__ == "__main__":
-    p = PolynomialFunction(3, 2)
-    print(p)
-    d = p.derive(derive_by=0)
-    print(d)
-    d = p.derive(derive_by=1)
-    print(d)
-    d = p.derive(derive_by=2)
-    print(d)
-
-
-    exit()
-    test_2d()
+    test_3d()
