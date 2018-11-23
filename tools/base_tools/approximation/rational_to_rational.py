@@ -12,7 +12,7 @@ from matplotlib import pyplot
 
 from tools.base_tools.approximation.functions import MultiplePolynomialFunction, Function, LinearFunction, MultipleLinearFunction
 
-from tools.functionality import smear, get_min_max
+from tools.functionality import smear, get_min_max, combinations
 from tools.timer import Timer
 
 
@@ -35,17 +35,10 @@ class SingleLinearRegression:
         self._mean_y = 0.
         self._variance_x = 0.
         self._cross_variance_xy = 0.
-        self._a0 = 0.
-        self._a1 = 0.
+        self.coefficients = [0., 0.]
 
-    def get_parameters(self) -> Tuple[float, float]:
-        return self._a0, self._a1
-
-    def get_function(self) -> LinearFunction:
-        fun = LinearFunction()
-        fun.c0 = self._a0
-        fun.c1 = self._a1
-        return fun
+    def derivation_output(self) -> float:
+        return self.coefficients[1]
 
     def fit(self, input_value: float, output_value: float, past_scope: int = -1, learning_drag: int = -1) -> float:
         assert self._past_scope >= 0 or past_scope >= 0
@@ -63,21 +56,23 @@ class SingleLinearRegression:
         self._mean_x = smear(self._mean_x, input_value, _past_scope)
         self._mean_y = smear(self._mean_y, output_value, _past_scope)
 
-        self._a1 = smear(self._a1, 0. if self._variance_x == 0. else self._cross_variance_xy / self._variance_x, _learning_drag)
-        self._a0 = smear(self._a0, self._mean_y - self._a1 * self._mean_x, _learning_drag)
+        a1 = smear(self.coefficients[1], 0. if self._variance_x == 0. else self._cross_variance_xy / self._variance_x, _learning_drag)
+        a0 = smear(self.coefficients[0], self._mean_y - a1 * self._mean_x, _learning_drag)
+        self.coefficients[0] = a0
+        self.coefficients[1] = a1
 
         return error
 
     def output(self, input_value: float) -> float:
         # todo: fix regression drag
-        return self._a0 + self._a1 * input_value
+        return self.coefficients[0] + self.coefficients[1] * input_value
 
 
 class MultipleRegression:
     def __init__(self, input_dimensionality: int):
         self._in_dim = input_dimensionality
 
-    def get_function(self) -> Function:
+    def derivation_output(self, input_values: Sequence[float], derive_by: int) -> float:
         raise NotImplementedError()
 
     def _fit(self, input_values: Sequence[float], output_value: float, past_scope: int, learning_drag: int) -> float:
@@ -100,12 +95,9 @@ class MultipleLinearRegression(MultipleRegression):
         super().__init__(input_dimensionality)
         self.regressions = tuple(SingleLinearRegression(past_scope=past_scope, learning_drag=learning_drag) for _ in range(input_dimensionality))
 
-    def get_function(self) -> MultipleLinearFunction:
-        fun = MultipleLinearFunction(self._in_dim)
-        c0, c1 = zip(*tuple(each_regression.get_parameters() for each_regression in self.regressions))
-        fun.c0 = sum(c0)
-        fun.c1 = c1
-        return fun
+    def derivation_output(self, input_values: Sequence[float], derive_by: int) -> float:
+        reg = self.regressions[derive_by]
+        return reg.derivation_output()
 
     def _output(self, input_values: Sequence[float]) -> float:
         return sum(_regression.output(_x) for _regression, _x in zip(self.regressions, input_values))
@@ -121,26 +113,52 @@ class MultipleLinearRegression(MultipleRegression):
 
 class MultiplePolynomialFromLinearRegression(MultipleRegression):
     def __init__(self, input_dimensionality: int, degree: int, past_scope: int = -1., learning_drag: int = -1):
-        no_polynomial_parameters = len(MultiplePolynomialFromLinearRegression.full_polynomial_features(tuple(0. for _ in range(input_dimensionality)), degree))
+        no_polynomial_coefficients = len(MultiplePolynomialFromLinearRegression.polynomial_inputs(tuple(0. for _ in range(input_dimensionality)), degree))
         # no_polynomial_parameters = sum(combinations(_i + 1, _i + input_dimensionality) for _i in range(degree))
-        super().__init__(no_polynomial_parameters)
+        super().__init__(no_polynomial_coefficients)
         self._raw_in_dim = input_dimensionality
         self._degree = degree
-        self._regression = MultipleLinearRegression(no_polynomial_parameters, past_scope=past_scope, learning_drag=learning_drag)
+        self._regression = MultipleLinearRegression(no_polynomial_coefficients, past_scope=past_scope, learning_drag=learning_drag)
         self._past_scope = past_scope
         self._learning_drag = learning_drag
+        self._input_distribution = tuple(
+            ((-1,),) if _i < 0 else tuple(itertools.combinations_with_replacement(range(self._raw_in_dim), _i + 1))
+            for _i in range(-1, degree)
+        )
 
-    def get_function(self) -> MultiplePolynomialFunction:
-        fun = MultiplePolynomialFunction(self._in_dim, self._degree)
-        # todo: how to get parameters from individual regressions
-        #       better even: store and manipulate parameters within function (function as parameter storage)
-        polynomial_coefficients = [each_regression.get_parameters() for each_regression in self._regression.regressions]
-        c0, c1 = zip(*polynomial_coefficients)
-        # fun.coefficients = polynomial_coefficients
-        return fun
+    def derivation_output(self, input_values: Sequence[float], derive_by: int) -> float:
+        # get coefficients from regressions
+        coefficients = tuple(
+            [
+                sum(
+                    each_regression.coefficients[0]
+                    for each_regression in self._regression.regressions
+                )
+            ] if _i == 0 else []
+            for _i in range(self._degree + 1)
+        )
+
+        # format for derivation function
+        lengths = tuple(combinations(_d + 1, _d + self._raw_in_dim) for _d in range(self._degree))
+        this_l = 1
+        for each_regression in self._regression.regressions:
+            coefficients[this_l].append(each_regression.coefficients[1])
+            if len(coefficients) >= lengths[this_l]:
+                this_l += 1
+
+        # derive coefficients
+        derived_coefficients = MultiplePolynomialFunction.derive_coefficients(coefficients, self._input_distribution, derive_by)
+
+        # derivation
+        polynomial_values = MultiplePolynomialFunction.polynomial_values(input_values, self._degree)
+        assert len(polynomial_values) == self._degree
+        s = 0.
+        for _i, (_v, _c) in enumerate(zip(((0.,),) + polynomial_values, derived_coefficients)):
+            s += sum(__c * __v ** _i for __c, __v in zip(_c, _v))
+        return s
 
     @staticmethod
-    def full_polynomial_features(input_values: Sequence[float], degree: int) -> Tuple[float, ...]:
+    def polynomial_inputs(input_values: Sequence[float], degree: int) -> Tuple[float, ...]:
         """
         generates exhaustive polynomial combinations up to defined degree
         for example input values (x, y, z) and degree 2:
@@ -161,14 +179,14 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
         return self._regression._output(input_values)
 
     def _fit(self, input_values: Sequence[float], output_value: float, past_scope: int, learning_drag: int) -> float:
-        poly_inputs = MultiplePolynomialFromLinearRegression.full_polynomial_features(input_values, self._degree)
+        poly_inputs = MultiplePolynomialFromLinearRegression.polynomial_inputs(input_values, self._degree)
         return self._regression._fit(poly_inputs, output_value, past_scope, learning_drag)
 
     def fit(self, input_values: Sequence[float], output_value: float, past_scope: int = -1, learning_drag: int = -1) -> float:
         assert past_scope >= 0 or self._past_scope >= 0
         assert learning_drag >= 0 or self._learning_drag >= 0
         assert len(input_values) == self._raw_in_dim
-        poly_inputs = MultiplePolynomialFromLinearRegression.full_polynomial_features(input_values, self._degree)
+        poly_inputs = MultiplePolynomialFromLinearRegression.polynomial_inputs(input_values, self._degree)
         assert len(poly_inputs) == self._in_dim
         _past_scope = max(past_scope, self._past_scope)
         _learning_drag = max(learning_drag, self._learning_drag)
@@ -176,7 +194,7 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
 
     def output(self, input_values: Sequence[float]) -> float:
         assert len(input_values) == self._raw_in_dim
-        poly_inputs = MultiplePolynomialFromLinearRegression.full_polynomial_features(input_values, self._degree)
+        poly_inputs = MultiplePolynomialFromLinearRegression.polynomial_inputs(input_values, self._degree)
         assert len(poly_inputs) == self._in_dim
         return self._output(poly_inputs)
 
@@ -188,7 +206,7 @@ class MultivariateRegression:
         self._past_scope = past_scope
         self._learning_drag = learning_drag
 
-    def get_functions(self) -> Tuple[MultiplePolynomialFunction, ...]:
+    def derivation_output(self, input_values: Sequence[float], derive_by: int) -> Tuple[float, ...]:
         raise NotImplementedError()
 
     def _fit(self, input_values: Sequence[float], output_values: Sequence[float], past_scope: int, learning_drag: int) -> Tuple[float, ...]:
@@ -222,10 +240,8 @@ class MultivariatePolynomialRegression(MultivariateRegression):
         )
         self._degree = degree
 
-    def get_functions(self) -> Tuple[MultiplePolynomialFunction, ...]:
-        funs = tuple(MultiplePolynomialFunction(self._in_dim, self._degree) for _ in self._regressions)
-        raise NotImplementedError()
-        return funs
+    def derivation_output(self, input_values: Sequence[float], derive_by: int) -> Tuple[float, ...]:
+        return tuple(_each_regression.derivation_output(input_values, derive_by) for _each_regression in self._regressions)
 
     def _fit(self, input_values: Sequence[float], output_values: Sequence[float], past_scope: int, learning_drag: int) -> Tuple[float, ...]:
         return tuple(

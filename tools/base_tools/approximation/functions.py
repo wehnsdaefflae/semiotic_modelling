@@ -87,7 +87,6 @@ class MultiplePolynomialFunction(Function):
                 for each_combination in itertools.combinations_with_replacement(input_values, _i + 1)
             )
             for _i in range(degree)
-
         )
 
     def __str__(self):
@@ -107,13 +106,10 @@ class MultiplePolynomialFunction(Function):
         right_hand = " + ".join(lst)
         return left_hand + " = " + right_hand
 
-    def derive(self, derive_by: int) -> "MultiplePolynomialFunction":
-        assert self._degree >= 1
-        assert derive_by < self._in_dim
-        derivative = MultiplePolynomialFunction(self._in_dim, self._degree - 1)
-
+    @staticmethod
+    def derive_coefficients(coefficients: Sequence[Sequence[float]], input_distribution: Sequence[Sequence[Sequence[int]]], derive_by: int) -> Tuple[Sequence[float], ...]:
         derived_coefficients = []
-        for _i, (_coefficients, _inputs) in enumerate(zip(self.coefficients, self._input_indices)):
+        for _i, (_coefficients, _inputs) in enumerate(zip(coefficients, input_distribution)):
             if _i < 1:
                 continue
             new_ = []
@@ -124,7 +120,14 @@ class MultiplePolynomialFunction(Function):
             if 0 < len(new_):
                 derived_coefficients.append(new_)
 
-        derivative.coefficients = derived_coefficients
+        return tuple(derived_coefficients)
+
+    def derive(self, derive_by: int) -> "MultiplePolynomialFunction":
+        assert self._degree >= 1
+        assert derive_by < self._in_dim
+        derivative = MultiplePolynomialFunction(self._in_dim, self._degree - 1)
+
+        derivative.coefficients = MultiplePolynomialFunction.derive_coefficients(self.coefficients, self._input_indices, derive_by)
         return derivative
 
     def _output(self, *input_values: float) -> float:
