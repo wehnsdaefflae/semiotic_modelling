@@ -145,6 +145,8 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
             coefficients[this_l].append(each_regression.coefficients[1])
             if len(coefficients) >= lengths[this_l]:
                 this_l += 1
+                if this_l >= len(lengths):
+                    break
 
         # derive coefficients
         derived_coefficients = MultiplePolynomialFunction.derive_coefficients(coefficients, self._input_distribution, derive_by)
@@ -274,7 +276,7 @@ def test_2d():
     # r = MultiplePolynomialOptimizationRegression(1, 3)
 
     # fun = lambda _x: -cos(_x / (1. * math.pi))
-    fun = lambda _x: 900. + 1. * _x ** 1. + -10. * _x ** 2. + 0. * _x ** 3. + 1. * _x ** 4.
+    fun = lambda _x: 0. + 0. * _x ** 1. + 0. * _x ** 2. + 1. * _x ** 3. #  + 1. * _x ** 4.
     x_range = tuple(_x / 10. for _x in range(int(dim_range[0]) * 10, int(dim_range[1]) * 10))
     y_range = tuple(fun(_x) for _x in x_range)
     plot_axis.plot(x_range, y_range, color="C0")
@@ -298,7 +300,9 @@ def test_2d():
 
             values = tuple(r.output([_x]) for _x in x_range)
             l, = plot_axis.plot(x_range, values, color="C1")
-            plot_axis.set_ylim((min(values), max(values)))
+            values_d = tuple(r.derivation_output([_x], 0) for _x in x_range)
+            l_d, = plot_axis.plot(x_range, values_d, color="C2")
+            plot_axis.set_ylim((min(values + values_d), max(values + values_d)))
 
             x_min = max(0, iterations - window_size)
             x_max = x_min + window_size
@@ -312,6 +316,7 @@ def test_2d():
             pyplot.draw()
 
             l.remove()
+            l_d.remove()
             e.remove()
 
         r.fit([x], y_t, past_scope=1000, learning_drag=0)
@@ -415,13 +420,15 @@ def test_3d():
         if Timer.time_passed(2000):
             print(f"{iterations:d} finished")
 
-            ln = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), (dim_range, dim_range))
+            #ln = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), (dim_range, dim_range))
+            ln_d = plot_surface(plot_axis, lambda _x, _y: r.derivation_output([_x, _y], 0), (dim_range, dim_range))
             e, = error_axis.plot(range(len(error_development)), error_development, color="black")
 
             pyplot.pause(.1)
             pyplot.draw()
 
-            ln.remove()
+            #ln.remove()
+            ln_d.remove()
             e.remove()
 
         r.fit([x, y], z_t)  # , past_scope=iterations)
@@ -429,4 +436,5 @@ def test_3d():
 
 
 if __name__ == "__main__":
-    test_3d()
+    # test_3d()
+    test_2d()
