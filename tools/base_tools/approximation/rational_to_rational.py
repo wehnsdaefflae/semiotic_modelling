@@ -127,6 +127,7 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
         )
 
     def derivation_output(self, input_values: Sequence[float], derive_by: int) -> float:
+        # TODO: check derivation against source
         # get coefficients from regressions
         coefficients = tuple(
             [
@@ -137,6 +138,7 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
             ] if _i == 0 else []
             for _i in range(self._degree + 1)
         )
+        #print(coefficients)
 
         # format for derivation function
         lengths = tuple(combinations(_d + 1, _d + self._raw_in_dim) for _d in range(self._degree))
@@ -150,6 +152,7 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
 
         # derive coefficients
         derived_coefficients = MultiplePolynomialFunction.derive_coefficients(coefficients, self._input_distribution, derive_by)
+        #print(derived_coefficients)
 
         # derivation
         polynomial_values = MultiplePolynomialFunction.polynomial_values(input_values, self._degree)
@@ -400,13 +403,13 @@ def test_3d():
 
     # fun = lambda _x, _y: 10. + 1. * _x ** 1. + 1. * _y ** 1. + 4. * _x * _y + 1. * _x ** 2. + -2.6 * _y ** 2.
     fun = lambda _x, _y: -cos(_x / (1. * math.pi)) + -cos(_y / (1. * math.pi))
-    plot_surface(plot_axis, fun, (dim_range, dim_range), resize=True)
-    pyplot.pause(.001)
-    pyplot.draw()
+    #plot_surface(plot_axis, fun, (dim_range, dim_range), resize=True)
+    #pyplot.pause(.001)
+    #pyplot.draw()
 
     iterations = 0
 
-    error_development = []
+    error_development = deque(maxlen=10000)
 
     while True:
         x = random.uniform(*dim_range)
@@ -417,17 +420,18 @@ def test_3d():
         error = 0 if iterations < 1 else smear(error_development[-1], abs(z_o - z_t), iterations)
         error_development.append(error)
 
-        if Timer.time_passed(2000):
+        if Timer.time_passed(1000):
             print(f"{iterations:d} finished")
 
-            #ln = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), (dim_range, dim_range))
-            ln_d = plot_surface(plot_axis, lambda _x, _y: r.derivation_output([_x, _y], 0), (dim_range, dim_range))
+            ln = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), (dim_range, dim_range), resize=True)
+            ln_d = plot_surface(plot_axis, lambda _x, _y: r.derivation_output([_x, _y], 0), (dim_range, dim_range), resize=False)
             e, = error_axis.plot(range(len(error_development)), error_development, color="black")
+            error_axis.set_ylim((min(error_development), max(error_development)))
 
-            pyplot.pause(.1)
+            pyplot.pause(.001)
             pyplot.draw()
 
-            #ln.remove()
+            ln.remove()
             ln_d.remove()
             e.remove()
 
@@ -436,5 +440,5 @@ def test_3d():
 
 
 if __name__ == "__main__":
-    # test_3d()
-    test_2d()
+    test_3d()
+    # test_2d()
