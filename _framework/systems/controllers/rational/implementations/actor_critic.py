@@ -49,6 +49,7 @@ class RationalSarsa(RationalController):
     def _integrate(self, sensor: RATIONAL_SENSOR, motor: RATIONAL_MOTOR, reward: float):
         # https://mpatacchiola.github.io/blog/2017/02/11/dissecting-reinforcement-learning-4.html
         # todo: fix gradient descent!
+        # todo: optimize with score function trick: http://www.youtube.com/watch?v=bRfUxQs6xIM&t=37m24s
 
         iteration = self.get_iterations()
 

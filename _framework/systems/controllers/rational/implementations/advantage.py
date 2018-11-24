@@ -61,6 +61,7 @@ class RationalSarsa(RationalController):
 
     def _integrate(self, sensor: RATIONAL_SENSOR, motor: RATIONAL_MOTOR, reward: float):
         # todo: fix gradient descent!
+        # todo: optimize with score function trick: http://www.youtube.com/watch?v=bRfUxQs6xIM&t=37m24s
         # todo: check out advantage: https://medium.freecodecamp.org/an-intro-to-advantage-actor-critic-methods-lets-play-sonic-the-hedgehog-86d6240171d
 
         iteration = self.get_iterations()

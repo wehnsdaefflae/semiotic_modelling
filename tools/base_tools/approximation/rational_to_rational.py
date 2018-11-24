@@ -5,7 +5,7 @@ import random
 from collections import deque
 from functools import reduce
 from math import cos
-from typing import Sequence, Tuple, Callable
+from typing import Sequence, Tuple, Callable, List
 
 import numpy
 from matplotlib import pyplot
@@ -126,8 +126,7 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
             for _i in range(-1, degree)
         )
 
-    def derivation_output(self, input_values: Sequence[float], derive_by: int) -> float:
-        # TODO: check derivation against source
+    def get_coefficients(self) -> Tuple[Sequence[float], ...]:
         # get coefficients from regressions
         coefficients = tuple(
             [
@@ -138,23 +137,31 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
             ] if _i == 0 else []
             for _i in range(self._degree + 1)
         )
-        #print(coefficients)
 
-        # format for derivation function
         lengths = tuple(combinations(_d + 1, _d + self._raw_in_dim) for _d in range(self._degree))
         this_l = 1
+        degree_coefficients = coefficients[this_l]
         for each_regression in self._regression.regressions:
-            coefficients[this_l].append(each_regression.coefficients[1])
-            if len(coefficients) >= lengths[this_l]:
+            degree_coefficients.append(each_regression.coefficients[1])
+
+            if len(degree_coefficients) >= lengths[this_l - 1]:
                 this_l += 1
-                if this_l >= len(lengths):
+                if this_l >= len(coefficients):
                     break
+                degree_coefficients = coefficients[this_l]
 
+        return coefficients
+
+    def derive_coefficients(self, coefficients: Tuple[Sequence[float], ...], derive_by: int) -> Tuple[Sequence[float], ...]:
         # derive coefficients
-        derived_coefficients = MultiplePolynomialFunction.derive_coefficients(coefficients, self._input_distribution, derive_by)
-        #print(derived_coefficients)
+        return MultiplePolynomialFunction.derive_coefficients(coefficients, self._input_distribution, derive_by)
 
-        # derivation
+    def derivation_output(self, input_values: Sequence[float], derive_by: int) -> float:
+        # TODO: check derivation against source
+        coefficients = self.get_coefficients()
+        derived_coefficients = self.derive_coefficients(coefficients, derive_by)
+
+        # calculate output
         polynomial_values = MultiplePolynomialFunction.polynomial_values(input_values, self._degree)
         assert len(polynomial_values) == self._degree
         s = 0.
@@ -403,7 +410,7 @@ def test_3d():
 
     # fun = lambda _x, _y: 10. + 1. * _x ** 1. + 1. * _y ** 1. + 4. * _x * _y + 1. * _x ** 2. + -2.6 * _y ** 2.
     fun = lambda _x, _y: -cos(_x / (1. * math.pi)) + -cos(_y / (1. * math.pi))
-    #plot_surface(plot_axis, fun, (dim_range, dim_range), resize=True)
+    plot_surface(plot_axis, fun, (dim_range, dim_range), resize=True)
     #pyplot.pause(.001)
     #pyplot.draw()
 
@@ -423,8 +430,12 @@ def test_3d():
         if Timer.time_passed(1000):
             print(f"{iterations:d} finished")
 
-            ln = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), (dim_range, dim_range), resize=True)
-            ln_d = plot_surface(plot_axis, lambda _x, _y: r.derivation_output([_x, _y], 0), (dim_range, dim_range), resize=False)
+            c = r.get_coefficients()
+            print(c)
+            print(r.derive_coefficients(c, 0))
+
+            ln = plot_surface(plot_axis, lambda _x, _y: r.output([_x, _y]), (dim_range, dim_range), resize=False)
+            # ln_d = plot_surface(plot_axis, lambda _x, _y: r.derivation_output([_x, _y], 0), (dim_range, dim_range), resize=False)
             e, = error_axis.plot(range(len(error_development)), error_development, color="black")
             error_axis.set_ylim((min(error_development), max(error_development)))
 
@@ -432,7 +443,7 @@ def test_3d():
             pyplot.draw()
 
             ln.remove()
-            ln_d.remove()
+            # ln_d.remove()
             e.remove()
 
         r.fit([x, y], z_t)  # , past_scope=iterations)
@@ -440,5 +451,6 @@ def test_3d():
 
 
 if __name__ == "__main__":
+    # todo: check derivation, fix if necessary
     test_3d()
     # test_2d()
