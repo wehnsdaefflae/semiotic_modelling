@@ -37,8 +37,15 @@ class SingleLinearRegression:
         self._cross_variance_xy = 0.
         self.coefficients = [0., 0.]
 
-    def derivation_output(self) -> float:
+    def derivation_output(self, derive_by: int) -> float:
         return self.coefficients[1]
+
+    def gradient(self) -> float:
+        return self.derivation_output(0)
+
+    def estimated_gradient(self, input_value: float, e: float = .1) -> float:
+        assert 0. < e
+        return (self.output(input_value + e) - self.output(input_value)) / e
 
     def fit(self, input_value: float, output_value: float, past_scope: int = -1, learning_drag: int = -1) -> float:
         assert self._past_scope >= 0 or past_scope >= 0
@@ -74,6 +81,23 @@ class MultipleRegression:
 
     def derivation_output(self, input_values: Sequence[float], derive_by: int) -> float:
         raise NotImplementedError()
+
+    def gradient(self, input_values: Sequence[float]) -> Tuple[float, ...]:
+        assert len(input_values) == self._in_dim
+        return tuple(self.derivation_output(input_values, derive_by=_i) for _i in range(self._in_dim))
+
+    def estimated_gradient(self, input_values: Sequence[float], e: float = .1) -> Tuple[float, ...]:
+        assert 0. < e
+        assert len(input_values) == self._in_dim
+        return tuple(
+            self.output(
+                tuple(
+                    _in + float(_i == _j) * e
+                    for _i, _in in enumerate(input_values)
+                )
+            )
+            for _j in range(self._in_dim)
+        )
 
     def _fit(self, input_values: Sequence[float], output_value: float, past_scope: int, learning_drag: int) -> float:
         raise NotImplementedError()
@@ -220,6 +244,23 @@ class MultivariateRegression:
 
     def derivation_output(self, input_values: Sequence[float], derive_by: int) -> Tuple[float, ...]:
         raise NotImplementedError()
+
+    def gradient(self, input_values: Sequence[float]) -> Tuple[Tuple[float, ...], ...]:
+        assert len(input_values) == self._in_dim
+        return tuple(self.derivation_output(input_values, derive_by=_i) for _i in range(self._in_dim))
+
+    def estimated_gradient(self, input_values: Sequence[float], e: float = .1) -> Tuple[Tuple[float, ...], ...]:
+        assert 0. < e
+        assert len(input_values) == self._in_dim
+        return tuple(
+            self.output(
+                tuple(
+                    _in + float(_i == _j) * e
+                    for _i, _in in enumerate(input_values)
+                )
+            )
+            for _j in range(self._in_dim)
+        )
 
     def _fit(self, input_values: Sequence[float], output_values: Sequence[float], past_scope: int, learning_drag: int) -> Tuple[float, ...]:
         raise NotImplementedError()
