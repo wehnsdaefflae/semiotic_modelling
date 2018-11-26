@@ -26,6 +26,16 @@ class RationalSarsa(RationalController):
         self._critic_input_dim = len(motor_range) + sensor_dimensionality
         self._motor_range = motor_range
 
+        """
+        # S x M -> float  (probability of action in state)
+        self._policy = MultiplePolynomialFromLinearRegression(
+            sensor_dimensionality + len(motor_range),
+            polynomial_degree,
+            past_scope=past_scope,
+            learning_drag=learning_drag
+        )
+        """
+
         # S -> M
         self._actor = MultivariatePolynomialRegression(
             sensor_dimensionality,

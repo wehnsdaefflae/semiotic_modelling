@@ -76,9 +76,10 @@ class RationalSarsa(RationalController):
             #     clip(_b + _d * evaluation_difference * .01, *_ranges)
             #     for _b, _d, _ranges in zip(best_motor, motor_difference, self._motor_range)
             # )
+            gradient = self._critic.gradient(sensor)
             optimized_motor = tuple(
                 clip(
-                    smear(_b, _b + _d * evaluation_difference, self._past_scope),
+                    smear(_b, _b + _d * evaluation_difference, self._past_scope),  # here take critic gradient?
                     *_ranges
                 )
                 for _b, _d, _ranges in zip(best_motor, motor_difference, self._motor_range)

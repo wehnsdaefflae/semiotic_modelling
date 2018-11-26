@@ -47,6 +47,9 @@ class SingleLinearRegression:
         assert 0. < e
         return (self.output(input_value + e) - self.output(input_value)) / e
 
+    def log_gradient(self, input_value: float):
+        return self.output(input_value)
+
     def fit(self, input_value: float, output_value: float, past_scope: int = -1, learning_drag: int = -1) -> float:
         assert self._past_scope >= 0 or past_scope >= 0
         assert self._learning_drag >= 0 or learning_drag >= 0
