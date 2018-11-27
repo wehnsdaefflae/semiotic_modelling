@@ -82,6 +82,12 @@ class MultipleRegression:
     def __init__(self, input_dimensionality: int):
         self._in_dim = input_dimensionality
 
+    def get_coefficients(self) -> Tuple[Sequence[float], ...]:
+        raise NotImplementedError()
+
+    def set_coefficients(self, coefficients: Sequence[Sequence[float]]):
+        raise NotImplementedError()
+
     def derivation_output(self, input_values: Sequence[float], derive_by: int) -> float:
         raise NotImplementedError()
 
@@ -122,6 +128,17 @@ class MultipleLinearRegression(MultipleRegression):
         super().__init__(input_dimensionality)
         self.regressions = tuple(SingleLinearRegression(past_scope=past_scope, learning_drag=learning_drag) for _ in range(input_dimensionality))
 
+    def get_coefficients(self) -> Tuple[Sequence[float], ...]:
+        return tuple(
+            each_regression.coefficients
+            for each_regression in self.regressions
+        )
+
+    def set_coefficients(self, coefficients: Sequence[Sequence[float]]):
+        for each_coefficients, each_regression in zip(coefficients, self.regressions):
+            assert len(each_coefficients) == 2
+            each_regression.coefficients = list(each_coefficients)
+
     def derivation_output(self, input_values: Sequence[float], derive_by: int) -> float:
         reg = self.regressions[derive_by]
         return reg.derivation_output()
@@ -145,6 +162,7 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
         super().__init__(no_polynomial_coefficients)
         self._raw_in_dim = input_dimensionality
         self._degree = degree
+        # todo: avoid offset calculation in every single linear regression?
         self._regression = MultipleLinearRegression(no_polynomial_coefficients, past_scope=past_scope, learning_drag=learning_drag)
         self._past_scope = past_scope
         self._learning_drag = learning_drag
@@ -178,6 +196,9 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
                 degree_coefficients = coefficients[this_l]
 
         return coefficients
+
+    def set_coefficients(self, coefficients: Sequence[Sequence[float]]):
+        raise NotImplementedError()
 
     def derive_coefficients(self, coefficients: Tuple[Sequence[float], ...], derive_by: int) -> Tuple[Sequence[float], ...]:
         # derive coefficients
@@ -248,6 +269,12 @@ class MultivariateRegression:
     def derivation_output(self, input_values: Sequence[float], derive_by: int) -> Tuple[float, ...]:
         raise NotImplementedError()
 
+    def get_coefficients(self) -> Tuple[Sequence[Sequence[float]], ...]:
+        raise NotImplementedError()
+
+    def set_coefficients(self, coefficients: Sequence[Sequence[float]]):
+        raise NotImplementedError()
+
     def gradient(self, input_values: Sequence[float]) -> Tuple[Tuple[float, ...], ...]:
         assert len(input_values) == self._in_dim
         return tuple(self.derivation_output(input_values, derive_by=_i) for _i in range(self._in_dim))
@@ -295,6 +322,15 @@ class MultivariatePolynomialRegression(MultivariateRegression):
             for _ in range(output_dimensionality)
         )
         self._degree = degree
+
+    def get_coefficients(self) -> Tuple[Sequence[Sequence[float]], ...]:
+        return tuple(
+            each_regression.get_coefficients()
+            for each_regression in self._regressions
+        )
+
+    def set_coefficients(self, coefficients: Sequence[Sequence[float]]):
+        raise NotImplementedError()
 
     def derivation_output(self, input_values: Sequence[float], derive_by: int) -> Tuple[float, ...]:
         return tuple(_each_regression.derivation_output(input_values, derive_by) for _each_regression in self._regressions)

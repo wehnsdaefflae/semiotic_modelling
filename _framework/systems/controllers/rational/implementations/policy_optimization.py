@@ -77,6 +77,7 @@ class RationalSarsa(RationalController):
             self.average_value_error = smear(self.average_value_error, evaluation_error, iteration - 1)
 
             # todo: optimize policy parameters according to value
+            parameters = self._actor.
 
             # actor S -> M (consider advantage instead of critic value)
             best_known = tuple(clip(_m, *_ranges) for _m, _ranges in zip(self._actor.output(self._last_sensor), self._motor_range))
