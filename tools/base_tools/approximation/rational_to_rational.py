@@ -5,12 +5,12 @@ import random
 from collections import deque
 from functools import reduce
 from math import cos
-from typing import Sequence, Tuple, Callable, List
+from typing import Sequence, Tuple, Callable
 
 import numpy
 from matplotlib import pyplot
 
-from tools.base_tools.approximation.functions import MultiplePolynomialFunction, Function, LinearFunction, MultipleLinearFunction
+from tools.base_tools.approximation.functions import MultiplePolynomialFunction
 
 from tools.functionality import smear, get_min_max, combinations
 from tools.timer import Timer
@@ -18,7 +18,7 @@ from tools.timer import Timer
 
 class FulcrumApproximation:
     pass
-    # TODO: implement
+    # TODO: implement? gaussian instead?
 
 
 class GradientDescentApproximation:
@@ -190,7 +190,7 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
         coefficients = tuple(
             [
                 sum(
-                    each_regression.coefficients[0]
+                    each_regression.offset
                     for each_regression in self._regression.regressions
                 )
             ] if _i == 0 else []
@@ -201,7 +201,7 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
         this_l = 1
         degree_coefficients = coefficients[this_l]
         for each_regression in self._regression.regressions:
-            degree_coefficients.append(each_regression.coefficients[1])
+            degree_coefficients.append(each_regression.linear_gradient.gradient)
 
             if len(degree_coefficients) >= lengths[this_l - 1]:
                 this_l += 1
@@ -426,8 +426,6 @@ def test_2d():
         r.fit([x], y_t, past_scope=1000, learning_drag=0)
 
         iterations += 1
-
-    pyplot.show()
 
 
 def plot_surface(axis: pyplot.Axes.axes, _fun: Callable[[float, float], float], dim_ranges: Tuple[Tuple[float, float], Tuple[float, float]], colormap=None, resize: bool = False):
