@@ -26,7 +26,7 @@ class GradientDescentApproximation:
     # https://machinelearningmastery.com/implement-linear-regression-stochastic-gradient-descent-scratch-python/
 
 
-class SingleLinearRegression:
+class LinearGradient:
     # https://towardsdatascience.com/implementation-linear-regression-in-python-in-5-minutes-from-scratch-f111c8cc5c99
     def __init__(self, past_scope: int = -1, learning_drag: int = -1):
         self._past_scope = past_scope
@@ -35,28 +35,13 @@ class SingleLinearRegression:
         self._mean_y = 0.
         self._variance_x = 0.
         self._cross_variance_xy = 0.
-        self.coefficients = [0., 0.]
+        self.gradient = 0
 
-    def derivation_output(self, derive_by: int) -> float:
-        return self.coefficients[1]
-
-    def gradient(self) -> float:
-        return self.derivation_output(0)
-
-    def estimated_gradient(self, input_value: float, e: float = .1) -> float:
-        assert 0. < e
-        return (self.output(input_value + e) - self.output(input_value)) / e
-
-    def log_gradient(self, input_value: float):
-        return self.output(input_value)
-
-    def fit(self, input_value: float, output_value: float, past_scope: int = -1, learning_drag: int = -1) -> float:
+    def fit(self, input_value: float, output_value: float, past_scope: int = -1, learning_drag: int = -1):
         assert self._past_scope >= 0 or past_scope >= 0
         assert self._learning_drag >= 0 or learning_drag >= 0
         _past_scope = max(self._past_scope, past_scope)
         _learning_drag = max(self._learning_drag, learning_drag)
-
-        error = abs(self.output(input_value) - output_value)
 
         dy = output_value - self._mean_y
         dx = input_value - self._mean_x
@@ -66,16 +51,45 @@ class SingleLinearRegression:
         self._mean_x = smear(self._mean_x, input_value, _past_scope)
         self._mean_y = smear(self._mean_y, output_value, _past_scope)
 
-        a1 = smear(self.coefficients[1], 0. if self._variance_x == 0. else self._cross_variance_xy / self._variance_x, _learning_drag)
-        a0 = smear(self.coefficients[0], self._mean_y - a1 * self._mean_x, _learning_drag)
-        self.coefficients[0] = a0
-        self.coefficients[1] = a1
+        self.gradient = smear(self.gradient, 0. if self._variance_x == 0. else self._cross_variance_xy / self._variance_x, _learning_drag)
+
+
+class SingleLinearRegression:
+    # https://towardsdatascience.com/implementation-linear-regression-in-python-in-5-minutes-from-scratch-f111c8cc5c99
+    def __init__(self, past_scope: int = -1, learning_drag: int = -1):
+        self._past_scope = past_scope
+        self._learning_drag = learning_drag
+        self._mean_x = 0.
+        self._mean_y = 0.
+
+        self.linear_gradient = LinearGradient(past_scope=past_scope, learning_drag=learning_drag)
+        self.offset = 0.
+
+    def derivation_output(self, derive_by: int) -> float:
+        return self.linear_gradient.gradient
+
+    def gradient(self) -> float:
+        return self.derivation_output(0)
+
+    def estimated_gradient(self, input_value: float, e: float = .1) -> float:
+        assert 0. < e
+        return (self.output(input_value + e) - self.output(input_value)) / e
+
+    def fit(self, input_value: float, output_value: float, past_scope: int = -1, learning_drag: int = -1) -> float:
+        assert self._past_scope >= 0 or past_scope >= 0
+        assert self._learning_drag >= 0 or learning_drag >= 0
+        _past_scope = max(self._past_scope, past_scope)
+        _learning_drag = max(self._learning_drag, learning_drag)
+
+        error = abs(self.output(input_value) - output_value)
+        self.linear_gradient.fit(input_value, output_value, past_scope=_past_scope, learning_drag=_learning_drag)
+        self.offset = smear(self.offset, self._mean_y - self.linear_gradient.gradient * self._mean_x, _learning_drag)
 
         return error
 
     def output(self, input_value: float) -> float:
         # todo: fix regression drag
-        return self.coefficients[0] + self.coefficients[1] * input_value
+        return self.offset + self.linear_gradient.gradient * input_value
 
 
 class MultipleRegression:
@@ -130,7 +144,7 @@ class MultipleLinearRegression(MultipleRegression):
 
     def get_coefficients(self) -> Tuple[Sequence[float], ...]:
         return tuple(
-            each_regression.coefficients
+            (each_regression.offset, each_regression.linear_gradient.gradient)
             for each_regression in self.regressions
         )
 
