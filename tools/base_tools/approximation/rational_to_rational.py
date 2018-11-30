@@ -96,10 +96,13 @@ class MultipleRegression:
     def __init__(self, input_dimensionality: int):
         self._in_dim = input_dimensionality
 
-    def get_coefficients(self) -> Tuple[Sequence[float], ...]:
+    def get_parameters(self) -> Sequence[float]:
         raise NotImplementedError()
 
-    def set_coefficients(self, coefficients: Sequence[Sequence[float]]):
+    def set_parameters(self, coefficients: Sequence[float]):
+        raise NotImplementedError()
+
+    def no_parameters(self) -> int:
         raise NotImplementedError()
 
     def derivation_output(self, input_values: Sequence[float], derive_by: int) -> float:
@@ -141,6 +144,27 @@ class MultipleLinearRegression(MultipleRegression):
     def __init__(self, input_dimensionality: int, past_scope: int = -1, learning_drag: int = -1):
         super().__init__(input_dimensionality)
         self.regressions = tuple(SingleLinearRegression(past_scope=past_scope, learning_drag=learning_drag) for _ in range(input_dimensionality))
+
+    def no_parameters(self) -> int:
+        return len(self.regressions) + 1
+
+    def get_parameters(self) -> Sequence[float]:
+        return tuple(
+            sum(
+                each_regression.offset
+                for each_regression in self.regressions
+            ) if _i < 1 else
+            self.regressions[_i - 1].linear_gradient.gradient
+            for _i in range(len(self.regressions) + 1)
+        )
+
+    def set_parameters(self, parameters: Sequence[float]):
+        assert len(parameters) - 1 == len(self.regressions)
+        partial_offset = parameters[0] / len(self.regressions)
+        for _i in range(1, len(parameters)):
+            each_regression = self.regressions[_i - 1]
+            each_regression.offset = partial_offset
+            each_regression.linear_gradient.gradient = parameters[_i]
 
     def get_coefficients(self) -> Tuple[Sequence[float], ...]:
         return tuple(
@@ -185,6 +209,24 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
             for _i in range(-1, degree)
         )
 
+    def no_parameters(self) -> int:
+        return self._regression.no_parameters()
+
+    def get_parameters(self) -> Sequence[float]:
+        return tuple(
+            _p
+            for _d in self.get_coefficients()
+            for _p in _d
+        )
+
+    def set_parameters(self, parameters: Sequence[float]):
+        no_regressions = len(self._regression.regressions)
+        assert len(parameters) == no_regressions + 1
+        partial_offset = parameters[0] / no_regressions
+        for _i, each_regression in enumerate(self._regression.regressions):
+            each_regression.offset = partial_offset
+            each_regression.linear_gradient.gradient = parameters[_i + 1]
+
     def get_coefficients(self) -> Tuple[Sequence[float], ...]:
         # get coefficients from regressions
         coefficients = tuple(
@@ -212,7 +254,21 @@ class MultiplePolynomialFromLinearRegression(MultipleRegression):
         return coefficients
 
     def set_coefficients(self, coefficients: Sequence[Sequence[float]]):
-        raise NotImplementedError()
+        no_regressions = len(self._regression.regressions)
+        parameter_count = -1
+        partial_offset = 0.
+        for _d in coefficients:
+            for _c in _d:
+                if parameter_count < 0:
+                    partial_offset = _c / no_regressions
+                else:
+                    each_regression = self._regression.regressions[parameter_count]
+                    each_regression.offset = partial_offset
+                    each_regression.linear_gradient.gradient = _c
+
+                parameter_count += 1
+
+        assert parameter_count == no_regressions + 1
 
     def derive_coefficients(self, coefficients: Tuple[Sequence[float], ...], derive_by: int) -> Tuple[Sequence[float], ...]:
         # derive coefficients
@@ -280,6 +336,15 @@ class MultivariateRegression:
         self._past_scope = past_scope
         self._learning_drag = learning_drag
 
+    def no_parameters(self) -> int:
+        raise NotImplementedError()
+
+    def get_parameters(self) -> Sequence[float]:
+        raise NotImplementedError()
+
+    def set_parameters(self, parameters: Sequence[float]):
+        raise NotImplementedError()
+
     def derivation_output(self, input_values: Sequence[float], derive_by: int) -> Tuple[float, ...]:
         raise NotImplementedError()
 
@@ -336,6 +401,24 @@ class MultivariatePolynomialRegression(MultivariateRegression):
             for _ in range(output_dimensionality)
         )
         self._degree = degree
+
+    def get_parameters(self) -> Sequence[float]:
+        return tuple(
+            _p
+            for each_regression in self._regressions
+            for _p in each_regression.get_parameters()
+        )
+
+    def no_parameters(self) -> int:
+        return sum(each_regression.no_parameters() for each_regression in self._regressions)
+
+    def set_parameters(self, parameters: Sequence[float]):
+        parameter_count = 0
+        for _i, each_regression in enumerate(self._regressions):
+            parameter_count_end = parameter_count + each_regression.no_parameters()
+            each_parameters = parameters[parameter_count:parameter_count_end]
+            parameter_count = parameter_count_end
+            each_regression.set_parameters(each_parameters)
 
     def get_coefficients(self) -> Tuple[Sequence[Sequence[float]], ...]:
         return tuple(

@@ -61,6 +61,7 @@ class RationalSarsa(RationalController):
         return action
 
     def _integrate(self, sensor: RATIONAL_SENSOR, motor: RATIONAL_MOTOR, reward: float):
+        # todo: optimize parameters according to gradient!
         # todo: fix gradient descent!
         # todo: policy as specific shape (e.g. polynomial) function
         # todo: optimize with score function trick: http://www.youtube.com/watch?v=bRfUxQs6xIM&t=37m24s
