@@ -26,27 +26,9 @@ class RationalSarsa(RationalController):
         self._critic_input_dim = len(motor_range) + sensor_dimensionality
         self._motor_range = motor_range
 
-        """
-        # S x M -> float  (probability of action in state)
-        self._policy = MultiplePolynomialFromLinearRegression(
+        # S x M -> float
+        self._stochastic_policy = MultiplePolynomialFromLinearRegression(
             sensor_dimensionality + len(motor_range),
-            polynomial_degree,
-            past_scope=past_scope,
-            learning_drag=learning_drag
-        )
-        """
-
-        # S -> M
-        self._actor = MultivariatePolynomialRegression(
-            sensor_dimensionality,
-            len(motor_range),
-            polynomial_degree,
-            past_scope=past_scope,
-            learning_drag=learning_drag)
-
-        # S -> float
-        self._evaluation = MultiplePolynomialFromLinearRegression(
-            sensor_dimensionality,
             polynomial_degree,
             past_scope=past_scope,
             learning_drag=learning_drag
@@ -56,8 +38,8 @@ class RationalSarsa(RationalController):
         self.average_value_error = 0.
 
     def _decide(self, sensor: RATIONAL_SENSOR) -> RATIONAL_MOTOR:
-        action = tuple(clip(_m, *_ranges) for _m, _ranges in zip(self._actor.output(sensor), self._motor_range))
-        # action = tuple(0. for _ in self._motor_range)
+        intended_action = max(self._motor_range, lambda _x: self._stochastic_policy(sensor + _x))
+        action = tuple(clip(_m, *_ranges) for _m, _ranges in zip(intended_action, self._motor_range))
         return action
 
     def _integrate(self, sensor: RATIONAL_SENSOR, motor: RATIONAL_MOTOR, reward: float):
@@ -70,24 +52,15 @@ class RationalSarsa(RationalController):
         iteration = self.get_iterations()
 
         if iteration >= 1:
-            last_input = self._last_sensor + self._last_motor
-
             # evaluation S -> float
-            evaluation = self._evaluation.output(sensor)
-            evaluation_error = self._evaluation.fit(self._last_sensor, self._last_reward + self._gamma * evaluation)
-            self.average_value_error = smear(self.average_value_error, evaluation_error, iteration - 1)
+            evaluation_this = self._stochastic_policy.output(sensor + motor)
+            evaluation_new = self._last_reward + self._gamma * evaluation_this + reward
 
             # todo: optimize policy parameters according to value
-            parameters = self._actor.
-
-            # actor S -> M (consider advantage instead of critic value)
-            best_known = tuple(clip(_m, *_ranges) for _m, _ranges in zip(self._actor.output(self._last_sensor), self._motor_range))
-            best_known_advantage = self._advantage.output(self._last_sensor + best_known)
-            delta_eval = last_advantage - best_known_advantage
-            delta_step = tuple(_l - _b for _l, _b in zip(self._last_motor, best_known))
-            better_motor = tuple(clip(smear(_b, _b + _d * delta_eval, self._past_scope), *_ranges) for _b, _d, _ranges in zip(best_known, delta_step, self._motor_range))
-            actor_errors = self._actor.fit(self._last_sensor, better_motor)
-            self.average_actor_error = smear(self.average_actor_error, cartesian_distance(actor_errors), iteration - 1)
+            parameters = self._stochastic_policy.get_parameters()
+            for _i in range(len(parameters)):
+                parameters[_i] += .1 * self._stochastic_policy.derivation_output(sensor + motor, _i) * evaluation_new
+            self._stochastic_policy.set_parameters(parameters)
 
         self._last_sensor, self._last_motor = sensor, motor
         self._last_reward = reward
