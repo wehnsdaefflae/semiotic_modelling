@@ -50,6 +50,8 @@ class RationalSarsa(RationalController):
         # https://mpatacchiola.github.io/blog/2017/02/11/dissecting-reinforcement-learning-4.html
         # todo: fix gradient descent!
         # todo: optimize with score function trick: http://www.youtube.com/watch?v=bRfUxQs6xIM&t=37m24s
+        # todo: implement according to:
+        #       http://www.youtube.com/watch?v=bRfUxQs6xIM&t=72m0s
 
         iteration = self.get_iterations()
 
