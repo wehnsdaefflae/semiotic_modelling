@@ -1,5 +1,6 @@
 # coding=utf-8
 import math
+import random
 from typing import Tuple, Hashable, Sequence, Collection, Dict, TypeVar, Generic, List, Type, Any, Optional
 
 from matplotlib import pyplot
@@ -197,6 +198,11 @@ def signum(number: float) -> int:
     return 1 if 0. < number else -1 if number < 0 else 0.
 
 
+def gauss(x: float, mean: float, deviation: float) -> float:
+    double_variance = 2. * deviation ** 2.
+    return (math.e ** ((-(x - mean) ** 2.) / double_variance)) / math.sqrt(double_variance * math.pi)
+
+
 OBJECT_CLASS = TypeVar("OBJECT_CLASS")
 
 
@@ -223,4 +229,7 @@ class Borg:
 
 
 if __name__ == "__main__":
-    assert False
+    for _i in range(-100, 100):
+        in_value = 4.*_i / 100.
+        out_value = gauss(in_value, 0., 1.)
+        print(f"{in_value:.4f} -> {out_value:.4f}")
