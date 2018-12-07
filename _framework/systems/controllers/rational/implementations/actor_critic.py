@@ -5,7 +5,6 @@ from typing import Tuple
 from _framework.data_types import RATIONAL_SENSOR, RATIONAL_MOTOR
 from _framework.systems.controllers.rational.abstract import RationalController
 from tools.base_tools.approximation.rational_to_rational import MultiplePolynomialFromLinearRegression, MultivariatePolynomialRegression
-from tools.functionality import clip, smear, cartesian_distance, signum
 
 
 class RationalSarsa(RationalController):
@@ -31,7 +30,7 @@ class RationalSarsa(RationalController):
             past_scope=past_scope,
             learning_drag=learning_drag)
 
-        # S -> M (float, float)
+        # S -> M ([float, float]+)
         self._actor = MultivariatePolynomialRegression(
             sensor_dimensionality,
             2 * len(motor_range),
@@ -65,12 +64,14 @@ class RationalSarsa(RationalController):
             critic_gradient = self._critic.gradient(self._last_sensor)
             for _i, each_parameter in enumerate(critic_parameters):
                 critic_parameters[_i] += .1 * td_error * critic_gradient[_i]
+            self._critic.set_parameters(critic_parameters)
 
             actor_parameters = self._actor.get_parameters()
             actor_log_gradient = tuple(_x / _y for _x, _y in zip(self._actor.gradient(self._last_sensor), self._last_sensor))
             for _i, each_parameter in enumerate(actor_parameters):
                 actor_parameters[_i] += .1 * td_error * actor_log_gradient[_i]
                 # gradient of log of probability of action in state
+            self._actor.set_parameters(actor_parameters)
 
         self._last_sensor, self._last_motor = sensor, motor
         self._last_reward = reward
