@@ -87,7 +87,7 @@ class Visualize:
             raise ValueError(f"No plot names for axis '{axis_name}'.")
 
         key_string = axis_name + "_" + plot_name
-        plot_index = plot_names.index(plot_name)
+        plot_index = plot_names.shape(plot_name)
         hue_value = distribute_circular(plot_index)
 
         current_key = key_string + "_current"
