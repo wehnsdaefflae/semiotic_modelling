@@ -7,6 +7,7 @@ from typing import Hashable, Generator, Sequence
 class TransitionInfo:
     frequency: int = 1
     average_duration: float = 1
+    total_sub_frequencies: int = 1
 
 
 class Representation[C: Hashable, E: Hashable, S: Hashable]:
@@ -18,6 +19,7 @@ class Representation[C: Hashable, E: Hashable, S: Hashable]:
         prediction = self.predict(cause)
         if prediction is None and open_world:
             return True
+
         return prediction == effect
 
     def match_threshold(self, cause: C, effect: E, threshold: float) -> bool:
@@ -43,25 +45,21 @@ class Representation[C: Hashable, E: Hashable, S: Hashable]:
             total_duration = transition_info.frequency * transition_info.average_duration + duration
             transition_info.frequency += 1
             transition_info.average_duration = total_duration / transition_info.frequency
+            transition_info.total_sub_frequencies += duration
 
     def predict(self, cause: C, default: E | None = None) -> E | None:
         sub_dict = self.content.get(cause)
         if sub_dict is None:
             return default
 
-        return max(
-            sub_dict,
-            key=lambda effect: (
-                sub_dict[effect].average_duration,
-                sub_dict[effect].frequency)
-        )
+        return max(sub_dict, key=lambda effect: sub_dict[effect].total_sub_frequencies)
 
     def get_transition_info(self, cause: C, effect: E) -> TransitionInfo:
         sub_dict = self.content.get(cause)
         if sub_dict is None:
-            return TransitionInfo(frequency=0, average_duration=0)
+            return TransitionInfo(frequency=0, average_duration=0, total_sub_frequencies=0)
 
-        transition_info = sub_dict.get(effect, TransitionInfo(frequency=0, average_duration=0))
+        transition_info = sub_dict.get(effect, TransitionInfo(frequency=0, average_duration=0, total_sub_frequencies=0))
         return transition_info
 
 
