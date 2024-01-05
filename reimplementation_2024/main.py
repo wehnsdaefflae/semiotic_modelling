@@ -99,15 +99,15 @@ class SemioticModel[C: Hashable, E: Hashable]:
 
     @staticmethod
     def _check_current(predictor: Representation[C, E, Shape], cause: C, effect_observed: E) -> bool:
-        return predictor.match_strict(cause, effect_observed)
+        return predictor.match_normalized_value(cause, effect_observed) > .8
 
     @staticmethod
     def _check_expected(predictor: Representation[C, E, Shape], cause: C, effect_observed: E) -> bool:
-        return predictor.match_strict(cause, effect_observed)
+        return predictor.match_normalized_value(cause, effect_observed) > .8
 
     @staticmethod
     def _check_best(predictor: Representation[C, E, Shape], cause: C, effect_observed: E) -> bool:
-        return predictor.match_strict(cause, effect_observed)
+        return predictor.match_normalized_value(cause, effect_observed) > .8
 
     def __init__(self, level: int = 0, frozen: bool = True) -> None:
         self.level = level
@@ -202,7 +202,8 @@ class SemioticModel[C: Hashable, E: Hashable]:
             yield level
             level = level.parent
 
-    def get_state(self) -> tuple[Shape, ...]:
+    @property
+    def state(self) -> tuple[Shape, ...]:
         return tuple(each_level.this_predictor.shape for each_level in self.parent_iter())
 
     @property
@@ -220,6 +221,7 @@ def iterate_text() -> Generator[str, None, None]:
 def main() -> None:
     # model = SemioticModel[str, str](frozen=False)
     model = SemioticModel.build([5, 3], frozen=True)
+    # model = SemioticModel.build([1], frozen=True)
     last_char = ""
     total = success = 0
 
@@ -227,6 +229,8 @@ def main() -> None:
         if i % 1_000 == 0:
             accuracy = 0. if total < 1 else success / total
             print(f"Accuracy: {accuracy}")
+            print(f"Shape: {model.shape}")
+            print(f"State: {model.state}")
 
         if len(last_char) >= 1:
             prediction = model.predict(last_char, default=last_char)
