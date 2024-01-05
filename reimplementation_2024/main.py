@@ -5,9 +5,9 @@ from typing import Hashable, Generator, Sequence
 
 @dataclasses.dataclass
 class TransitionInfo:
-    frequency: int = 1
-    average_duration: float = 1
-    total_sub_frequencies: int = 1
+    frequency: int
+    average_duration: float
+    total_sub_frequencies: int
 
 
 class Representation[C: Hashable, E: Hashable, S: Hashable]:
@@ -17,18 +17,33 @@ class Representation[C: Hashable, E: Hashable, S: Hashable]:
 
     def match_strict(self, cause: C, effect: E, open_world: bool = True) -> bool:
         prediction = self.predict(cause)
-        if prediction is None and open_world:
-            return True
+        if prediction is None:
+            return open_world
 
         return prediction == effect
 
-    def match_threshold(self, cause: C, effect: E, threshold: float) -> bool:
+    def match_threshold(self, cause: C, effect: E, threshold: float, open_world: bool = True) -> bool:
+        effects = self.content.get(cause)
+        if effects is None:
+            return open_world
+
+        max_value = max(x.total_sub_frequencies for x in effects.values())
         transition_info = self.get_transition_info(cause, effect)
-        return transition_info.average_duration >= threshold
+        max_normalized = transition_info.total_sub_frequencies / max_value
+        return max_normalized >= threshold
+
+    def match_normalized_value(self, cause: C, effect: E) -> float:
+        effects = self.content.get(cause)
+        if effects is None:
+            return 0.
+
+        max_value = max(x.total_sub_frequencies for x in effects.values())
+        transition_info = self.get_transition_info(cause, effect)
+        return transition_info.total_sub_frequencies / max_value
 
     def match_value(self, cause: C, effect: E) -> float:
         transition_info = self.get_transition_info(cause, effect)
-        return transition_info.average_duration
+        return transition_info.total_sub_frequencies
 
     def update(self, cause: C, effect: E, duration: int) -> None:
         sub_dict = self.content.get(cause)
@@ -38,7 +53,7 @@ class Representation[C: Hashable, E: Hashable, S: Hashable]:
 
         transition_info = sub_dict.get(effect)
         if transition_info is None:
-            transition_info = TransitionInfo()
+            transition_info = TransitionInfo(frequency=1, average_duration=duration, total_sub_frequencies=duration)
             sub_dict[effect] = transition_info
 
         else:
@@ -83,6 +98,10 @@ class SemioticModel[C: Hashable, E: Hashable]:
         return base_model
 
     @staticmethod
+    def _check_current(predictor: Representation[C, E, Shape], cause: C, effect_observed: E) -> bool:
+        return predictor.match_strict(cause, effect_observed)
+
+    @staticmethod
     def _check_expected(predictor: Representation[C, E, Shape], cause: C, effect_observed: E) -> bool:
         return predictor.match_strict(cause, effect_observed)
 
@@ -91,16 +110,13 @@ class SemioticModel[C: Hashable, E: Hashable]:
         return predictor.match_strict(cause, effect_observed)
 
     def __init__(self, level: int = 0, frozen: bool = True) -> None:
-        if not frozen:
-            raise NotImplementedError("Only frozen models are supported at this time.")
-
         self.level = level
         self.frozen = frozen
 
         self._pre_last_predictor_shape: SemioticModel.Shape | None = None
         self._last_predictor_shape: SemioticModel.Shape | None = None
 
-        self._generated_predictors = 0
+        self._no_predictors = 0
         self.predictors = dict[SemioticModel.Shape, Representation[C, E, SemioticModel.Shape]]()
         self.this_predictor = self._generate_predictor()
 
@@ -109,19 +125,24 @@ class SemioticModel[C: Hashable, E: Hashable]:
         self.parent: SemioticModel[SemioticModel.Shape, SemioticModel.Shape] | None = None
 
     def _generate_predictor(self) -> Representation[C, E, Shape]:
-        predictor = Representation[C, E, int](self._generated_predictors)
+        predictor = Representation[C, E, int](self._no_predictors)
         self.predictors[predictor.shape] = predictor
-        self._generated_predictors += 1
+        self._no_predictors += 1
         return predictor
 
-    def _breakdown(self, cause: C, effect_observed: E) -> bool:
-        return not self.this_predictor.match_strict(cause, effect_observed)
+    def _find_best_predictor(self, cause: C, effect: E, open_world: bool = True) -> Representation[C, E, Shape]:
+        if not open_world:
+            best_predictor = max(
+                self.predictors.values(),
+                key=lambda predictor: predictor.match_normalized_value(cause, effect)
+            )
+            return best_predictor
 
-    def _find_best_predictor(self, cause: C, effect: E) -> Representation[C, E, Shape]:
         def inverse_order_value(predictor: Representation[C, E, SemioticModel.Shape]) -> float:
-            value = predictor.match_value(cause, effect)
+            value = predictor.match_normalized_value(cause, effect)
             if 0. >= value:
                 return value
+
             return 1. / value
 
         best_predictor = min(self.predictors.values(), key=inverse_order_value)
@@ -164,7 +185,7 @@ class SemioticModel[C: Hashable, E: Hashable]:
         self._duration = 0
 
     def update(self, cause: C, effect: E, duration: int = 1) -> None:
-        is_breakdown = self._breakdown(cause, effect)
+        is_breakdown = not SemioticModel._check_current(self.this_predictor, cause, effect)
         if is_breakdown:
             self._handle_breakdown(cause, effect)
 
@@ -184,16 +205,20 @@ class SemioticModel[C: Hashable, E: Hashable]:
     def get_state(self) -> tuple[Shape, ...]:
         return tuple(each_level.this_predictor.shape for each_level in self.parent_iter())
 
+    @property
+    def shape(self) -> tuple[int, ...]:
+        return tuple(len(each_level.predictors) for each_level in self.parent_iter())
+
 
 def iterate_text() -> Generator[str, None, None]:
     with open("/home/mark/nas/data/text/lovecraft_namelesscity.txt", mode="r") as file:
-        for line in file:
-            for char in line.strip():
-                yield char.lower()
+        for each_line in file:
+            for each_char in each_line.strip():
+                yield each_char.lower()
 
 
 def main() -> None:
-    # model = SemioticModel[str, str](frozen=True)
+    # model = SemioticModel[str, str](frozen=False)
     model = SemioticModel.build([5, 3], frozen=True)
     last_char = ""
     total = success = 0
