@@ -78,8 +78,8 @@ class SemioticModel[C: Hashable, E: Hashable]:
     type Shape = int
 
     @staticmethod
-    def build[C, E](levels: Sequence[int], frozen: bool = True) -> SemioticModel[C, E]:
-        base_model = SemioticModel[C, E](frozen=frozen)
+    def build[C, E](levels: Sequence[int], threshold: float = .1, frozen: bool = True) -> SemioticModel[C, E]:
+        base_model = SemioticModel[C, E](threshold=threshold, frozen=frozen)
         current_model = base_model
 
         for i, each_level in enumerate(levels):
@@ -87,7 +87,7 @@ class SemioticModel[C: Hashable, E: Hashable]:
                 current_model._generate_predictor()
 
             if i < len(levels) - 1:
-                each_model = SemioticModel[SemioticModel.Shape, SemioticModel.Shape](frozen=frozen)
+                each_model = SemioticModel[SemioticModel.Shape, SemioticModel.Shape](threshold=threshold, frozen=frozen)
                 current_model.parent = each_model
                 current_model = each_model
 
@@ -143,10 +143,18 @@ class SemioticModel[C: Hashable, E: Hashable]:
         best_predictor = max(predictors, key=fit_wrapper)
         return best_predictor
 
-    def __init__(self, level: int = 0, frozen: bool = True, open_world: bool = True) -> None:
+    def __init__(self, level: int = 0, threshold: float = .1, frozen: bool = True, open_world: bool = True) -> None:
         self.level = level
+        self.threshold_current = threshold
+        self.threshold_expected = threshold
+        self.threshold_best = threshold
         self.frozen = frozen
         self.open_world = open_world
+
+        # todo: cache representation
+        self.cache_representation = Representation[C, E, SemioticModel.Shape](-1)
+        # todo: carry over likelihood
+        self.likelihood = 1.
 
         self._pre_last_predictor_shape: SemioticModel.Shape | None = None
         self._last_predictor_shape: SemioticModel.Shape | None = None
@@ -172,7 +180,7 @@ class SemioticModel[C: Hashable, E: Hashable]:
             self.predictors.values(),
             cause, effect, open_world=open_world
         )
-        is_best = SemioticModel._check_best(predictor_best, cause, effect, .5, open_world=open_world)
+        is_best = SemioticModel._check_best(predictor_best, cause, effect, self.threshold_best, open_world=open_world)
         if not is_best and not self.frozen:
             predictor_new = self._generate_predictor()
             return predictor_new
@@ -192,7 +200,7 @@ class SemioticModel[C: Hashable, E: Hashable]:
             is_expected = SemioticModel._check_expected(
                 predictor_next,
                 cause, effect,
-                .5,
+                self.threshold_expected,
                 open_world=self.open_world
             )
 
@@ -212,13 +220,17 @@ class SemioticModel[C: Hashable, E: Hashable]:
         self._duration = 0
 
     def update(self, cause: C, effect: E, duration: int = 1) -> None:
+        self.likelihood *= self.this_predictor.max_scaled_fit(cause, effect)
+
         is_breakdown = not SemioticModel._check_current(
             self.this_predictor,
             cause, effect,
-            .5,
+            self.threshold_current,
             open_world=self.open_world)
 
         if is_breakdown:
+            self.likelihood = 1.
+
             self._handle_breakdown(cause, effect)
 
         self._duration += 1
@@ -251,8 +263,8 @@ def iterate_text() -> Generator[str, None, None]:
 
 
 def main() -> None:
-    model = SemioticModel.build([5, 3], frozen=True)
-    # model = SemioticModel[str, str](frozen=False)
+    # model = SemioticModel.build([5, 3], frozen=True)
+    model = SemioticModel[str, str](threshold=.01, frozen=False)
     # model = SemioticModel.build([1], frozen=True)
 
     last_char = ""
