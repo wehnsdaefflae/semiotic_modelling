@@ -3,15 +3,15 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.mypy_cache" />
-      <excludeFolder url="file://$MODULE_DIR$/_framework/experiments/results" />
-      <excludeFolder url="file://$MODULE_DIR$/_framework/logs" />
-      <excludeFolder url="file://$MODULE_DIR$/_framework/mains/logs" />
-      <excludeFolder url="file://$MODULE_DIR$/_framework/mains/results" />
-      <excludeFolder url="file://$MODULE_DIR$/_framework/results" />
-      <excludeFolder url="file://$MODULE_DIR$/_framework/visualization_server/logs" />
       <excludeFolder url="file://$MODULE_DIR$/_live_dash_plotly/logs" />
       <excludeFolder url="file://$MODULE_DIR$/configs" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />
+      <excludeFolder url="file://$MODULE_DIR$/deprecated/_framework/experiments/results" />
+      <excludeFolder url="file://$MODULE_DIR$/deprecated/_framework/logs" />
+      <excludeFolder url="file://$MODULE_DIR$/deprecated/_framework/mains/logs" />
+      <excludeFolder url="file://$MODULE_DIR$/deprecated/_framework/mains/results" />
+      <excludeFolder url="file://$MODULE_DIR$/deprecated/_framework/results" />
+      <excludeFolder url="file://$MODULE_DIR$/deprecated/_framework/visualization_server/logs" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.12 (semiotic_modelling)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

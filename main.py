@@ -1,6 +1,6 @@
 from __future__ import annotations
 import dataclasses
-from typing import Hashable, Generator, Sequence
+from typing import Hashable, Generator, Sequence, Collection
 
 
 @dataclasses.dataclass
@@ -15,35 +15,30 @@ class Representation[C: Hashable, E: Hashable, S: Hashable]:
         self.shape = shape
         self.content = dict[C, dict[E, TransitionInfo]]()
 
-    def match_strict(self, cause: C, effect: E, open_world: bool = True) -> bool:
+    def strict_fit(self, cause: C, effect: E) -> float:
         prediction = self.predict(cause)
         if prediction is None:
-            return open_world
+            return -1.
 
-        return prediction == effect
+        return float(prediction == effect)
 
-    def match_threshold(self, cause: C, effect: E, threshold: float, open_world: bool = True) -> bool:
+    def max_scaled_fit(self, cause: C, effect: E) -> float:
         effects = self.content.get(cause)
         if effects is None:
-            return open_world
-
-        max_value = max(x.total_sub_frequencies for x in effects.values())
-        transition_info = self.get_transition_info(cause, effect)
-        max_normalized = transition_info.total_sub_frequencies / max_value
-        return max_normalized >= threshold
-
-    def match_normalized_value(self, cause: C, effect: E) -> float:
-        effects = self.content.get(cause)
-        if effects is None:
-            return 0.
+            return -1.
 
         max_value = max(x.total_sub_frequencies for x in effects.values())
         transition_info = self.get_transition_info(cause, effect)
         return transition_info.total_sub_frequencies / max_value
 
-    def match_value(self, cause: C, effect: E) -> float:
+    def prop_scaled_fit(self, cause: C, effect: E) -> float:
+        effects = self.content.get(cause)
+        if effects is None:
+            return -1.
+
+        total_value = sum(x.total_sub_frequencies for x in effects.values())
         transition_info = self.get_transition_info(cause, effect)
-        return transition_info.total_sub_frequencies
+        return transition_info.total_sub_frequencies / total_value
 
     def update(self, cause: C, effect: E, duration: int) -> None:
         sub_dict = self.content.get(cause)
@@ -67,7 +62,8 @@ class Representation[C: Hashable, E: Hashable, S: Hashable]:
         if sub_dict is None:
             return default
 
-        return max(sub_dict, key=lambda effect: sub_dict[effect].total_sub_frequencies)
+        key, value = max(sub_dict.items(), key=lambda item: item[1].total_sub_frequencies)
+        return key
 
     def get_transition_info(self, cause: C, effect: E) -> TransitionInfo:
         sub_dict = self.content.get(cause)
@@ -98,20 +94,59 @@ class SemioticModel[C: Hashable, E: Hashable]:
         return base_model
 
     @staticmethod
-    def _check_current(predictor: Representation[C, E, Shape], cause: C, effect_observed: E) -> bool:
-        return predictor.match_normalized_value(cause, effect_observed) > .8
+    def _check_current(
+            predictor: Representation[C, E, Shape],
+            cause: C, effect_observed: E,
+            threshold: float,
+            open_world: bool = True
+    ) -> bool:
+        fit = predictor.max_scaled_fit(cause, effect_observed)
+        if fit < 0.:
+            return open_world
+        return fit >= threshold
 
     @staticmethod
-    def _check_expected(predictor: Representation[C, E, Shape], cause: C, effect_observed: E) -> bool:
-        return predictor.match_normalized_value(cause, effect_observed) > .8
+    def _check_expected(
+            predictor: Representation[C, E, Shape],
+            cause: C, effect_observed: E,
+            threshold: float,
+            open_world: bool = True
+    ) -> bool:
+        fit = predictor.prop_scaled_fit(cause, effect_observed)
+        if fit < 0.:
+            return open_world
+        return fit >= threshold
 
     @staticmethod
-    def _check_best(predictor: Representation[C, E, Shape], cause: C, effect_observed: E) -> bool:
-        return predictor.match_normalized_value(cause, effect_observed) > .8
+    def _check_best(
+            predictor: Representation[C, E, Shape],
+            cause: C, effect_observed: E,
+            threshold: float,
+            open_world: bool = True) -> bool:
+        fit = predictor.strict_fit(cause, effect_observed)
+        if fit < 0.:
+            return open_world
+        return fit >= threshold
 
-    def __init__(self, level: int = 0, frozen: bool = True) -> None:
+    @staticmethod
+    def _find_best_predictor(
+            predictors: Collection[Representation],
+            cause: C, effect: E,
+            open_world: bool = True) -> Representation[C, E, Shape]:
+
+        def fit_wrapper(predictor: Representation[C, E, SemioticModel.Shape]) -> float:
+            fit = predictor.prop_scaled_fit(cause, effect)
+            if fit < 0.:
+                return float(open_world)
+            return fit
+
+        best_predictor = max(predictors, key=fit_wrapper)
+        return best_predictor
+
+    def __init__(self, level: int = 0, frozen: bool = True, open_world: bool = True) -> None:
         self.level = level
         self.frozen = frozen
+        self.open_world = open_world
 
         self._pre_last_predictor_shape: SemioticModel.Shape | None = None
         self._last_predictor_shape: SemioticModel.Shape | None = None
@@ -130,27 +165,14 @@ class SemioticModel[C: Hashable, E: Hashable]:
         self._no_predictors += 1
         return predictor
 
-    def _find_best_predictor(self, cause: C, effect: E, open_world: bool = True) -> Representation[C, E, Shape]:
-        if not open_world:
-            best_predictor = max(
-                self.predictors.values(),
-                key=lambda predictor: predictor.match_normalized_value(cause, effect)
-            )
-            return best_predictor
-
-        def inverse_order_value(predictor: Representation[C, E, SemioticModel.Shape]) -> float:
-            value = predictor.match_normalized_value(cause, effect)
-            if 0. >= value:
-                return value
-
-            return 1. / value
-
-        best_predictor = min(self.predictors.values(), key=inverse_order_value)
-        return best_predictor
-
     def _handle_unexpected(self, cause: C, effect: E) -> Representation[C, E, Shape]:
-        predictor_best = self._find_best_predictor(cause, effect)
-        is_best = SemioticModel._check_best(predictor_best, cause, effect)
+        open_world = False
+
+        predictor_best = SemioticModel._find_best_predictor(
+            self.predictors.values(),
+            cause, effect, open_world=open_world
+        )
+        is_best = SemioticModel._check_best(predictor_best, cause, effect, .5, open_world=open_world)
         if not is_best and not self.frozen:
             predictor_new = self._generate_predictor()
             return predictor_new
@@ -167,7 +189,12 @@ class SemioticModel[C: Hashable, E: Hashable]:
                 default=self.this_predictor.shape
             )
             predictor_next = self.predictors.get(predictor_expected_shape, self.this_predictor)
-            is_expected = SemioticModel._check_expected(predictor_next, cause, effect)
+            is_expected = SemioticModel._check_expected(
+                predictor_next,
+                cause, effect,
+                .5,
+                open_world=self.open_world
+            )
 
         if self.parent is None or not is_expected:
             predictor_next = self._handle_unexpected(cause, effect)
@@ -185,7 +212,12 @@ class SemioticModel[C: Hashable, E: Hashable]:
         self._duration = 0
 
     def update(self, cause: C, effect: E, duration: int = 1) -> None:
-        is_breakdown = not SemioticModel._check_current(self.this_predictor, cause, effect)
+        is_breakdown = not SemioticModel._check_current(
+            self.this_predictor,
+            cause, effect,
+            .5,
+            open_world=self.open_world)
+
         if is_breakdown:
             self._handle_breakdown(cause, effect)
 
@@ -219,9 +251,10 @@ def iterate_text() -> Generator[str, None, None]:
 
 
 def main() -> None:
-    # model = SemioticModel[str, str](frozen=False)
     model = SemioticModel.build([5, 3], frozen=True)
+    # model = SemioticModel[str, str](frozen=False)
     # model = SemioticModel.build([1], frozen=True)
+
     last_char = ""
     total = success = 0
 
@@ -229,8 +262,8 @@ def main() -> None:
         if i % 1_000 == 0:
             accuracy = 0. if total < 1 else success / total
             print(f"Accuracy: {accuracy}")
-            print(f"Shape: {model.shape}")
             print(f"State: {model.state}")
+            print(f"Shape: {model.shape}")
 
         if len(last_char) >= 1:
             prediction = model.predict(last_char, default=last_char)
