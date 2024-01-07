@@ -1,77 +1,7 @@
 from __future__ import annotations
-import dataclasses
 from typing import Hashable, Generator, Sequence, Collection
 
-
-@dataclasses.dataclass
-class TransitionInfo:
-    frequency: int
-    average_duration: float
-    total_sub_frequencies: int
-
-
-class Representation[C: Hashable, E: Hashable, S: Hashable]:
-    def __init__(self, shape: S) -> None:
-        self.shape = shape
-        self.content = dict[C, dict[E, TransitionInfo]]()
-
-    def strict_fit(self, cause: C, effect: E) -> float:
-        prediction = self.predict(cause)
-        if prediction is None:
-            return -1.
-
-        return float(prediction == effect)
-
-    def max_scaled_fit(self, cause: C, effect: E) -> float:
-        effects = self.content.get(cause)
-        if effects is None:
-            return -1.
-
-        max_value = max(x.total_sub_frequencies for x in effects.values())
-        transition_info = self.get_transition_info(cause, effect)
-        return transition_info.total_sub_frequencies / max_value
-
-    def prop_scaled_fit(self, cause: C, effect: E) -> float:
-        effects = self.content.get(cause)
-        if effects is None:
-            return -1.
-
-        total_value = sum(x.total_sub_frequencies for x in effects.values())
-        transition_info = self.get_transition_info(cause, effect)
-        return transition_info.total_sub_frequencies / total_value
-
-    def update(self, cause: C, effect: E, duration: int) -> None:
-        sub_dict = self.content.get(cause)
-        if sub_dict is None:
-            sub_dict = dict[E, TransitionInfo]()
-            self.content[cause] = sub_dict
-
-        transition_info = sub_dict.get(effect)
-        if transition_info is None:
-            transition_info = TransitionInfo(frequency=1, average_duration=duration, total_sub_frequencies=duration)
-            sub_dict[effect] = transition_info
-
-        else:
-            total_duration = transition_info.frequency * transition_info.average_duration + duration
-            transition_info.frequency += 1
-            transition_info.average_duration = total_duration / transition_info.frequency
-            transition_info.total_sub_frequencies += duration
-
-    def predict(self, cause: C, default: E | None = None) -> E | None:
-        sub_dict = self.content.get(cause)
-        if sub_dict is None:
-            return default
-
-        key, value = max(sub_dict.items(), key=lambda item: item[1].total_sub_frequencies)
-        return key
-
-    def get_transition_info(self, cause: C, effect: E) -> TransitionInfo:
-        sub_dict = self.content.get(cause)
-        if sub_dict is None:
-            return TransitionInfo(frequency=0, average_duration=0, total_sub_frequencies=0)
-
-        transition_info = sub_dict.get(effect, TransitionInfo(frequency=0, average_duration=0, total_sub_frequencies=0))
-        return transition_info
+from representation import Representation
 
 
 class SemioticModel[C: Hashable, E: Hashable]:
@@ -151,9 +81,7 @@ class SemioticModel[C: Hashable, E: Hashable]:
         self.frozen = frozen
         self.open_world = open_world
 
-        # todo: cache representation
         self.cache_representation = Representation[C, E, SemioticModel.Shape](-1)
-        # todo: carry over likelihood
         self.likelihood = 1.
 
         self._pre_last_predictor_shape: SemioticModel.Shape | None = None
@@ -163,9 +91,15 @@ class SemioticModel[C: Hashable, E: Hashable]:
         self.predictors = dict[SemioticModel.Shape, Representation[C, E, SemioticModel.Shape]]()
         self.this_predictor = self._generate_predictor()
 
-        self._duration = 0
-
         self.parent: SemioticModel[SemioticModel.Shape, SemioticModel.Shape] | None = None
+
+    @property
+    def state(self) -> tuple[Shape, ...]:
+        return tuple(each_level.this_predictor.shape for each_level in self.parent_iter())
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        return tuple(len(each_level.predictors) for each_level in self.parent_iter())
 
     def _generate_predictor(self) -> Representation[C, E, Shape]:
         predictor = Representation[C, E, int](self._no_predictors)
@@ -173,68 +107,69 @@ class SemioticModel[C: Hashable, E: Hashable]:
         self._no_predictors += 1
         return predictor
 
-    def _handle_unexpected(self, cause: C, effect: E) -> Representation[C, E, Shape]:
+    def _handle_unexpected(self, query_representation: Representation[C, E, Shape]) -> Representation[C, E, Shape]:
         open_world = False
 
-        predictor_best = SemioticModel._find_best_predictor(
-            self.predictors.values(),
-            cause, effect, open_world=open_world
-        )
-        is_best = SemioticModel._check_best(predictor_best, cause, effect, self.threshold_best, open_world=open_world)
+        predictor_best = None
+        best_fit = -1.
+        for each_predictor in self.predictors.values():
+            each_fit = each_predictor.max_scaled_likelihood(query_representation, open_world=open_world)
+            if best_fit < each_fit:
+                best_fit = each_fit
+                predictor_best = each_predictor
+
+        is_best = best_fit >= self.threshold_best
         if not is_best and not self.frozen:
             predictor_new = self._generate_predictor()
             return predictor_new
 
         return predictor_best
 
-    def _handle_breakdown(self, cause: C, effect: E) -> None:
+    def _handle_breakdown(self, query_representation: Representation[C, E, Shape]) -> Representation[C, E, Shape]:
         is_expected = False
-        predictor_next = self.this_predictor
+        predictor_queried = self.this_predictor
 
         if self.parent is not None:
             predictor_expected_shape = self.parent.predict(
-                self.this_predictor.shape,
-                default=self.this_predictor.shape
+                self._last_predictor_shape,
+                default=self._last_predictor_shape
             )
-            predictor_next = self.predictors.get(predictor_expected_shape, self.this_predictor)
-            is_expected = SemioticModel._check_expected(
-                predictor_next,
-                cause, effect,
-                self.threshold_expected,
-                open_world=self.open_world
-            )
+            predictor_queried = self.predictors.get(predictor_expected_shape, self.this_predictor)
+            likelihood = predictor_queried.max_scaled_likelihood(query_representation, open_world=self.open_world)
+            is_expected = likelihood >= self.threshold_expected
 
         if self.parent is None or not is_expected:
-            predictor_next = self._handle_unexpected(cause, effect)
+            predictor_queried = self._handle_unexpected(query_representation)
 
-        self._pre_last_predictor_shape = self._last_predictor_shape
-        self._last_predictor_shape = self.this_predictor.shape
-        self.this_predictor = predictor_next
+        predictor_queried.update(query_representation)
 
         if self.parent is None:
             self.parent = SemioticModel[C, E](level=self.level+1, frozen=self.frozen)
 
+        self._pre_last_predictor_shape = self._last_predictor_shape
+        self._last_predictor_shape = predictor_queried.shape
+        predictor_assumed_shape = self.parent.predict(self._last_predictor_shape, default=self._last_predictor_shape)
+
         if self._pre_last_predictor_shape is not None:
-            self.parent.update(self._pre_last_predictor_shape, self._last_predictor_shape, duration=self._duration)
+            duration = len(self.cache_representation)
+            self.parent.transition(self._pre_last_predictor_shape, self._last_predictor_shape, duration=duration)
 
-        self._duration = 0
+        return self.predictors.get(predictor_assumed_shape, self.this_predictor)
 
-    def update(self, cause: C, effect: E, duration: int = 1) -> None:
-        self.likelihood *= self.this_predictor.max_scaled_fit(cause, effect)
+    def transition(self, cause: C, effect: E, duration: int = 1) -> None:
+        base_predictor = self.cache_representation + self.this_predictor
+        this_fit = base_predictor.max_scaled_fit(cause, effect)
 
-        is_breakdown = not SemioticModel._check_current(
-            self.this_predictor,
-            cause, effect,
-            self.threshold_current,
-            open_world=self.open_world)
+        self.likelihood *= abs(this_fit) if self.open_world else max(0., this_fit)
+        is_breakdown = self.likelihood < self.threshold_current
 
         if is_breakdown:
+            self.this_predictor = self._handle_breakdown(self.cache_representation)
+
             self.likelihood = 1.
+            self.cache_representation.clear()
 
-            self._handle_breakdown(cause, effect)
-
-        self._duration += 1
-        self.this_predictor.update(cause, effect, duration)
+        self.cache_representation.transition(cause, effect, duration)
 
     def predict(self, cause: C, default: E | None = None) -> E | None:
         return self.this_predictor.predict(cause, default=default)
@@ -246,14 +181,6 @@ class SemioticModel[C: Hashable, E: Hashable]:
             yield level
             level = level.parent
 
-    @property
-    def state(self) -> tuple[Shape, ...]:
-        return tuple(each_level.this_predictor.shape for each_level in self.parent_iter())
-
-    @property
-    def shape(self) -> tuple[int, ...]:
-        return tuple(len(each_level.predictors) for each_level in self.parent_iter())
-
 
 def iterate_text() -> Generator[str, None, None]:
     with open("/home/mark/nas/data/text/lovecraft_namelesscity.txt", mode="r") as file:
@@ -264,7 +191,7 @@ def iterate_text() -> Generator[str, None, None]:
 
 def main() -> None:
     # model = SemioticModel.build([5, 3], frozen=True)
-    model = SemioticModel[str, str](threshold=.01, frozen=False)
+    model = SemioticModel[str, str](threshold=.9, frozen=False)
     # model = SemioticModel.build([1], frozen=True)
 
     last_char = ""
@@ -280,7 +207,7 @@ def main() -> None:
         if len(last_char) >= 1:
             prediction = model.predict(last_char, default=last_char)
             is_correct = prediction == char
-            model.update(last_char, char)
+            model.transition(last_char, char)
 
         else:
             is_correct = False
