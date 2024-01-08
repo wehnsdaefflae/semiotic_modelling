@@ -84,7 +84,6 @@ class SemioticModel[C: Hashable, E: Hashable]:
         self.cache_representation = Representation[C, E, SemioticModel.Shape](-1)
         self.likelihood = 1.
 
-        self._pre_last_predictor_shape: SemioticModel.Shape | None = None
         self._last_predictor_shape: SemioticModel.Shape | None = None
 
         self._no_predictors = 0
@@ -119,40 +118,46 @@ class SemioticModel[C: Hashable, E: Hashable]:
                 predictor_best = each_predictor
 
         is_best = best_fit >= self.threshold_best
-        if not is_best and not self.frozen:
-            predictor_new = self._generate_predictor()
-            return predictor_new
+        if is_best or self.frozen:
+            return predictor_best
 
-        return predictor_best
+        predictor_new = self._generate_predictor()
+        return predictor_new
 
     def _handle_breakdown(self, query_representation: Representation[C, E, Shape]) -> Representation[C, E, Shape]:
-        is_expected = False
-        predictor_queried = self.this_predictor
+        representation_finished = self.this_predictor
 
+        if 1 < len(self.this_predictor):
+            is_expected = False
+
+            if self.parent is not None:
+                predictor_expected_shape = self.parent.predict(
+                    self._last_predictor_shape,
+                    default=self.this_predictor.shape
+                )
+                representation_finished = self.predictors.get(predictor_expected_shape, self.this_predictor)
+                likelihood = representation_finished.max_scaled_likelihood(query_representation, open_world=self.open_world)
+                is_expected = likelihood >= self.threshold_expected
+
+            if self.parent is None or not is_expected:
+                representation_finished = self._handle_unexpected(query_representation)
+
+            if self.parent is None and len(self.predictors) >= 2:
+                self.parent = SemioticModel[C, E](level=self.level+1, frozen=self.frozen)
+
+        representation_finished.update(query_representation)
+
+        predictor_assumed_shape = representation_finished.shape
         if self.parent is not None:
-            predictor_expected_shape = self.parent.predict(
-                self._last_predictor_shape,
-                default=self._last_predictor_shape
+            if self._last_predictor_shape is not None:
+                duration = len(query_representation)
+                self.parent.transition(self._last_predictor_shape, representation_finished.shape, duration=duration)
+
+            predictor_assumed_shape = self.parent.predict(
+                representation_finished.shape, default=representation_finished.shape
             )
-            predictor_queried = self.predictors.get(predictor_expected_shape, self.this_predictor)
-            likelihood = predictor_queried.max_scaled_likelihood(query_representation, open_world=self.open_world)
-            is_expected = likelihood >= self.threshold_expected
 
-        if self.parent is None or not is_expected:
-            predictor_queried = self._handle_unexpected(query_representation)
-
-        predictor_queried.update(query_representation)
-
-        if self.parent is None:
-            self.parent = SemioticModel[C, E](level=self.level+1, frozen=self.frozen)
-
-        self._pre_last_predictor_shape = self._last_predictor_shape
-        self._last_predictor_shape = predictor_queried.shape
-        predictor_assumed_shape = self.parent.predict(self._last_predictor_shape, default=self._last_predictor_shape)
-
-        if self._pre_last_predictor_shape is not None:
-            duration = len(self.cache_representation)
-            self.parent.transition(self._pre_last_predictor_shape, self._last_predictor_shape, duration=duration)
+        self._last_predictor_shape = representation_finished.shape
 
         return self.predictors.get(predictor_assumed_shape, self.this_predictor)
 
@@ -166,13 +171,16 @@ class SemioticModel[C: Hashable, E: Hashable]:
         if is_breakdown:
             self.this_predictor = self._handle_breakdown(self.cache_representation)
 
-            self.likelihood = 1.
+            self.likelihood = self.this_predictor.max_scaled_fit(cause, effect)
+            self.likelihood = abs(self.likelihood) if self.open_world else max(0., self.likelihood)
             self.cache_representation.clear()
 
-        self.cache_representation.transition(cause, effect, duration)
+        else:
+            self.cache_representation.transition(cause, effect, duration)
 
     def predict(self, cause: C, default: E | None = None) -> E | None:
-        return self.this_predictor.predict(cause, default=default)
+        base_predictor = self.cache_representation + self.this_predictor
+        return base_predictor.predict(cause, default=default)
 
     def parent_iter(self) -> Generator[SemioticModel[Shape, Shape], None, None]:
         yield self

@@ -16,10 +16,6 @@ class Representation[C: Hashable, E: Hashable, S: Hashable]:
         self._shape = shape
         self.content = dict[C, dict[E, TransitionInfo]]()
 
-    @property
-    def shape(self) -> S:
-        return self._shape
-
     def __len__(self) -> int:
         transitions = 0
         for effects_dict in self.content.values():
@@ -27,6 +23,13 @@ class Representation[C: Hashable, E: Hashable, S: Hashable]:
                 transitions += each_transition_info.frequency
 
         return transitions
+
+    def __hash__(self) -> int:
+        return hash(self.shape)
+
+    @property
+    def shape(self) -> S:
+        return self._shape
 
     def strict_fit(self, cause: C, effect: E) -> float:
         prediction = self.predict(cause)
