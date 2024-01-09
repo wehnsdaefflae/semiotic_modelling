@@ -124,7 +124,43 @@ class SemioticModel[C: Hashable, E: Hashable]:
         predictor_new = self._generate_predictor()
         return predictor_new
 
-    def _handle_breakdown(self, query_representation: Representation[C, E, Shape]) -> Representation[C, E, Shape]:
+
+    def _handle_breakdown(self, cause: C, effect: E, query_representation: Representation[C, E, Shape]) -> Representation[C, E, Shape]:
+        best_predictor_definitive = None
+        max_value_definitive = -1.
+
+        best_predictor_provisional = None
+        max_value_provisional = -1.
+
+        # get definitive last_representation (with duration)
+        # get provisional this_representation (for prediction)
+        for each_predictor in self.predictors.values():
+            each_value_definitive = each_predictor.max_scaled_likelihood(query_representation, self.open_world)
+            each_value_provisional = each_predictor.max_scaled_fit(cause, effect)
+
+            if self.parent is not None:
+                each_top_value_definitive = self.parent.this_predictor.max_scaled_fit(self._last_predictor_shape, each_predictor.shape)
+                each_value_definitive = each_value_definitive * each_top_value_definitive + each_value_definitive
+
+                each_top_value_provisional = self.parent.this_predictor.max_scaled_fit(self.this_predictor.shape, each_predictor.shape)
+                each_value_provisional = each_value_provisional * each_top_value_provisional + each_value_provisional
+
+            if max_value_definitive < each_value_definitive:
+                max_value_definitive = each_value_definitive
+                best_predictor_definitive = each_predictor
+
+            if max_value_provisional < each_value_provisional:
+                max_value_provisional = each_value_provisional
+                best_predictor_provisional = each_predictor
+
+        if self.parent is not None:
+            self.parent.transition(self._last_predictor_shape, best_predictor_definitive.shape, duration=len(query_representation))
+
+        self._last_predictor_shape = best_predictor_definitive.shape
+        self.this_predictor = best_predictor_provisional
+
+
+    def __handle_breakdown(self, query_representation: Representation[C, E, Shape]) -> Representation[C, E, Shape]:
         representation_finished = self.this_predictor
 
         if 1 < len(self.this_predictor):
@@ -169,7 +205,7 @@ class SemioticModel[C: Hashable, E: Hashable]:
         is_breakdown = self.likelihood < self.threshold_current
 
         if is_breakdown:
-            self.this_predictor = self._handle_breakdown(self.cache_representation)
+            self.this_predictor = self._handle_breakdown(cause, effect, self.cache_representation)
 
             self.likelihood = self.this_predictor.max_scaled_fit(cause, effect)
             self.likelihood = abs(self.likelihood) if self.open_world else max(0., self.likelihood)
