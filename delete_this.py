@@ -9,7 +9,6 @@ def viterbi_conditional_sequence[C, E, S](
         start_probabilities: Dict[C, float],
         state_transitions: Representation[C, C, S],
         emissions: Representation[C, E, S]) -> List[C]:
-
     num_observations = len(observations)
     viterbi_matrix = [{}]
     best_path = {}
@@ -62,18 +61,26 @@ def viterbi_observation_transitions(obs_transitions: List[Tuple[str, str]],
         viterbi_matrix.append({})
         new_path = {}
 
+        each_transition = obs_transitions[i]
+        matrix_conditional = viterbi_matrix[i - 1]
+        matrix_consequence = viterbi_matrix[i]
         for curr_state in states:
-            (prob, state) = max(
-                (viterbi_matrix[i-1][prev_state] * trans_probabilities[prev_state][curr_state] * emit_probabilities[curr_state].get(obs_transitions[i], 0), prev_state)
+            prob, state = max(
+                (
+                    matrix_conditional[prev_state] * trans_probabilities[prev_state][curr_state] *
+                    emit_probabilities[curr_state].get(each_transition, 0),
+                    prev_state
+                )
                 for prev_state in states
             )
-            viterbi_matrix[i][curr_state] = prob
+
+            matrix_consequence[curr_state] = prob
             new_path[curr_state] = path[state] + [curr_state]
 
         path = new_path
 
     # Find the most probable state sequence
-    (prob, state) = max((viterbi_matrix[-1][y], y) for y in states)
+    prob, state = max((viterbi_matrix[-1][y], y) for y in states)
     return path[state]
 
 
@@ -89,12 +96,15 @@ def test_sequence() -> None:
 
     # Populating the state transitions and emissions with example data
     # Note: In a real scenario, this data should be based on actual observations or domain knowledge
-    state_transitions.transition('Rainy', 'Rainy', 7)  # Transitioning from Rainy to Rainy with frequency 7
+
+    # Transitioning from Rainy to Rainy with frequency 7
+    state_transitions.transition('Rainy', 'Rainy', 7)
     state_transitions.transition('Rainy', 'Sunny', 3)
     state_transitions.transition('Sunny', 'Rainy', 4)
     state_transitions.transition('Sunny', 'Sunny', 6)
 
-    emissions.transition('Rainy', 'walk', 1)  # When Rainy, observation 'walk' occurred 1 time
+    # When Rainy, observation 'walk' occurred 1 time
+    emissions.transition('Rainy', 'walk', 1)
     emissions.transition('Rainy', 'shop', 4)
     emissions.transition('Rainy', 'clean', 5)
     emissions.transition('Sunny', 'walk', 6)
@@ -102,7 +112,8 @@ def test_sequence() -> None:
     emissions.transition('Sunny', 'clean', 1)
 
     # Running the Viterbi algorithm
-    most_probable_states = viterbi_conditional_sequence(observations, states, start_probabilities, state_transitions, emissions)
+    most_probable_states = viterbi_conditional_sequence(
+        observations, states, start_probabilities, state_transitions, emissions)
     print("Most probable sequence of states:")
     print(most_probable_states)
 
@@ -128,7 +139,8 @@ def test_transitions() -> None:
     }
 
     # Run the Viterbi algorithm
-    most_probable_states = viterbi_observation_transitions(obs_transitions, states, start_probabilities, trans_probabilities, emit_probabilities)
+    most_probable_states = viterbi_observation_transitions(
+        obs_transitions, states, start_probabilities, trans_probabilities, emit_probabilities)
     print("Most probable sequence of states:")
     print(most_probable_states)
 

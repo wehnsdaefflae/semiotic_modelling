@@ -134,6 +134,8 @@ class SemioticModel[C: Hashable, E: Hashable]:
 
         # get definitive last_representation (with duration)
         # get provisional this_representation (for prediction)
+        # use viterbi to find the best predictor tuple
+        # remember transition sequence instead of query_representation
         for each_predictor in self.predictors.values():
             each_value_definitive = each_predictor.max_scaled_likelihood(query_representation, self.open_world)
             each_value_provisional = each_predictor.max_scaled_fit(cause, effect)
