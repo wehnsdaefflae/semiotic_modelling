@@ -1,10 +1,28 @@
 from __future__ import annotations
-from typing import Generator, Hashable
+from typing import Generator, Hashable, Sequence
 
 from representation import Representation
 
 
 class SemioticModel[C: Hashable, E: Hashable]:
+    @staticmethod
+    def build(*, shape: Sequence[int], threshold: float, frozen: bool = False) -> SemioticModel:
+        height = len(shape)
+        base_model = SemioticModel[C, E](threshold=threshold, frozen=frozen)
+        model = base_model
+        for index_level in range(height - 1):
+            each_size = shape[index_level]
+            for _ in range(each_size - 1):
+                model._new_context()
+
+            model = model.parent
+
+        each_size = shape[-1]
+        for _ in range(each_size - 1):
+            model._new_context()
+
+        return base_model
+
     def __init__(self, *, threshold: float, frozen: bool = False) -> None:
         self.threshold = threshold
         self.frozen = frozen
@@ -33,20 +51,25 @@ class SemioticModel[C: Hashable, E: Hashable]:
             return default or cause
 
     def _get_best_context(self, cause: C, effect: E) -> tuple[Representation[C, E, int], float]:
+        if self.parent is None:
+            return self.context, self.context.prop_scaled_fit(cause, effect)
+
         best_probability = -1.
         best_context: Representation[C, E, int] | None = None
         parent_context = self.parent.context
 
         for each_context in self.all_contexts.values():
-            observation_transition_probability = each_context.max_scaled_fit(cause, effect)
+            observation_transition_probability = each_context.prop_scaled_fit(cause, effect)
             if observation_transition_probability < 0.:
-                observation_transition_probability = 1.
-                # observation_transition_probability = 0.
+                observation_transition_probability = 1. # 0.
 
-            state_transition_probability = parent_context.max_scaled_fit(self.context.shape, each_context.shape)
-            if state_transition_probability < 0.:
+            if self.context.shape == each_context.shape:
                 state_transition_probability = 1.
-                # state_transition_probability = 0.
+
+            else:
+                state_transition_probability = parent_context.prop_scaled_fit(self.context.shape, each_context.shape)
+                if state_transition_probability < 0.:
+                    state_transition_probability = 1. # 0.
 
             probability = observation_transition_probability * state_transition_probability
             if best_probability < probability:
@@ -55,33 +78,31 @@ class SemioticModel[C: Hashable, E: Hashable]:
 
         return best_context, best_probability
 
-    def _new_context(self, cause: C, effect: E) -> None:
+    def _new_context(self) -> Representation[C, E, int]:
+        if self.parent is None:
+            self.parent = SemioticModel[int, int](threshold=self.threshold, frozen=self.frozen)
+
         new_shape = len(self.all_contexts)
         new_context = Representation[C, E, int](shape=new_shape)
-        new_context.transition(cause, effect, duration=1)
         self.all_contexts[new_shape] = new_context
-        self.parent.transition(self.context.shape, new_context.shape)
-        self.context = new_context
+        return new_context
 
     def transition(self, cause: C, effect: E) -> None:
-        expectedness = self.context.max_scaled_fit(cause, effect)
-        if expectedness < 0. or expectedness >= self.threshold:
+        best_context, expectedness = self._get_best_context(cause, effect)
+
+        if expectedness < self.threshold:
+            if not self.frozen:
+                best_context = self._new_context()
+
+        elif best_context.shape == self.context.shape:
             self.context.transition(cause, effect, duration=1)
             return
 
-        if self.parent is None and not self.frozen:
-            self.parent = SemioticModel[int, int](threshold=self.threshold)
-            self._new_context(cause, effect)
+        if self.parent is not None:
+            self.parent.transition(self.context.shape, best_context.shape)
 
-        else:
-            new_context, new_expectedness = self._get_best_context(cause, effect)
-            # breakpoint()
-            if self.frozen or new_expectedness >= self.threshold:
-                self.parent.transition(self.context.shape, new_context.shape)
-                self.context = new_context
-                return
-
-            self._new_context(cause, effect)
+        self.context = best_context
+        self.context.transition(cause, effect, duration=1)
 
 
 def iterate_text() -> Generator[str, None, None]:
@@ -92,10 +113,14 @@ def iterate_text() -> Generator[str, None, None]:
 
 
 def main() -> None:
-    # model = SemioticModel.build([5, 3], frozen=True)
-    model = SemioticModel[str, str](threshold=.01, frozen=False)
+    # model = SemioticModel.build(shape=[5, 3], threshold=.5, frozen=True)
+    model = SemioticModel[str, str](threshold=.5, frozen=False)
     # model = SemioticModel.build([1], frozen=True)
 
+    # todo:
+    #  implement frozen
+    #  implement build
+    #  if better than single predictor, then back to graphs
     # max_scaled_fit or prop_scaled_fit?
     # open world or closed world?
     #   in current context
