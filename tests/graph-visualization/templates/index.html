@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>3D Force Graph</title>
+    <script src="https://unpkg.com/3d-force-graph"></script>
+</head>
+<body>
+    <div id="3d-graph"></div>
+    <button onclick="addNode()">Add Node</button>
+
+    <script>
+        const graph = ForceGraph3D()(document.getElementById('3d-graph'));
+        let ws = new WebSocket(`ws://${window.location.host}/ws`);
+
+        ws.onmessage = function(event) {
+            const newData = JSON.parse(event.data);
+            const currentData = graph.graphData();
+
+            // Extract new nodes and links from the incoming data
+            const newNodes = newData.nodes.filter(n => !currentData.nodes.some(cn => cn.id === n.id));
+            const newLinks = newData.links.filter(l => !currentData.links.some(cl => cl.source === l.source && cl.target === l.target));
+
+            // Add new nodes and links to the current graph data
+            newNodes.forEach(node => currentData.nodes.push(node));
+            newLinks.forEach(link => currentData.links.push(link));
+
+            // Update the graph with the new nodes and links
+            graph.graphData({
+                nodes: currentData.nodes,
+                links: currentData.links
+            });
+        };
+
+        function addNode() {
+            ws.send(JSON.stringify({action: 'add_node'}));
+        }
+    </script>
+
+</body>
+</html>
