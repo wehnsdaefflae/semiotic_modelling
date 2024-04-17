@@ -90,7 +90,7 @@ class GraphManager:
         self._confirmation_id = -1
         self._event = asyncio.Event()
 
-    async def handle_websocket_messages(self) -> None:
+    async def handle_confirmations(self) -> None:
         while True:
             message = await self.websocket.receive_json()
             print(f"Received message: {message}")
@@ -98,9 +98,12 @@ class GraphManager:
             if message.get("type") == "confirmation":
                 await self.confirmation_handler(message)
 
+            if message.get("type") == "event":
+                print(f"Received event: {message}")
+
     async def _send_command(
-            self, action: str,
-            positional_arguments: list[any] | None = None, keyword_arguments: dict[str, any] | None = None
+        self, action: str,
+        positional_arguments: list[any] | None = None, keyword_arguments: dict[str, any] | None = None
     ) -> any:
         """Send a command to the frontend and wait for confirmation."""
 

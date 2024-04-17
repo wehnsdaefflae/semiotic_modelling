@@ -33,13 +33,23 @@ class MyGraph(GraphManager):
         return await self.sync_graph()
 
 
+async def handle_events(websocket: WebSocket) -> None:
+    while True:
+        message = await websocket.receive_json()
+        print(f"Received message: {message}")
+
+        if message.get("type") == "event":
+            print(f"Received event: {message}")
+
+
 # WebSocket route for handling graph operations
 async def ws_channel(websocket: WebSocket) -> None:
     await websocket.accept()
     print("WebSocket connection established.")
 
     graph_manager = MyGraph(websocket)
-    listener_task = asyncio.create_task(graph_manager.handle_websocket_messages())
+    confirmation_listener = asyncio.create_task(graph_manager.handle_confirmations())
+    event_listener = asyncio.create_task(handle_events(websocket))
 
     await graph_manager.initialize_graph()
     await graph_manager.sync_graph()
@@ -54,19 +64,26 @@ async def ws_channel(websocket: WebSocket) -> None:
 
         if i >= 1:
             random_node = random.randint(0, i - 1)
-            await graph_manager.add_edge(random_node, i)
+            await graph_manager.add_edge(i, random_node)
 
-    await listener_task
+    await confirmation_listener
+    await event_listener
 
 
-async def homepage(request: Request) -> HTMLResponse:
-    with open('templates/index.html', 'r') as f:
+async def visualization(request: Request) -> HTMLResponse:
+    with open('templates/index.html', mode='r') as f:
         html_content = f.read()
     return HTMLResponse(html_content)
 
 
+async def example(request: Request) -> HTMLResponse:
+    with open('templates/dynamic.html', mode='r') as f:
+        html_content = f.read()
+    return HTMLResponse(html_content)
+
 routes = [
-    Route("/", endpoint=homepage),
+    Route("/", endpoint=visualization),
+    Route("/example", endpoint=example),
     WebSocketRoute("/ws", endpoint=ws_channel)
 ]
 
@@ -74,6 +91,10 @@ app = Starlette(debug=True, routes=routes)
 
 
 if __name__ == '__main__':
+    # todo
+    #  implement 2d graph
+    #  remove await for methods without return value
+
     # https://chat.openai.com/c/8b9bbd01-8e85-4012-a2f4-39fd02723625
     # https://github.com/vasturiano/3d-force-graph
     # https://github.com/vasturiano/3d-force-graph/blob/master/example/dynamic/index.html

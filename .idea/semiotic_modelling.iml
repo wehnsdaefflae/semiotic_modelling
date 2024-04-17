@@ -15,7 +15,7 @@
     </content>
     <orderEntry type="jdk" jdkName="Python 3.12 (semiotic_modelling)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="3d-force-graph" level="application" />
+    <orderEntry type="library" name="3d-force-graph" level="project" />
   </component>
   <component name="TestRunnerService">
     <option name="PROJECT_TEST_RUNNER" value="Unittests" />
