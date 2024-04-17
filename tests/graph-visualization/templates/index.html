@@ -7,34 +7,68 @@
 </head>
 <body>
     <div id="3d-graph"></div>
-    <button onclick="addNode()">Add Node</button>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    </style>
 
     <script>
-        const graph = ForceGraph3D()(document.getElementById('3d-graph'));
-        let ws = new WebSocket(`ws://${window.location.host}/ws`);
+        const wsHost = window.location.host;
+        const ws = new WebSocket(`ws://${wsHost}/ws`);
 
-        ws.onmessage = function(event) {
-            const newData = JSON.parse(event.data);
-            const currentData = graph.graphData();
+        let graph = null;
 
-            // Extract new nodes and links from the incoming data
-            const newNodes = newData.nodes.filter(n => !currentData.nodes.some(cn => cn.id === n.id));
-            const newLinks = newData.links.filter(l => !currentData.links.some(cl => cl.source === l.source && cl.target === l.target));
+        function initGraph(configOptions) {
+            console.log('Initializing graph with options', configOptions)
+            /*
+                {
+                    controlType: "trackball" | "orbit" | "fly",     // default "trackball"
+                    renderConfig: WebGLRenderer object;             // default { antialias: true, alpha: true }, https://threejs.org/docs/#api/en/renderers/WebGLRenderer
+                    extraRenderers: [WebGLRenderer object, ...],    // default[], e.g. https://threejs.org/docs/#examples/en/renderers/CSS3DRenderer
+                }
+             */
+            graph = ForceGraph3D(configOptions)(document.getElementById('3d-graph'));
+        }
 
-            // Add new nodes and links to the current graph data
-            newNodes.forEach(node => currentData.nodes.push(node));
-            newLinks.forEach(link => currentData.links.push(link));
+        async function runGraphAction(action, argumentArray, argumentObject, actionId) {
+            console.log(`Running action ${action} with arguments`, argumentArray, argumentObject);
 
-            // Update the graph with the new nodes and links
-            graph.graphData({
-                nodes: currentData.nodes,
-                links: currentData.links
-            });
+            let returnValue = null;
+
+            if (action === 'initGraph') {
+                initGraph(argumentObject);
+
+            } else if (!graph) {
+                console.error('Graph not initialized');
+
+            } else {
+                const method = graph[action];
+
+                if (typeof method === 'function') {
+                    const arguments = argumentArray.concat([argumentObject]);
+                    returnValue = method.apply(graph, arguments);
+
+                } else {
+                    console.error(`Method ${action} not found`);
+                }
+            }
+
+            console.log(`Sending confirmation for action id ${actionId}`);
+            ws.send(JSON.stringify({ "type": "confirmation", "actionId": actionId, "returnValue": returnValue }));
+        }
+
+        ws.onopen = () => {
+            console.log(`Connected to server at ${wsHost}`);
         };
 
-        function addNode() {
-            ws.send(JSON.stringify({action: 'add_node'}));
-        }
+        ws.onmessage = event => {
+            const data = JSON.parse(event.data);
+            runGraphAction(data["action"], data["positionalArguments"], data["keywordArguments"], data["actionId"]);
+        };
     </script>
 
 </body>
