@@ -79,12 +79,11 @@ class Position:
 
 class GraphManager:
     def __init__(self, websocket: WebSocket):
+        self._initialized = False
+
         self._dag_mode: str | None = None
         self.websocket = websocket
         self.graph = networkx.Graph()
-
-        self.graph.add_nodes_from([0, 1, 2, 3, 4, 5])
-        self.graph.add_edges_from([(0, 1), (1, 2), (2, 3), (3, 4), (4, 5)])
 
         self._last_return_value = None
         self._action_id = 0
@@ -103,8 +102,10 @@ class GraphManager:
             self, action: str,
             positional_arguments: list[any] | None = None, keyword_arguments: dict[str, any] | None = None
     ) -> any:
-
         """Send a command to the frontend and wait for confirmation."""
+
+        if action != "initGraph" and not self._initialized:
+            raise Exception("The graph must be initialized first.")
 
         await self.websocket.send_json({
             "action": action,
@@ -141,7 +142,9 @@ class GraphManager:
     async def initialize_graph(self, config_options: ConfigOptions | None = None) -> None:
         # Initialize the graph with specific configuration
         config_dict = dataclasses.asdict(config_options or ConfigOptions())
-        return await self._send_command("initGraph", None, config_dict)
+        return_value = await self._send_command("initGraph", None, config_dict)
+        self._initialized = True
+        return return_value
 
     # data input
     async def set_graph_data(self, graph_data: GraphData) -> None:

@@ -24,13 +24,6 @@
 
         function initGraph(configOptions) {
             console.log('Initializing graph with options', configOptions)
-            /*
-                {
-                    controlType: "trackball" | "orbit" | "fly",     // default "trackball"
-                    renderConfig: WebGLRenderer object;             // default { antialias: true, alpha: true }, https://threejs.org/docs/#api/en/renderers/WebGLRenderer
-                    extraRenderers: [WebGLRenderer object, ...],    // default[], e.g. https://threejs.org/docs/#examples/en/renderers/CSS3DRenderer
-                }
-             */
             graph = ForceGraph3D(configOptions)(document.getElementById('3d-graph'));
         }
 
@@ -46,14 +39,95 @@
                 console.error('Graph not initialized');
 
             } else {
-                const method = graph[action];
+                if (action === 'graphData') {
+                    if (argumentObject.length < 1) {
+                        returnValue = graph.graphData();
 
-                if (typeof method === 'function') {
-                    const arguments = argumentArray.concat([argumentObject]);
-                    returnValue = method.apply(graph, arguments);
+                    } else {
+                        const { nodes, links } = graph.graphData();
+
+                        // 1. remove
+                        //  1. all old node ids that are not in the new list
+                        //  2. all old links that have a source and target that is not in the new list
+                        // 2. add
+                        //  1. all new nodes that are not in the old list
+                        //  2. all new links that have a source and target that is not in the old list
+                        // 3. update
+                        //  1. all nodes with ids that are in both lists but have different properties
+                        //  2. all links with source and target that are in both lists but have different properties
+
+                        /*
+                        const oldNodeIds = nodes.map(node => node.id);
+                        const newNodeIds = argumentObject.nodes.map(node => node.id);
+
+                        const oldLinkIds = links.map(link => `${link.source}-${link.target}`);
+                        const newLinkIds = argumentObject.links.map(link => `${link.source}-${link.target}`);
+
+                        const nodesToRemove = nodes.filter(node => !newNodeIds.includes(node.id));
+                        const linksToRemove = links.filter(link => !newLinkIds.includes(`${link.source}-${link.target}`));
+
+                        const nodesToAdd = argumentObject.nodes.filter(node => !oldNodeIds.includes(node.id));
+                        const linksToAdd = argumentObject.links.filter(link => !oldLinkIds.includes(`${link.source}-${link.target}`));
+
+                        const nodesToUpdate = argumentObject.nodes.filter(node => oldNodeIds.includes(node.id));
+                        const linksToUpdate = argumentObject.links.filter(link => oldLinkIds.includes(`${link.source}-${link.target}`));
+
+                        nodesToRemove.forEach(node => {
+                            const index = nodes.indexOf(node);
+                            nodes.splice(index, 1);
+                        });
+
+                        linksToRemove.forEach(link => {
+                            const index = links.indexOf(link);
+                            links.splice(index, 1);
+                        });
+
+                        nodesToAdd.forEach(node => {
+                            nodes.push(node);
+                        });
+
+                        linksToAdd.forEach(link => {
+                            links.push(link);
+                        });
+
+                        nodesToUpdate.forEach(node => {
+                            const index = nodes.findIndex(n => n.id === node.id);
+                            nodes[index] = node;
+                        });
+
+                        linksToUpdate.forEach(link => {
+                            const index = links.findIndex(l => l.source === link.source && l.target === link.target);
+                            links[index] = link;
+                        });
+                        */
+
+                        /*
+                        nodes.splice(0, nodes.length);
+                        links.splice(0, links.length);
+
+                        argumentObject.nodes.forEach(eachNode => {
+                            nodes.push(eachNode);
+                        });
+                        argumentObject.links.forEach(eachLink => {
+                            links.push(eachLink);
+                        });
+                        */
+
+                        // graph.graphData({ nodes, links });
+
+                        graph.graphData(argumentObject);
+                    }
 
                 } else {
-                    console.error(`Method ${action} not found`);
+                    const method = graph[action];
+
+                    if (typeof method === 'function') {
+                        const arguments = argumentArray.concat([argumentObject]);
+                        returnValue = method.apply(graph, arguments);
+
+                    } else {
+                        console.error(`Method ${action} not found`);
+                    }
                 }
             }
 
