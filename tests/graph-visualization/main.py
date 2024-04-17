@@ -46,6 +46,7 @@ async def ws_channel(websocket: WebSocket) -> None:
 
     # https://github.com/vasturiano/3d-force-graph/blob/master/example/dynamic/index.html
     # https://vasturiano.github.io/3d-force-graph/example/dynamic/
+    # https://github.com/vasturiano/force-graph
 
     for i in range(50):
         await asyncio.sleep(1)
