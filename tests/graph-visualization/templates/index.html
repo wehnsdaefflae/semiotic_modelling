@@ -6,197 +6,239 @@
     <script src="//unpkg.com/3d-force-graph"></script>
 </head>
 <body>
-    <div id="3d-graph"></div>
+<div id="3d-graph"></div>
 
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-    </style>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+</style>
 
-    <script>
-        const wsHost = window.location.host;
-        const ws = new WebSocket(`ws://${wsHost}/ws`);
+<script>
+    const Globals = {
+        graph: null,
+    }
 
-        const graphData = {
-            nodes: [],
-            links: []
-        }
+    const AdditionalCommands = {
+        customSynchronizeGraph(newNodes, newLinks) {
+            console.log('Synchronizing graph with new data');
+            const {nodes, links} = Globals.graph.graphData();
 
-        let graph = null;
+            Globals.graph.graphData({
+                    nodes: newNodes,
+                    links: newLinks
+                });
+        },
 
-        function forwardEvents(thisGraph) {
-            thisGraph.onNodeClick((node, event) => {
-                console.log(`Node clicked: ${node.id}`);
-                ws.send(JSON.stringify({"type": "event", "mode": "nodeClick", "node": node, "event": event}));
-            });
-            thisGraph.onNodeRightClick((node, event) => {
-                console.log(`Node right-clicked: ${node.id}`);
-                ws.send(JSON.stringify({"type": "event", "mode": "nodeRightClick", "node": node, "event": event}));
-            });
-            thisGraph.onNodeHover((node, prevNode) => {
-                console.log(`Node hovered: ${node ? node.id : null}`);
-                ws.send(JSON.stringify({"type": "event", "mode": "nodeHover", "node": node, "prevNode": prevNode}));
-            });
-            thisGraph.onNodeDrag((node, translate) => {
-                console.log(`Node dragged: ${node.id}`);
-                ws.send(JSON.stringify({"type": "event", "mode": "nodeDrag", "node": node, "translate": translate}));
-            });
-            thisGraph.onNodeDragEnd((node, translate) => {
-                console.log(`Node drag ended: ${node.id}`);
-                ws.send(JSON.stringify({"type": "event", "mode": "nodeDragEnd", "node": node, "translate": translate}));
-            });
-            thisGraph.onLinkClick((link, event) => {
-                console.log(`Link clicked: ${link.source} -> ${link.target}`);
-                ws.send(JSON.stringify({"type": "event", "mode": "linkClick", "link": link, "event": event}));
-            });
-            thisGraph.onLinkRightClick((link, event) => {
-                console.log(`Link right-clicked: ${link.source} -> ${link.target}`);
-                ws.send(JSON.stringify({"type": "event", "mode": "linkRightClick", "link": link, "event": event}));
-            });
-            thisGraph.onLinkHover((link, prevLink) => {
-                console.log(`Link hovered: ${link ? link.source + ' -> ' + link.target : null}`);
-                ws.send(JSON.stringify({"type": "event", "mode": "linkHover", "link": link, "prevLink": prevLink}));
-            });
-            thisGraph.onBackgroundClick(event => {
-                console.log('Background clicked');
-                ws.send(JSON.stringify({"type": "event", "mode": "backgroundClick", "event": event}));
-            });
-            thisGraph.onBackgroundRightClick(event => {
-                console.log('Background right-clicked');
-                ws.send(JSON.stringify({"type": "event", "mode": "backgroundRightClick", "event": event}));
-            });
-        }
-
-        function initGraph(configOptions) {
-            console.log('Initializing graph with options', configOptions)
-            graph = ForceGraph3D(configOptions)(document.getElementById('3d-graph'));
-            graph.graphData(graphData);
-            forwardEvents(graph);
-        }
-
-        function runGraphAction(action, argumentArray, argumentObject, actionId) {
-            console.log(`Running action ${action} with arguments`, argumentArray, argumentObject);
-
-            let returnValue = null;
-
-            if (action === 'initGraph') {
-                initGraph(argumentObject);
-
-            } else if (!graph) {
-                console.error('Graph not initialized');
-
-            } else {
-                if (action === 'graphData') {
-                    if (argumentObject.length < 1) {
-                        returnValue = graph.graphData();
-
-                    } else {
-                        const { nodes, links } = graph.graphData();
-
-                        // 1. remove
-                        //  1. all old node ids that are not in the new list
-                        //  2. all old links that have a source and target that is not in the new list
-                        // 2. add
-                        //  1. all new nodes that are not in the old list
-                        //  2. all new links that have a source and target that is not in the old list
-                        // 3. update
-                        //  1. all nodes with ids that are in both lists but have different properties
-                        //  2. all links with source and target that are in both lists but have different properties
-
-                        /*
-                        const oldNodeIds = nodes.map(node => node.id);
-                        const newNodeIds = argumentObject.nodes.map(node => node.id);
-
-                        const oldLinkIds = links.map(link => `${link.source}-${link.target}`);
-                        const newLinkIds = argumentObject.links.map(link => `${link.source}-${link.target}`);
-
-                        const nodesToRemove = nodes.filter(node => !newNodeIds.includes(node.id));
-                        const linksToRemove = links.filter(link => !newLinkIds.includes(`${link.source}-${link.target}`));
-
-                        const nodesToAdd = argumentObject.nodes.filter(node => !oldNodeIds.includes(node.id));
-                        const linksToAdd = argumentObject.links.filter(link => !oldLinkIds.includes(`${link.source}-${link.target}`));
-
-                        const nodesToUpdate = argumentObject.nodes.filter(node => oldNodeIds.includes(node.id));
-                        const linksToUpdate = argumentObject.links.filter(link => oldLinkIds.includes(`${link.source}-${link.target}`));
-
-                        nodesToRemove.forEach(node => {
-                            const index = nodes.indexOf(node);
-                            nodes.splice(index, 1);
-                        });
-
-                        linksToRemove.forEach(link => {
-                            const index = links.indexOf(link);
-                            links.splice(index, 1);
-                        });
-
-                        nodesToAdd.forEach(node => {
-                            nodes.push(node);
-                        });
-
-                        linksToAdd.forEach(link => {
-                            links.push(link);
-                        });
-
-                        nodesToUpdate.forEach(node => {
-                            const index = nodes.findIndex(n => n.id === node.id);
-                            nodes[index] = node;
-                        });
-
-                        linksToUpdate.forEach(link => {
-                            const index = links.findIndex(l => l.source === link.source && l.target === link.target);
-                            links[index] = link;
-                        });
-                        */
-
-                        nodes.splice(0, nodes.length);
-                        links.splice(0, links.length);
-
-                        argumentObject.nodes.forEach(eachNode => {
-                            nodes.push(eachNode);
-                        });
-                        argumentObject.links.forEach(eachLink => {
-                            links.push(eachLink);
-                        });
-
-                        graph.graphData({ nodes, links });
-
-                        // graph.graphData(argumentObject);
-                    }
-
-                } else {
-                    const method = graph[action];
-
-                    if (typeof method === 'function') {
-                        const arguments = argumentArray.concat([argumentObject]);
-                        returnValue = method.apply(graph, arguments);
-
-                    } else {
-                        console.error(`Method ${action} not found`);
-                    }
-                }
+        addNode(newNode, nodeId = undefined) {
+            console.log('Adding node', newNode);
+            const {nodes, links} = Globals.graph.graphData();
+            if (nodeId === undefined) {
+                const newId = nodes.length;
+                Globals.graph.graphData({
+                    nodes: [...nodes, {...newNode, id: newId}],
+                    links: links
+                });
+                return newId;
             }
 
-            console.log(`Sending confirmation for action id ${actionId}`);
-            ws.send(JSON.stringify({ "type": "confirmation", "actionId": actionId, "returnValue": returnValue }));
+            Globals.graph.graphData({
+                nodes: [...nodes.filter(eachNode => eachNode.id !== nodeId), newNode],
+                links: links
+            });
+            return nodeId;
+        },
+
+        addLink(source, target, linkObject = undefined) {
+            console.log(`Adding link from ${source} to ${target}`);
+            const {nodes, links} = Globals.graph.graphData();
+            if (linkObject === undefined) {
+                Globals.graph.graphData({
+                    nodes: nodes,
+                    links: [...links, {source, target}]
+                });
+
+            } else {
+                Globals.graph.graphData({
+                    nodes: nodes,
+                    links: [...links, {...linkObject, source, target}]
+                });
+            }
+        },
+
+        removeNode(nodeId) {
+            console.log('Removing node ID', nodeId);
+            const {nodes, links} = Globals.graph.graphData();
+            Globals.graph.graphData({
+                nodes: nodes.filter(eachNode => eachNode.id !== nodeId),
+                links: links.filter(eachLink => eachLink.source !== nodeId && eachLink.target !== nodeId)
+            });
+        },
+
+        removeLink(source, target) {
+            console.log(`Removing link from ${source} to ${target}`);
+            const {nodes, links} = Globals.graph.graphData();
+            Globals.graph.graphData({
+                nodes: nodes,
+                links: links.filter(eachLink => eachLink.source !== source || eachLink.target !== target)
+            });
+        }
+    }
+
+    const wsHost = window.location.host;
+    const ws = new WebSocket(`ws://${wsHost}/ws`);
+
+    function forwardEvents(thisGraph) {
+        thisGraph.onNodeClick((node, event) => {
+            ws.send(JSON.stringify({"type": "event", "mode": "nodeClick", "node": node, "event": event}));
+        });
+        thisGraph.onNodeRightClick((node, event) => {
+            ws.send(JSON.stringify({"type": "event", "mode": "nodeRightClick", "node": node, "event": event}));
+        });
+        thisGraph.onNodeHover((node, prevNode) => {
+            ws.send(JSON.stringify({"type": "event", "mode": "nodeHover", "node": node, "prevNode": prevNode}));
+        });
+        thisGraph.onNodeDrag((node, translate) => {
+            ws.send(JSON.stringify({"type": "event", "mode": "nodeDrag", "node": node, "translate": translate}));
+        });
+        thisGraph.onNodeDragEnd((node, translate) => {
+            ws.send(JSON.stringify({"type": "event", "mode": "nodeDragEnd", "node": node, "translate": translate}));
+        });
+        thisGraph.onLinkClick((link, event) => {
+            ws.send(JSON.stringify({"type": "event", "mode": "linkClick", "link": link, "event": event}));
+        });
+        thisGraph.onLinkRightClick((link, event) => {
+            ws.send(JSON.stringify({"type": "event", "mode": "linkRightClick", "link": link, "event": event}));
+        });
+        thisGraph.onLinkHover((link, prevLink) => {
+            ws.send(JSON.stringify({"type": "event", "mode": "linkHover", "link": link, "prevLink": prevLink}));
+        });
+        thisGraph.onBackgroundClick(event => {
+            ws.send(JSON.stringify({"type": "event", "mode": "backgroundClick", "event": event}));
+        });
+        thisGraph.onBackgroundRightClick(event => {
+            ws.send(JSON.stringify({"type": "event", "mode": "backgroundRightClick", "event": event}));
+        });
+    }
+
+    function initGraph(configOptions) {
+        console.log('Initializing graph with options', configOptions)
+        Globals.graph = ForceGraph3D(configOptions)(document.getElementById('3d-graph'));
+        forwardEvents(Globals.graph);
+    }
+
+    function runNativeCommand(command, argumentArray, argumentObject, messageId) {
+        console.log(`Running command ${command} with arguments`, argumentArray, argumentObject);
+
+        let returnValue = null;
+
+        if (command === 'initGraph') {
+            initGraph(argumentObject);
+
+        } else if (!Globals.graph) {
+            console.error('Graph not initialized');
+
+        } else {
+            const method = Globals.graph[command];
+
+            if (typeof method === 'function') {
+                const arguments = argumentArray.concat([argumentObject]);
+                returnValue = method.apply(Globals.graph, arguments);
+
+            } else {
+                console.error(`Method ${command} not found`);
+            }
         }
 
-        ws.addEventListener("open", () => {
-            console.log(`Connected to server at ${wsHost}`);
-        });
+        console.log(`Sending confirmation for native command, message id ${messageId}`);
+        ws.send(JSON.stringify({"type": "confirmation", "messageId": messageId, "returnValue": returnValue}));
+    }
 
-        ws.addEventListener("close", () => {
-            console.log(`Disconnected from server at ${wsHost}`);
-        });
+    function runAdditionalCommand(command, argumentArray, argumentObject, messageId) {
+        console.log(`Running additional command ${command} with arguments`, argumentArray, argumentObject);
 
-        ws.addEventListener("message", event => {
-            console.log(`Received message from server: ${event.data}`);
-            const data = JSON.parse(event.data);
-            runGraphAction(data["action"], data["positionalArguments"], data["keywordArguments"], data["actionId"]);
-        });
-    </script>
+        let returnValue = null;
+
+        if (!Globals.graph) {
+            console.error('Graph not initialized');
+
+        } else if (command === 'synchronizeGraph') {
+            const nodes = argumentArray[0];
+            const links = argumentArray[1];
+            AdditionalCommands.customSynchronizeGraph(nodes, links);
+            returnValue = null;
+
+        } else {
+            let node, source, target, nodeId;
+
+            switch (command) {
+                case 'addNode':
+                    node = argumentArray[0];
+                    nodeId = argumentObject['nodeId'];
+                    returnValue = AdditionalCommands.addNode(node, nodeId);
+                    break;
+
+                case 'addLink':
+                    source = argumentArray[0];
+                    target = argumentArray[1];
+                    AdditionalCommands.addLink(source, target, argumentObject);
+                    returnValue = null;
+                    break;
+
+                case 'removeNode':
+                    node = argumentArray[0];
+                    AdditionalCommands.removeNode(node);
+                    returnValue = null;
+                    break;
+
+                case 'removeLink':
+                    source = argumentArray[0];
+                    target = argumentArray[1];
+                    AdditionalCommands.removeLink(source, target);
+                    returnValue = null;
+                    break;
+
+                default:
+                    console.error(`Unknown command ${command}`);
+            }
+        }
+
+        console.log(`Sending confirmation for additional command, message id ${messageId}`);
+        ws.send(JSON.stringify({"type": "confirmation", "messageId": messageId, "returnValue": returnValue}));
+    }
+
+    ws.addEventListener("open", () => {
+        console.log(`Connected to server at ${wsHost}`);
+    });
+
+    ws.addEventListener("close", () => {
+        console.log(`Disconnected from server at ${wsHost}`);
+    });
+
+    ws.addEventListener("message", event => {
+        console.log(`Received message from server: ${event.data}`);
+        const data = JSON.parse(event.data);
+
+        const messageType = data["type"];
+        const command = data["command"];
+        const positionalArguments = data["positionalArguments"];
+        const keywordArguments = data["keywordArguments"];
+        const messageId = data["messageId"];
+
+        switch (messageType) {
+            case "nativeCommand":
+                runNativeCommand(command, positionalArguments, keywordArguments, messageId);
+                break;
+            case "additionalCommand":
+                runAdditionalCommand(command, positionalArguments, keywordArguments, messageId);
+                break;
+            default:
+                console.error(`Unknown message type: ${messageType}`);
+        }
+    });
+</script>
 
 </body>
 </html>
